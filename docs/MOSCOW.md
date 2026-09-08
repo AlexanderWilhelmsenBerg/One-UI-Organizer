@@ -2,9 +2,11 @@
 
 This document separates the first useful release from attractive follow-on ideas. The goal is to keep One UI Organizer tiny enough to finish while preserving a clear path to richer organization later.
 
+Implementation sequencing is defined separately in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Parallel work does **not** change product priority: every Must item below remains required for v0.1.
+
 ## Must have — v0.1 cannot ship without these
 
-### Companion behaviour
+### Companion behavior
 
 - One UI Home remains the default launcher.
 - Organizer opens as a separate companion activity/shelf rather than replacing the launcher.
@@ -24,8 +26,8 @@ This document separates the first useful release from attractive follow-on ideas
   2. known-app rule;
   3. Android-declared category mapping;
   4. `Unsorted`.
-- `Unsorted` must remain a fully usable category, not an error state.
-- A bundled starter ruleset for common app classes/categories.
+- `Unsorted` remains fully usable, not an error state.
+- A bundled starter ruleset for useful common classifications.
 
 ### Manual correction
 
@@ -49,16 +51,39 @@ This document separates the first useful release from attractive follow-on ideas
 - No analytics or ads.
 - No cloud service.
 - No `INTERNET` permission.
-- No background service for ordinary v0.1 behaviour.
+- No `QUERY_ALL_PACKAGES`.
+- No background service for ordinary v0.1 behavior.
 
-### Engineering quality
+### Engineering baseline
+
+- Use only exact stable-compatible versions from `STABLE_BASELINE.md`.
+- Reproducible Gradle daemon JDK and explicit Android Java/JVM toolchain.
+- Central version catalog and dependency verification.
+- Warning-free compiler/Gradle/Lint/ktlint baseline.
+- Dependency health gate.
+- App-owned cross-layer contracts; Android/DataStore/Compose implementation types remain in their appropriate layers.
+- Persisted user state starts with explicit schema version 1.
+- No reliance on used-but-undeclared transitive dependencies.
+
+### Testing and performance
 
 - Clean build from checkout.
 - Testable package-scanner boundary.
 - Pure Kotlin category engine with unit coverage.
 - Persistence tests for user overrides/favourites/hidden state.
 - Critical Compose/UI tests.
+- Instrumented/system tests for behaviors that cannot be proven locally.
 - Physical Samsung device acceptance on modern One UI / Android 16.
+- Performance is measured after integration before optimization.
+
+### Parallel-development discipline
+
+- Foundation/scaffold Agent 00 merges before feature agents branch from the implementation baseline.
+- Platform, domain, data and UI lanes remain separately owned during Wave 1.
+- Shared app-owned contracts are not duplicated to avoid coordination.
+- Contract changes are explicit and affected sibling branches rebase.
+- A separate integration/acceptance Agent 50 closes cross-layer behavior.
+- Coding agents do not merge their own PRs unless the owner explicitly instructs them to.
 
 ## Should have — high-value follow-up, but v0.1 remains useful without it
 
@@ -70,7 +95,7 @@ This document separates the first useful release from attractive follow-on ideas
 
 ### Better category management
 
-- Dedicated hidden-app management screen.
+- Dedicated hidden-app management screen beyond the minimum v0.1 restore surface.
 - Dedicated `Unsorted` triage flow.
 - Bulk move several apps to a category.
 - Rule explanation such as "Placed here by Android category" or "Your override".
@@ -94,7 +119,8 @@ This document separates the first useful release from attractive follow-on ideas
 
 ### Performance hardening
 
-- Baseline profile / macrobenchmark once the product flow is stable enough that measurements are meaningful.
+- Baseline profile generation when a stable plugin line cleanly supports the chosen AGP generation.
+- Additional macrobenchmark regression gates once enough history exists to set trustworthy thresholds.
 
 ## Could have — useful ideas that should not delay the core app
 
@@ -110,8 +136,8 @@ This document separates the first useful release from attractive follow-on ideas
 
 ### Usage-based suggestions
 
-- Optional, explicit permission-based "frequently used" or time-of-day suggestions.
-- Must remain opt-in and must work locally.
+- Optional, explicit permission-based frequently-used/time-of-day suggestions.
+- Must remain opt-in and local.
 
 ### Work profile support
 
@@ -182,7 +208,8 @@ These are not declarations that the project can never change. They are deliberat
 
 When a new idea appears during implementation:
 
-1. If it is required for a Must item to work correctly, include it.
+1. If it is required for a Must item to work correctly, include it in the owning lane or integration repair.
 2. If it improves quality but does not block a Must item, record it under Should or Could.
-3. If it expands the product into launcher replacement, cloud services, or unsupported Samsung internals, defer it unless the project scope is explicitly re-approved.
+3. If it expands the product into launcher replacement, cloud services, unsupported Samsung internals, or unnecessary infrastructure, defer it unless scope is explicitly re-approved.
 4. Prefer finishing one polished companion workflow over shipping many half-connected surfaces.
+5. Do not use parallel development as justification for duplicating architecture or broadening scope.
