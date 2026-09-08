@@ -26,6 +26,28 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
+      - name: Provision baseline Android SDK tools
+        shell: bash
+        run: |
+          tools_dir="${RUNNER_TEMP}/android-command-line-tools"
+          tools_zip="${RUNNER_TEMP}/commandlinetools-linux-15859902_latest.zip"
+          mkdir -p "${tools_dir}"
+          curl -fsSL \
+            https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip \
+            -o "${tools_zip}"
+          unzip -q "${tools_zip}" -d "${tools_dir}"
+
+          android_cli="${tools_dir}/cmdline-tools/bin/android"
+          "${android_cli}" --sdk="${ANDROID_HOME}" sdk install \
+            platforms/android-37 \
+            platform-tools
+
+          echo "Android CLI:"
+          "${android_cli}" --version
+          echo "Android platform-tools:"
+          "${ANDROID_HOME}/platform-tools/adb" --version
+          "${ANDROID_HOME}/platform-tools/adb" --version | grep -F "Version 37.0.1"
+
       - name: Report toolchains
         run: |
           ./gradlew --version
