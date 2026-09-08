@@ -72,7 +72,7 @@ Use:
 - Gradle Wrapper **9.7.0**;
 - JDK 26 daemon;
 - Java 17 Android compilation target;
-- `compileSdk 37`;
+- `compileSdk = 37` with `compileSdkMinor = 0`;
 - `targetSdk 36` until Android 17/API 37 is final and device acceptance is complete;
 - AGP-managed Build Tools rather than unnecessary manual Build Tools pinning;
 - no NDK unless native code becomes a real requirement.
@@ -83,14 +83,14 @@ Kotlin 2.4.20 documents full compatibility through Gradle 9.7.0 and AGP 9.3.1. A
 
 The stable-only policy applies to Maven dependencies, AndroidX libraries, Kotlin, AGP, Gradle, Android Studio and Gradle plugins. A preview **Android SDK platform** is permitted only when the selected current stable AndroidX/Compose line requires that compile API and the final SDK platform is not yet available.
 
-For the current baseline, stable Compose BOM **2026.08.00 / Compose 1.12** requires `compileSdk = 37`, while Android API 37 is still distributed as the **Cinnamon Bun Preview** SDK. CI therefore uses stable Android command-line tools build **15859902** and its non-deprecated `android` CLI to install only `platforms/android-37` from the beta SDK channel.
+For the current baseline, stable Compose BOM **2026.08.00 / Compose 1.12** requires API 37, while Android API **37.0** is still distributed as the **Cinnamon Bun Preview** SDK. CI therefore uses stable Android command-line tools build **15859902** and its non-deprecated `android` CLI to install only `platforms/android-37.0@2.0.0` from the beta SDK channel. AGP 9.3 models the actual SDK minor version with `compileSdk = 37` plus `compileSdkMinor = 0`.
 
 Rules for this exception:
 
 - do not install unrelated beta/canary SDK packages;
 - keep Build Tools AGP-managed unless a concrete build failure proves a specific Build Tools package is necessary;
 - keep `targetSdk = 36` until Android 17 is final and explicitly approved;
-- do not use Android-17-only product APIs or behavior merely because API 37 is available at compile time;
+- do not use Android-17-only product APIs or behavior merely because API 37.0 is available at compile time;
 - do not extend the exception to preview Kotlin, AGP, Gradle, Android Studio, Maven libraries, plugins, emulator images, or other runtime/tooling inputs.
 
 The compile SDK answers what symbols the compiler can see. It does not by itself opt the app into Android 17 runtime behavior.
@@ -374,7 +374,7 @@ Keep Android/package scanning, persistence, and presentation-specific APIs behin
 
 Do not opt into experimental APIs globally. If a future stable feature requires an experimental API, isolate the opt-in to the smallest possible file/class and document why the product needs it.
 
-The preview API-37 compile platform is not an experimental-API opt-in. Product code remains on the existing runtime/target contract until a separate change approves otherwise.
+The preview API-37.0 compile platform is not an experimental-API opt-in. Product code remains on the existing runtime/target contract until a separate change approves otherwise.
 
 ## 11. Automated dependency maintenance
 
@@ -394,7 +394,7 @@ Every update PR must pass the same build/test/Lint/ktlint/dependency-health gate
 
 Do **not** add:
 
-- preview SDK packages other than the explicitly approved API-37 compile platform;
+- preview SDK packages other than the explicitly approved API-37.0 compile platform;
 - Detekt 2.x alpha;
 - stable Detekt 1.x just to have a second analyzer;
 - KSP unless a stable dependency actually requires code generation;
@@ -436,4 +436,4 @@ The scaffold exposes the normal local lane as approximately:
 ./gradlew --version
 ```
 
-The permanent CI additionally provisions the approved API-37 compile platform from the Android SDK beta channel before running Gradle. Keep this section aligned with reality.
+The permanent CI additionally provisions the approved API-37.0 compile platform from the Android SDK beta channel before running Gradle. Keep this section aligned with reality.

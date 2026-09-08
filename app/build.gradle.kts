@@ -10,6 +10,7 @@ plugins {
 android {
     namespace = "io.github.alexanderwilhelmsenberg.oneuiorganizer"
     compileSdk = 37
+    compileSdkMinor = 0
 
     defaultConfig {
         applicationId = "io.github.alexanderwilhelmsenberg.oneuiorganizer"

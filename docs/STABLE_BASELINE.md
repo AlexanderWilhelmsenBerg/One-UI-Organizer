@@ -17,9 +17,9 @@ One qualification is intentional: mutually dependent stable build tools must als
 
 A preview **Android SDK platform** may be installed only when a selected latest-stable AndroidX/Compose release requires that compile API and no final SDK platform is available yet. This is a compile-time platform exception, not a general preview-dependency exception.
 
-The current approved exception is **Android API 37 / Cinnamon Bun Preview** because stable Compose BOM **2026.08.00 / Compose 1.12** requires `compileSdk = 37` while API 37 is still distributed through the Android SDK beta channel. CI installs only the `platforms/android-37` SDK platform from that channel using the stable Android command-line tools and current non-deprecated `android` CLI.
+The current approved exception is **Android API 37.0 / Cinnamon Bun Preview**, package `platforms/android-37.0@2.0.0`, because stable Compose BOM **2026.08.00 / Compose 1.12** requires API 37 while the platform is still distributed through the Android SDK beta channel. CI installs only that SDK platform using stable Android command-line tools and the current non-deprecated `android` CLI.
 
-This exception does **not** permit preview Kotlin, AGP, Gradle, Android Studio, Maven dependencies, libraries, Gradle plugins, runtime APIs, Build Tools, emulator/system images, or `targetSdk`. `targetSdk` remains **36** until Android 17 is final and separately approved. Compiling against API 37 does not authorize Android-17-only product behavior or API usage.
+This exception does **not** permit preview Kotlin, AGP, Gradle, Android Studio, Maven dependencies, libraries, Gradle plugins, runtime APIs, Build Tools, emulator/system images, or `targetSdk`. `targetSdk` remains **36** until Android 17 is final and separately approved. Compiling against API 37.0 does not authorize Android-17-only product behavior or API usage.
 
 ## 1. Build and JVM toolchains
 
@@ -27,7 +27,7 @@ This exception does **not** permit preview Kotlin, AGP, Gradle, Android Studio, 
 |---|---:|---|
 | Android Studio | **Quail 4 / 2026.1.4** | Current stable Android Studio at policy date |
 | Android SDK Command-line Tools | **package build 15859902 (`latest`)** | Current stable command-line tools package from Google; `sdkmanager` is deprecated, so automation uses the package's current `android` CLI |
-| Android SDK Platform | **API 37 / Cinnamon Bun Preview platform only** | Narrow compile-SDK exception required by stable Compose 1.12; provisioned from the beta SDK channel |
+| Android SDK Platform | **API 37.0 / `platforms/android-37.0@2.0.0`** | Narrow compile-SDK exception required by stable Compose 1.12; provisioned from the beta SDK channel |
 | Android SDK Platform-Tools | **37.0.1** | Current stable `adb` / platform-tools release |
 | Android Emulator | **37.1.11** | Current stable emulator release |
 | Gradle daemon JDK vendor | **Eclipse Temurin / Adoptium** | Reproducible OpenJDK distribution for local and CI |
@@ -38,7 +38,7 @@ This exception does **not** permit preview Kotlin, AGP, Gradle, Android Studio, 
 | Compose Compiler Gradle plugin | **2.4.20** | Match Kotlin version |
 | Android Gradle Plugin | **9.3.1** | Highest AGP fully supported by Kotlin 2.4.20 |
 | Gradle Wrapper | **9.7.0** | Highest Gradle fully supported by Kotlin 2.4.20 |
-| compileSdk | **37** | Compile API required by stable Compose 1.12; does not imply target/runtime behavior |
+| compileSdk | **37, minor API 0** | Expressed as `compileSdk = 37` plus `compileSdkMinor = 0`; does not imply target/runtime behavior |
 | targetSdk | **36 initially** | Keep at 36 until Android 17 final + explicit acceptance/approval |
 | minSdk | **28** | Product compatibility decision |
 | Android SDK Build Tools | **AGP-managed** | Do not install/pin preview Build Tools unless a concrete build failure proves they are required |
@@ -118,7 +118,7 @@ Greenfield quality policy:
 ## 5. Benchmark and performance tooling
 
 | Feature | Stable baseline | Adoption |
-|---|---:|---|
+|---|---:|
 | AndroidX Macrobenchmark | **1.4.1** | Add dedicated benchmark module when primary flow exists |
 | AndroidX Microbenchmark | **1.4.1** | Only for isolated hot code where useful |
 | ProfileInstaller | **1.4.1** | Use when baseline/profile flow is adopted |

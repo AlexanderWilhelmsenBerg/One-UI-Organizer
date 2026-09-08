@@ -24,7 +24,7 @@ jobs:
         with:
           gradle-version: '9.7.0'
 
-      - name: Provision API 37 compile SDK
+      - name: Provision API 37.0 compile SDK
         shell: bash
         run: |
           set -euo pipefail
@@ -54,10 +54,10 @@ jobs:
 
           echo "API 37 directories after install:"
           find "${ANDROID_HOME}/platforms" -maxdepth 1 -type d -name 'android-37*' -print
-          test -f "${ANDROID_HOME}/platforms/android-37/android.jar"
-          ls -l "${ANDROID_HOME}/platforms/android-37/android.jar"
-          echo "Installed API 37 source properties:"
-          cat "${ANDROID_HOME}/platforms/android-37/source.properties"
+          test -f "${ANDROID_HOME}/platforms/android-37.0/android.jar"
+          ls -l "${ANDROID_HOME}/platforms/android-37.0/android.jar"
+          echo "Installed API 37.0 source properties:"
+          cat "${ANDROID_HOME}/platforms/android-37.0/source.properties"
 
           echo "Android platform-tools:"
           "${ANDROID_HOME}/platform-tools/adb" --version
