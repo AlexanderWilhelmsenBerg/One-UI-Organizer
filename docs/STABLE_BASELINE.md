@@ -1,6 +1,7 @@
 # Stable Development Baseline
 
 **Policy date:** 2026-09-08
+**Last upstream verification:** 2026-09-08
 
 This file is the **authoritative exact-version inventory** for One UI Organizer.
 
@@ -17,6 +18,9 @@ One qualification is intentional: mutually dependent build tools must also be in
 | Component | Baseline | Reason / status |
 |---|---:|---|
 | Android Studio | **Quail 4 / 2026.1.4** | Current stable Android Studio at policy date |
+| Android SDK Command-line Tools | **package build 15859902 (`latest`)** | Current stable command-line tools package from Google |
+| Android SDK Platform-Tools | **37.0.1** | Current stable `adb` / platform-tools release |
+| Android Emulator | **37.1.11** | Current stable emulator release |
 | Gradle daemon JDK vendor | **Eclipse Temurin / Adoptium** | Reproducible OpenJDK distribution for local and CI |
 | Gradle daemon JDK | **26.0.2.1+1** | Latest stable Temurin JDK 26 security update; Gradle supports running on JVM through 26 |
 | Android compile/test Java toolchain | **Java 17** | Explicit Android language/bytecode baseline; independent from daemon JDK |
@@ -182,6 +186,10 @@ The first real implementation slice should remain deliberately small:
 
 ```text
 Build/runtime
+- Android Studio Quail 4 / 2026.1.4
+- Android SDK Command-line Tools build 15859902
+- Android SDK Platform-Tools 37.0.1
+- Android Emulator 37.1.11
 - Temurin JDK 26.0.2.1+1 for Gradle
 - Java 17 Android compile/test toolchain
 - Foojay resolver 1.0.0
@@ -232,6 +240,9 @@ Baseline Profile plugin
 
 ## 11. Upstream references
 
+- Android Studio and Command-line Tools: https://developer.android.com/studio
+- Android SDK Platform-Tools: https://developer.android.com/tools/releases/platform-tools
+- Android Emulator releases: https://developer.android.com/studio/releases/emulator
 - Kotlin Gradle/AGP compatibility: https://kotlinlang.org/docs/gradle-configure-project.html
 - Kotlin 2.4.20: https://kotlinlang.org/docs/whatsnew2420.html
 - Android Java/JDK configuration: https://developer.android.com/build/jdks
