@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build and quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Report toolchains
+        run: |
+          ./gradlew --version
+          ./gradlew javaToolchains --warning-mode=fail --dependency-verification=strict
+
+      - name: Verify scaffold
+        run: >-
+          ./gradlew clean :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
+          --warning-mode=fail
+          --dependency-verification=strict
+          --configuration-cache
+          --configuration-cache-problems=fail
+
+      - name: Verify configuration-cache reuse
+        run: >-
+          ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
+          --warning-mode=fail
+          --dependency-verification=strict
+          --configuration-cache
+          --configuration-cache-problems=fail
+
+      - name: Verify forbidden permissions remain absent
+        shell: bash
+        run: |
+          if grep -Eq 'android\.permission\.(INTERNET|QUERY_ALL_PACKAGES)' app/src/main/AndroidManifest.xml; then
+            echo "Forbidden v0.1 permission found in AndroidManifest.xml"
+            exit 1
+          fi

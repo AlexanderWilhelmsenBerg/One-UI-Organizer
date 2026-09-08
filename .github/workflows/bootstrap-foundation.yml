@@ -1,0 +1,78 @@
+name: Bootstrap Foundation
+
+on:
+  push:
+    branches:
+      - foundation/scaffold
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Gradle 9.7.0 for bootstrap
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          gradle-version: '9.7.0'
+
+      - name: Ensure compile SDK is installed
+        shell: bash
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37"
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --version
+          adb --version
+
+      - name: Generate wrapper and daemon JVM criteria
+        shell: bash
+        run: |
+          distribution_sha="$(curl -fsSL https://services.gradle.org/distributions/gradle-9.7.0-bin.zip.sha256)"
+          gradle wrapper \
+            --gradle-version 9.7.0 \
+            --distribution-type bin \
+            --gradle-distribution-sha256-sum "${distribution_sha}"
+          chmod +x gradlew
+          gradle updateDaemonJvm --jvm-version=26 --jvm-vendor=adoptium
+
+      - name: Commit generated Gradle bootstrap files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gradlew gradlew.bat gradle/wrapper gradle/gradle-daemon-jvm.properties
+          if ! git diff --cached --quiet; then
+            git commit -m "build: generate Gradle wrapper and daemon JVM criteria"
+            git push
+          fi
+
+      - name: Generate SHA-256 dependency verification metadata
+        shell: bash
+        run: |
+          rm -f gradle/verification-metadata.xml
+          ./gradlew \
+            --write-verification-metadata sha256 \
+            :app:assembleDebug \
+            :app:testDebugUnitTest \
+            :app:lintDebug \
+            :app:ktlintCheck \
+            buildHealth \
+            --warning-mode=fail \
+            --configuration-cache \
+            --configuration-cache-problems=fail
+
+      - name: Commit verification metadata
+        shell: bash
+        run: |
+          git add gradle/verification-metadata.xml
+          if ! git diff --cached --quiet; then
+            git commit -m "build: add SHA-256 dependency verification metadata"
+            git push
+          fi
