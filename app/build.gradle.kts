@@ -68,7 +68,7 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit)
 
-    add(ktlintCli.name, libs.ktlint.cli) {
+    addProvider(ktlintCli.name, libs.ktlint.cli) {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
         }
