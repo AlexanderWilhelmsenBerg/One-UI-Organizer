@@ -9,16 +9,25 @@ For the rules governing how these tools and libraries are used, isolated, tested
 
 ## Policy
 
-The project uses **latest stable releases only**. Alpha, beta, RC, milestone, EAP, preview, nightly, snapshot, and dynamic `+` versions are not allowed in normal development.
+The project uses **latest stable releases only** for Maven artifacts, libraries, Kotlin, AGP, Gradle, Android Studio, Gradle plugins and other normal build/runtime dependencies. Alpha, beta, RC, milestone, EAP, preview, nightly, snapshot, and dynamic `+` versions are not allowed in those dependency/tool categories.
 
-One qualification is intentional: mutually dependent build tools must also be inside their vendors' documented compatibility ranges. If the individually newest stable versions are not yet documented as fully compatible, use the newest fully supported combination and record the newer stable release as deferred.
+One qualification is intentional: mutually dependent stable build tools must also be inside their vendors' documented compatibility ranges. If the individually newest stable versions are not yet documented as fully compatible, use the newest fully supported combination and record the newer stable release as deferred.
+
+### Narrow preview compile-SDK exception
+
+A preview **Android SDK platform** may be installed only when a selected latest-stable AndroidX/Compose release requires that compile API and no final SDK platform is available yet. This is a compile-time platform exception, not a general preview-dependency exception.
+
+The current approved exception is **Android API 37 / Cinnamon Bun Preview** because stable Compose BOM **2026.08.00 / Compose 1.12** requires `compileSdk = 37` while API 37 is still distributed through the Android SDK beta channel. CI installs only the `platforms/android-37` SDK platform from that channel using the stable Android command-line tools and current non-deprecated `android` CLI.
+
+This exception does **not** permit preview Kotlin, AGP, Gradle, Android Studio, Maven dependencies, libraries, Gradle plugins, runtime APIs, Build Tools, emulator/system images, or `targetSdk`. `targetSdk` remains **36** until Android 17 is final and separately approved. Compiling against API 37 does not authorize Android-17-only product behavior or API usage.
 
 ## 1. Build and JVM toolchains
 
 | Component | Baseline | Reason / status |
 |---|---:|---|
 | Android Studio | **Quail 4 / 2026.1.4** | Current stable Android Studio at policy date |
-| Android SDK Command-line Tools | **package build 15859902 (`latest`)** | Current stable command-line tools package from Google; `sdkmanager` is now deprecated, so automation uses the package's current `android` CLI when a CLI is needed |
+| Android SDK Command-line Tools | **package build 15859902 (`latest`)** | Current stable command-line tools package from Google; `sdkmanager` is deprecated, so automation uses the package's current `android` CLI |
+| Android SDK Platform | **API 37 / Cinnamon Bun Preview platform only** | Narrow compile-SDK exception required by stable Compose 1.12; provisioned from the beta SDK channel |
 | Android SDK Platform-Tools | **37.0.1** | Current stable `adb` / platform-tools release |
 | Android Emulator | **37.1.11** | Current stable emulator release |
 | Gradle daemon JDK vendor | **Eclipse Temurin / Adoptium** | Reproducible OpenJDK distribution for local and CI |
@@ -29,10 +38,10 @@ One qualification is intentional: mutually dependent build tools must also be in
 | Compose Compiler Gradle plugin | **2.4.20** | Match Kotlin version |
 | Android Gradle Plugin | **9.3.1** | Highest AGP fully supported by Kotlin 2.4.20 |
 | Gradle Wrapper | **9.7.0** | Highest Gradle fully supported by Kotlin 2.4.20 |
-| compileSdk | **37** | Current compile API required by stable Compose line |
-| targetSdk | **36 initially** | Raise to 37 after Android 17 final + acceptance testing |
+| compileSdk | **37** | Compile API required by stable Compose 1.12; does not imply target/runtime behavior |
+| targetSdk | **36 initially** | Keep at 36 until Android 17 final + explicit acceptance/approval |
 | minSdk | **28** | Product compatibility decision |
-| Android SDK Build Tools | **AGP-managed** | Do not pin unless a concrete build issue requires it |
+| Android SDK Build Tools | **AGP-managed** | Do not install/pin preview Build Tools unless a concrete build failure proves they are required |
 | NDK | **Not used** | No native code requirement |
 
 ### The JDK split is deliberate
@@ -58,7 +67,7 @@ This lets the development/build environment stay current without accidentally pr
 | Material 3 | **1.4.0** via BOM |
 | Activity / activity-compose | **1.13.0** |
 | Lifecycle | **2.11.0** |
-| AndroidX Core | **1.19.0** |
+| AndroidX Core | **1.19.0** (`androidx.core:core`; Core KTX APIs are merged into the main artifact) |
 | DataStore | **1.2.1** |
 | kotlinx.coroutines | **1.11.0** |
 | kotlinx.serialization | **1.11.0** |
@@ -148,6 +157,8 @@ The exact `setup-java` action version is not part of the authoritative toolchain
 
 ## 8. Known newer/pre-release versions intentionally not selected
 
+The preview compile-SDK exception above is the only approved preview input. It is an SDK platform, not a Maven/library/plugin dependency.
+
 ### AGP 9.4.0
 
 AGP **9.4.0** is stable, but Kotlin 2.4.20 currently documents full AGP compatibility only through **9.3.1**. Upgrade when a stable Kotlin line expands that compatibility range.
@@ -168,7 +179,7 @@ Benchmark 1.5.x is not stable on the policy date, so the project remains on 1.4.
 
 When intentionally upgrading any baseline component:
 
-1. verify the candidate is stable upstream;
+1. verify the candidate is stable upstream, except for the narrowly approved compile-SDK platform rule;
 2. verify compatibility with dependent build tools;
 3. change the version catalog / wrapper / Daemon JVM criteria in a dedicated upgrade change;
 4. regenerate dependency verification metadata;
@@ -178,4 +189,4 @@ When intentionally upgrading any baseline component:
 8. verify debug APK install/launch on the primary Samsung device when platform/UI behavior may be affected;
 9. record any deferred incompatibility rather than silently accepting warnings.
 
-The point of this policy is not to chase version numbers. It is to keep the project on the newest stable **compatible** stack with upgrade work small and deliberate.
+The point of this policy is not to chase version numbers. It is to keep the project on the newest stable **compatible** stack, with the one documented compile-SDK platform exception, and keep upgrade work small and deliberate.

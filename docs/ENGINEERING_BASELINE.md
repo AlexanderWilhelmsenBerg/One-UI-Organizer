@@ -11,7 +11,7 @@ The engineering baseline exists to make upgrades boring rather than heroic.
 Principles:
 
 1. **Separate runtime roles.** Gradle's JVM, Android bytecode level, device API level and Kotlin language/compiler version are different concerns.
-2. **Prefer official stable tooling.** Do not solve ordinary Android problems with preview toolchains or abandoned plugins.
+2. **Prefer official stable tooling.** Maven artifacts, libraries, Kotlin, AGP, Gradle, Android Studio and Gradle plugins stay stable; the only preview exception is the compile-SDK platform rule defined below.
 3. **Pin what changes the build.** Toolchains and direct dependencies must be reproducible.
 4. **Own boundaries, not frameworks.** Domain/application contracts belong to this app; external libraries stay behind narrow adapters.
 5. **Tests follow boundaries.** Pure logic is tested without Android; Android integration is tested only where Android behavior matters.
@@ -79,6 +79,22 @@ Use:
 
 Kotlin 2.4.20 documents full compatibility through Gradle 9.7.0 and AGP 9.3.1. AGP 9.4.0 is stable but remains outside that fully-supported Kotlin range on the policy date, so 9.3.1 is the correct baseline under this project's compatibility rule.
 
+### 3.1 Narrow preview compile-SDK exception
+
+The stable-only policy applies to Maven dependencies, AndroidX libraries, Kotlin, AGP, Gradle, Android Studio and Gradle plugins. A preview **Android SDK platform** is permitted only when the selected current stable AndroidX/Compose line requires that compile API and the final SDK platform is not yet available.
+
+For the current baseline, stable Compose BOM **2026.08.00 / Compose 1.12** requires `compileSdk = 37`, while Android API 37 is still distributed as the **Cinnamon Bun Preview** SDK. CI therefore uses stable Android command-line tools build **15859902** and its non-deprecated `android` CLI to install only `platforms/android-37` from the beta SDK channel.
+
+Rules for this exception:
+
+- do not install unrelated beta/canary SDK packages;
+- keep Build Tools AGP-managed unless a concrete build failure proves a specific Build Tools package is necessary;
+- keep `targetSdk = 36` until Android 17 is final and explicitly approved;
+- do not use Android-17-only product APIs or behavior merely because API 37 is available at compile time;
+- do not extend the exception to preview Kotlin, AGP, Gradle, Android Studio, Maven libraries, plugins, emulator images, or other runtime/tooling inputs.
+
+The compile SDK answers what symbols the compiler can see. It does not by itself opt the app into Android 17 runtime behavior.
+
 ## 4. Build configuration principles
 
 ### 4.1 Kotlin DSL only
@@ -95,6 +111,7 @@ Rules:
 - group related first-party artifacts with BOMs when the vendor provides a stable BOM;
 - Compose uses the stable Compose BOM;
 - aliases describe the library role, not implementation trivia;
+- prefer the canonical current artifact when compatibility-only forwarding/empty artifacts exist (for example AndroidX Core 1.19 uses `androidx.core:core`, not the now-empty `core-ktx` compatibility artifact);
 - no version strings in feature source sets or module build files unless a Gradle API requires it;
 - plugin versions also live centrally where Gradle permits it.
 
@@ -357,6 +374,8 @@ Keep Android/package scanning, persistence, and presentation-specific APIs behin
 
 Do not opt into experimental APIs globally. If a future stable feature requires an experimental API, isolate the opt-in to the smallest possible file/class and document why the product needs it.
 
+The preview API-37 compile platform is not an experimental-API opt-in. Product code remains on the existing runtime/target contract until a separate change approves otherwise.
+
 ## 11. Automated dependency maintenance
 
 Use update automation only as discovery and PR creation, not as policy.
@@ -375,6 +394,7 @@ Every update PR must pass the same build/test/Lint/ktlint/dependency-health gate
 
 Do **not** add:
 
+- preview SDK packages other than the explicitly approved API-37 compile platform;
 - Detekt 2.x alpha;
 - stable Detekt 1.x just to have a second analyzer;
 - KSP unless a stable dependency actually requires code generation;
@@ -390,7 +410,7 @@ Do **not** add:
 
 When upgrading a library/toolchain:
 
-1. Confirm the candidate release is stable.
+1. Confirm the candidate release is stable, except for the narrowly documented compile-SDK platform exception.
 2. Check upstream compatibility ranges, not only release date.
 3. Update central version declarations only.
 4. Regenerate dependency verification metadata.
@@ -406,14 +426,14 @@ When upgrading a library/toolchain:
 
 ## 14. Useful verification commands
 
-The scaffold should expose tasks so the normal local lane is approximately:
+The scaffold exposes the normal local lane as approximately:
 
 ```text
-./gradlew clean assembleDebug testDebugUnitTest lintDebug :app:ktlintCheck buildHealth --warning-mode=fail
+./gradlew clean :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth --warning-mode=fail --dependency-verification=strict --configuration-cache --configuration-cache-problems=fail
 ./gradlew dependencyUpdates
 ./gradlew dependencies
 ./gradlew javaToolchains
 ./gradlew --version
 ```
 
-The exact task names may change slightly when the scaffold is implemented; keep this section aligned with reality.
+The permanent CI additionally provisions the approved API-37 compile platform from the Android SDK beta channel before running Gradle. Keep this section aligned with reality.
