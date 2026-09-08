@@ -1,37 +1,30 @@
-# Engineering Baseline and Upgrade Policy
+# Engineering Baseline
 
 **Policy date:** 2026-09-08
 
-This document defines how One UI Organizer is built, tested, benchmarked, and structured so that toolchain and dependency upgrades remain routine instead of becoming migration projects.
+This document defines how One UI Organizer is built, tested, analyzed, benchmarked and kept upgradeable. Exact versions live in [`STABLE_BASELINE.md`](STABLE_BASELINE.md); if a version here ever differs, `STABLE_BASELINE.md` wins.
 
-The companion version inventory lives in [STABLE_BASELINE.md](STABLE_BASELINE.md). This document defines **how those tools and libraries must be used**.
+## 1. Engineering goals
 
-## 1. Core policy
+The engineering baseline exists to make upgrades boring rather than heroic.
 
-1. Use the **latest stable release that is inside the vendors' documented compatibility ranges**.
-2. Do not use alpha, beta, RC, milestone, EAP, nightly, snapshot, or dynamic `+` versions in normal development.
-3. Keep build/runtime JDK, compile toolchain, bytecode target, Android SDK level, and device runtime as separate explicit choices.
-4. Pin versions centrally in `gradle/libs.versions.toml` or another single build-policy location; feature modules must not invent versions.
-5. Keep the build warning-free from the first commit. Do not create warning baselines for a greenfield project.
-6. Third-party APIs must not spread through the codebase merely because they are convenient. Library-specific types stay at integration boundaries unless the dependency is itself the platform contract (for example AndroidX Compose in UI code).
-7. Upgrades are their own changes. Avoid mixing framework/toolchain upgrades with product features unless the feature requires the upgrade.
-8. Every dependency must have an owner, a purpose, and an exit path.
+Principles:
 
-## 2. JVM and Android toolchain model
+1. **Separate runtime roles.** Gradle's JVM, Android bytecode level, device API level and Kotlin language/compiler version are different concerns.
+2. **Prefer official stable tooling.** Do not solve ordinary Android problems with preview toolchains or abandoned plugins.
+3. **Pin what changes the build.** Toolchains and direct dependencies must be reproducible.
+4. **Own boundaries, not frameworks.** Domain/application contracts belong to this app; external libraries stay behind narrow adapters.
+5. **Tests follow boundaries.** Pure logic is tested without Android; Android integration is tested only where Android behavior matters.
+6. **Warnings are migration signals.** Greenfield warnings are fixed, not normalized.
+7. **Performance is measured.** Add benchmark machinery when there is a stable flow worth measuring.
 
-One UI Organizer intentionally uses **two JDK roles**.
+## 2. JDK and JVM toolchains
 
-### 2.1 Gradle daemon / build runtime
+### 2.1 Gradle daemon JDK
 
-Use **JDK 26** to run Gradle and Android build tooling.
+Run Gradle itself on **Eclipse Temurin / Adoptium JDK 26.0.2.1+1**.
 
-Gradle 9.7 supports running on JVM 17 through 26. JDK 27 is not supported by that Gradle line, so do not jump to 27 merely because it exists.
-
-The repository must commit `gradle/gradle-daemon-jvm.properties`, generated with Gradle's `updateDaemonJvm` task, so local machines and CI agree on the required daemon JVM instead of silently inheriting `JAVA_HOME`.
-
-Preferred vendor: **Eclipse Temurin / Adoptium** for repeatable local and CI provisioning.
-
-Conceptual generation command:
+Commit Gradle Daemon JVM criteria so a clean checkout does not silently use whatever JDK happens to launch the wrapper:
 
 ```text
 ./gradlew updateDaemonJvm --jvm-version=26 --jvm-vendor=adoptium
@@ -67,7 +60,7 @@ Kotlin 2.4.20 and AGP built-in Kotlin must not be allowed to infer a JVM target 
 
 Never use `JAVA_HOME` as the project's source of truth.
 
-`JAVA_HOME` may bootstrap Gradle, but the committed Daemon JVM criteria and explicit compile toolchain define the build.
+`JAVA_HOME` may bootstrap Gradle, but the committed Daemon JVM criteria and explicit compile/tool execution toolchains define the build.
 
 ## 3. Build system baseline
 
@@ -171,16 +164,15 @@ A lint baseline may only be introduced later by an explicit debt decision if imp
 
 ### 6.2 ktlint
 
-Use:
+Use ktlint engine **1.8.0**.
 
-- ktlint engine **1.8.0**;
-- `org.jlleitschuh.gradle.ktlint` **14.2.0**.
+Stable `org.jlleitschuh.gradle.ktlint` **14.2.0** remains the tracked plugin version, but the initial scaffold does not apply it. Agent 00 verified that the plugin launches ktlint in a process-isolated worker using the Gradle daemon JVM and exposes no Java-launcher selector. With the required JDK 26 daemon, ktlint 1.8.0's embedded compiler emits terminal `sun.misc.Unsafe::objectFieldOffset` deprecation warnings.
 
-Pin the ktlint engine explicitly; do not rely on the Gradle plugin's changing default engine version.
+Instead, use ktlint's documented custom Gradle `JavaExec` integration and set that task's `javaLauncher` to the existing Java 17 toolchain. This keeps Gradle itself on JDK 26, keeps the exact stable ktlint engine, and avoids a global JVM warning-suppression flag.
 
 `.editorconfig` is the formatting contract. Formatting rules must not be duplicated in IDE-only settings.
 
-CI runs `ktlintCheck`; developers may use `ktlintFormat` locally.
+CI runs `:app:ktlintCheck`; developers may use `:app:ktlintFormat` locally. Re-evaluate the plugin when a stable release can select the worker JVM or no longer emits the warning on JDK 26.
 
 ### 6.3 Detekt
 
@@ -248,333 +240,180 @@ Unit-test targets include:
 - search normalization/filtering;
 - sorting;
 - category model migrations;
-- repository state transitions.
+- stale-app cleanup rules.
 
-Tests must not need Android framework types for domain behavior.
+### 8.2 Android-local tests
 
-### 8.2 Compose UI tests
+Avoid Robolectric by default. Android framework behavior that cannot be represented by a fake should usually move to instrumentation instead of simulating the whole framework locally.
 
-Use Compose UI test artifacts from Compose BOM **2026.08.00**.
+### 8.3 Compose UI tests
 
-Compose tests should assert semantics and user-visible behavior rather than implementation node hierarchy wherever possible.
+Use Compose's official test APIs. Keep UI state and event handlers injectable so most shelf behavior can be tested without real package scanning or persistence.
 
-Do not couple tests to internal composable function structure merely because it is easy.
+### 8.4 Instrumentation tests
 
-### 8.3 Android instrumentation
+Use AndroidX Test + UI Automator on an emulator/real device where Android behavior matters.
 
-Stable AndroidX test baseline:
+UI Automator is particularly appropriate for validating that tapping a shelf item leaves Organizer and opens the intended external app.
 
-- Test Core **1.7.0**;
-- Test Runner **1.7.0**;
-- Test Rules **1.7.0**;
-- ext.junit **1.3.0**;
-- Espresso **3.7.0** where Espresso is useful;
-- UI Automator **2.4.0** for app-launch/system/cross-app behavior.
+Use Android Test Orchestrator only if isolation becomes useful; do not add it to the initial graph by default.
 
-UI Automator 2.4's newer `uiAutomator` / `onElement` API is preferred over writing new tests against legacy selectors when the modern API fits.
+### 8.5 Test execution discipline
 
-Instrumentation tests cover things unit/Compose tests cannot prove, especially:
+Every PR should run the cheap verification lane:
 
-- discovering real launcher activities;
+```text
+unit tests
+Android Lint
+ktlint
+buildHealth
+Gradle warning/deprecation check
+configuration-cache smoke
+```
+
+Run instrumentation when a PR touches Android integration/UI behavior.
+
+Run physical-device acceptance when a PR changes:
+
+- package visibility/discovery;
 - launching external apps;
-- package aliases/duplicate launcher entries;
-- system permission/visibility behavior;
-- returning to One UI Organizer after external launches;
-- Samsung-specific sheet/window behavior.
+- window/translucency behavior;
+- API-level behavior that the emulator cannot represent reliably.
 
-### 8.4 Robolectric
+## 9. Benchmarking and performance
 
-Do not add Robolectric initially. If an Android framework behavior can be covered cheaply with a fake boundary or on-device test, prefer that. Add Robolectric only for a specific test gap.
+### 9.1 Do not benchmark an empty app
 
-### 8.5 Device matrix
+Do not add a benchmark module merely because modern Android projects often have one. A benchmark without a stable user journey measures scaffolding noise.
 
-At minimum before a release candidate:
+### 9.2 Adopt stable AndroidX Benchmark when the flow exists
 
-- the primary current Samsung/One UI device running Android 16;
-- one AOSP emulator/Gradle Managed Device on the minimum supported API (28) for compatibility smoke testing;
-- one current AOSP API device for platform behavior independent of Samsung;
-- API 37 testing once Android 17 is final and `targetSdk` is raised.
+When primary flows exist, add:
 
-Samsung device acceptance remains mandatory because the product is intentionally One UI-adjacent.
+- Macrobenchmark **1.4.1**;
+- Microbenchmark **1.4.1** only where isolated hot code needs it;
+- ProfileInstaller **1.4.1**;
+- UI Automator **2.4.0** for system-boundary benchmark setup where helpful.
 
-## 9. Performance and benchmark toolchain
-
-### 9.1 Macrobenchmark
-
-Use AndroidX Macrobenchmark **1.4.1** in a dedicated `:benchmark` or `:baselineprofile` `com.android.test` module when performance measurement is introduced.
-
-Primary measurements:
-
-- cold startup to usable shelf;
-- warm startup;
-- initial installed-app scan;
-- cached/resumed scan;
-- search response on a realistically-sized app catalog;
-- category-list scroll/frame performance;
-- open shelf → launch external app path.
-
-Benchmarks are measured on device, not inferred from local JVM test time.
-
-### 9.2 Microbenchmark
-
-Use AndroidX Benchmark **1.4.1** only for isolated hot code where Macrobenchmark cannot explain a regression, for example classification of a synthetic 1,000-app catalog.
-
-Do not microbenchmark ordinary repository/UI code for sport.
+Keep benchmark modules isolated from app/domain code. Benchmarking is a consumer of public app behavior, not an excuse to add benchmark hooks into production logic.
 
 ### 9.3 Baseline Profiles
 
-Macrobenchmark/ProfileInstaller stable components are currently **1.4.1**.
+AndroidX Baseline Profile Gradle plugin **1.4.1** is stable, but do not add it in the initial scaffold.
 
-However, the stable Baseline Profile Gradle plugin **1.4.1** has compatibility friction with the AGP 9 new DSL, while the newer 1.5 line is still pre-release. Under this project's stable-only rule:
+The current Baseline Profile plugin stable line does not yet integrate cleanly enough with the selected AGP 9 generation/new DSL to justify workarounds in a greenfield repository.
 
-- do **not** adopt the pre-release 1.5 plugin;
-- do **not** disable AGP's modern DSL just to retain an old profile plugin;
-- start with Macrobenchmark 1.4.1;
-- add Baseline Profile generation when a stable plugin line cleanly supports the selected AGP generation.
+Re-evaluate when a stable plugin line supports the selected AGP generation without deprecated DSL or warning debt.
 
-This is a deliberate compatibility deferral, not forgotten performance work.
+### 9.4 Performance gates
 
-When Baseline Profiles are enabled later, use ProfileInstaller **1.4.1 or the then-current stable version**, generate profiles for real critical user journeys, and benchmark before/after rather than assuming the profile improved performance.
+Do not invent microsecond thresholds before measurement. Establish a baseline on the primary Samsung device first.
 
-### 9.4 Release optimization
+Candidate journeys:
 
-Release builds use R8 optimization/minification and optimized resource shrinking. Keep rules live in AGP's modern keep-rule source-set/optimization DSL rather than accumulating one giant historical ProGuard file.
+1. cold start to first usable cached shelf;
+2. cold start to first categorized scan;
+3. rescan after app install/remove;
+4. search filtering latency;
+5. category expansion/collapse;
+6. long-press action latency;
+7. shelf-to-external-app launch latency;
+8. scroll frame timing for large app sets.
 
-Use AGP's R8 Configuration Analyzer when keep rules become non-trivial.
+Track regressions relative to the measured baseline. A noisy benchmark is advisory; a stable repeated regression can become a gate.
 
-## 10. CI verification lanes
+## 10. Dependency and API design for upgrades
 
-The eventual GitHub Actions workflow should have distinct lanes rather than one opaque `build` job.
+The goal is to make dependency upgrades local.
 
-### Fast PR lane
+### 10.1 App-owned models at boundaries
 
-Run on every PR:
+Do not expose external implementation types in domain/application contracts.
 
-1. Gradle wrapper validation / setup;
-2. build configuration with deprecations failing;
-3. ktlint check;
-4. Android Lint;
-5. dependency `buildHealth`;
-6. unit tests;
-7. debug compilation/assembly;
-8. Compose/instrumentation tests that can run reliably on CI-managed devices.
+Examples:
 
-### Release-quality lane
+- scanner adapter converts `ApplicationInfo`/`ResolveInfo` to `InstalledApp`;
+- persistence adapter converts DataStore/serialization DTOs to `OrganizerState`;
+- UI converts app-owned models to Compose presentation state;
+- external app launch accepts `LaunchTargetId`, not a raw `Intent`.
 
-Additionally run before release/tagging:
+### 10.2 Constructor injection
 
-1. release build with R8;
-2. instrumentation/device acceptance matrix;
-3. Macrobenchmark smoke/regression checks once benchmarks exist;
-4. artifact inspection (version, min/target SDK, signing mode, size);
-5. dependency verification must pass with no regenerated metadata;
-6. no build/lint/compiler warnings.
+Use ordinary constructor injection and small interfaces. Do not introduce Hilt/Koin solely to avoid writing constructors.
 
-### Upgrade compatibility lane
+A future DI framework should replace only composition wiring, not application contracts.
 
-For toolchain-update PRs, explicitly print and archive:
+### 10.3 No transitive-dependency coding
+
+If code imports a type from a library, that library should normally be declared directly in the module where the import occurs.
+
+Do not rely on one dependency pulling another into the classpath by accident.
+
+### 10.4 Isolate framework adapters
+
+Keep Android/package scanning, persistence, and presentation-specific APIs behind small adapters. This allows independent upgrades of AndroidX, DataStore, Compose or future persistence choices.
+
+### 10.5 Experimental APIs
+
+Do not opt into experimental APIs globally. If a future stable feature requires an experimental API, isolate the opt-in to the smallest possible file/class and document why the product needs it.
+
+## 11. Automated dependency maintenance
+
+Use update automation only as discovery and PR creation, not as policy.
+
+Recommended split:
+
+- Kotlin / AGP / Gradle / Compose compiler upgrades in dedicated toolchain PRs;
+- Compose BOM upgrades separately;
+- AndroidX library upgrades grouped conservatively;
+- testing-tool upgrades separately;
+- GitHub Actions upgrades separately.
+
+Every update PR must pass the same build/test/Lint/ktlint/dependency-health gates as feature work.
+
+## 12. What not to add yet
+
+Do **not** add:
+
+- Detekt 2.x alpha;
+- stable Detekt 1.x just to have a second analyzer;
+- KSP unless a stable dependency actually requires code generation;
+- Room without a measured persistence need;
+- Hilt/Koin without DI graph complexity;
+- Retrofit/Ktor/OkHttp without a network requirement;
+- baseline profile plugin until its stable line cleanly supports the selected AGP generation;
+- benchmarking modules before the primary product flow exists;
+- mocking frameworks by default;
+- experimental Compose libraries simply because they are new.
+
+## 13. Upgrade checklist
+
+When upgrading a library/toolchain:
+
+1. Confirm the candidate release is stable.
+2. Check upstream compatibility ranges, not only release date.
+3. Update central version declarations only.
+4. Regenerate dependency verification metadata.
+5. Run clean compile and unit tests.
+6. Run Android Lint with warnings treated as errors.
+7. Run ktlint.
+8. Run dependency `buildHealth`.
+9. Run Gradle with deprecation warnings failing.
+10. Verify configuration-cache reuse.
+11. Run instrumentation/device tests when the affected library crosses Android/UI/system boundaries.
+12. Check generated APK/release behavior if packaging changes.
+13. Record any remaining warning/deprecation before merge; greenfield changes should normally have none.
+
+## 14. Useful verification commands
+
+The scaffold should expose tasks so the normal local lane is approximately:
 
 ```text
-java -version
+./gradlew clean assembleDebug testDebugUnitTest lintDebug :app:ktlintCheck buildHealth --warning-mode=fail
+./gradlew dependencyUpdates
+./gradlew dependencies
+./gradlew javaToolchains
 ./gradlew --version
-Android Gradle Plugin version
-Kotlin version
-compileSdk / targetSdk / minSdk
 ```
 
-This turns future toolchain debugging into comparison rather than archaeology.
-
-## 11. GitHub Actions policy
-
-Use stable official actions only. Pin production workflow actions to immutable commit SHAs while annotating the human-readable release tag in comments.
-
-At the policy date, stable lines include:
-
-- `actions/checkout` **7.0.1**;
-- `gradle/actions/setup-gradle` **6.2.0**.
-
-`actions/setup-java` is allowed only as a bootstrap/CI convenience; the repository's Gradle Daemon JVM criteria and Java toolchains remain authoritative.
-
-Do not duplicate Gradle caches with both `setup-java` cache and `setup-gradle` cache. Prefer Gradle's dedicated action for Gradle caching/wrapper validation.
-
-Dependabot/Renovate should update action SHAs and annotated versions.
-
-## 12. Upgrade-friendly coding rules
-
-These rules are mandatory for implementation work.
-
-### 12.1 Keep domain models app-owned
-
-Domain/model packages must not expose:
-
-- `PackageInfo`, `ResolveInfo`, `ApplicationInfo`, `Drawable`, `Intent`;
-- DataStore classes;
-- serialization library internals;
-- Material/Compose UI state classes;
-- future database/network library classes.
-
-Instead map external data into small app-owned models such as `InstalledApp`, `AppId`, `AppCategory`, and `OrganizerState`.
-
-### 12.2 Platform APIs behind narrow boundaries
-
-Android integration belongs behind interfaces sized around what the app needs, not around everything Android can do.
-
-Example conceptual boundaries:
-
-```text
-InstalledAppSource
-AppLauncher
-OrganizerStateStore
-PinnedCategoryShortcutManager (later)
-UsageSignalSource (later)
-```
-
-Do not create a giant `AndroidManager` abstraction.
-
-### 12.3 External-library types stop at adapters
-
-When a third-party library is added, its types may exist inside its adapter/integration package, but should not become the app's domain vocabulary.
-
-Example: if storage later moves from DataStore to Room, category logic and ViewModels should not need rewriting because they depend on `OrganizerStateStore`, not DataStore/Room objects.
-
-### 12.4 Compose is allowed in UI, not domain
-
-Compose/Material are the chosen UI platform, so composables naturally depend on them. Domain/repository layers do not.
-
-Keep an app-owned design-token/theme layer around Material 3 values that are intentionally customized for the One UI-inspired appearance. Screens should prefer project theme/tokens rather than scattering raw Material defaults and magic dimensions.
-
-This makes Material upgrades and design changes centralized.
-
-### 12.5 Coroutines are the app async contract
-
-Use Kotlin `suspend`, `Flow`, and immutable state as asynchronous boundaries where appropriate.
-
-Do not expose third-party callback/future/reactive types across layers. If a future library uses RxJava, Guava futures, callbacks, etc., adapt it at the boundary.
-
-### 12.6 Persistence format is versioned and app-owned
-
-Persist app-owned DTO/state with an explicit schema/version field and migration tests.
-
-Do not serialize arbitrary framework/library classes directly. A library upgrade must not silently redefine the on-disk format.
-
-### 12.7 No service locator globals
-
-Dependencies are constructor-injected and assembled in a small composition root. Manual DI remains the default while the graph is small.
-
-If Hilt/Koin is ever introduced, application/domain objects still use ordinary constructors so the DI framework can be replaced without rewriting business logic.
-
-### 12.8 Do not rely on transitive dependencies
-
-If code imports an artifact, declare it directly. `buildHealth` enforces this.
-
-Never code against a dependency merely because another dependency currently brings it in.
-
-### 12.9 One library per concern
-
-Avoid simultaneous competing libraries for the same job (for example two JSON libraries or two image loaders) unless a migration is actively in progress.
-
-### 12.10 Prefer first-party stable APIs
-
-For Android/system behavior, prefer Android platform and AndroidX APIs over convenience wrappers when the wrapper adds little value. Every extra wrapper is another compatibility calendar.
-
-### 12.11 Isolate experimental platform APIs
-
-If Android introduces a new API needed by the app, isolate API-level checks and compatibility fallbacks in the platform adapter. Do not scatter `Build.VERSION` branches through UI/domain code.
-
-### 12.12 Migration tests are mandatory for stored state
-
-Any change to persisted organizer state must include tests proving:
-
-- old state loads;
-- migration is deterministic;
-- user overrides are not lost;
-- unknown/new fields have defined behavior;
-- downgrade behavior is documented if downgrades are unsupported.
-
-## 13. Dependency introduction checklist
-
-Before adding any package/library/plugin, answer:
-
-1. What product/test/build requirement does it solve?
-2. Is there a stable first-party/platform solution already available?
-3. What is the latest stable version?
-4. Is that version explicitly compatible with our Kotlin/AGP/Gradle/JDK line?
-5. Does it support configuration cache if it is a Gradle plugin?
-6. What permissions, runtime size, startup cost, or processors does it add?
-7. What library-specific types would enter our source code?
-8. Can those types stay behind a narrow adapter?
-9. How would we replace this dependency later?
-10. What tests prove our behavior independently of the library implementation?
-
-If these questions do not have good answers, do not add the dependency yet.
-
-## 14. Upgrade procedure
-
-For every significant toolchain/library upgrade:
-
-1. read release notes and migration notes;
-2. verify the new stable version against upstream compatibility tables;
-3. update the central version catalog/baseline only;
-4. update dependency verification metadata;
-5. compile with zero warnings;
-6. run formatting + lint + build health;
-7. run unit and instrumentation tests;
-8. run benchmark/regression lane when the change can affect performance;
-9. test on the Samsung device for Android/Compose/AGP/API-level changes;
-10. update `STABLE_BASELINE.md` with the new verified date and any deliberate deferrals.
-
-A version upgrade is not complete while deprecation warnings are merely tolerated.
-
-## 15. Current tooling inventory
-
-| Concern | Stable choice | Version / status |
-|---|---|---:|
-| Gradle runtime JDK | Eclipse Temurin/Adoptium | **26** |
-| Android compile/test JDK | explicit Java toolchain | **17** |
-| Toolchain auto-provisioning | Foojay resolver convention | **1.0.0** |
-| Gradle | Wrapper | **9.7.0** |
-| Kotlin | Kotlin / KGP-compatible compiler | **2.4.20** |
-| Android build | AGP | **9.3.1** |
-| Formatting | ktlint | **1.8.0** |
-| ktlint Gradle integration | ktlint-gradle | **14.2.0** |
-| Android semantic analysis | AGP Android Lint | bundled with **9.3.1** |
-| Dependency update report | Ben Manes settings plugin | **0.61.0** |
-| Dependency usage health | Autonomous Apps Dependency Analysis | **3.19.1** |
-| Coroutine testing | kotlinx-coroutines-test | **1.11.0** |
-| Android Test Core/Runner/Rules | AndroidX Test | **1.7.0** |
-| Android JUnit extension | AndroidX ext.junit | **1.3.0** |
-| Espresso | AndroidX Espresso | **3.7.0** |
-| Cross-app/system UI tests | UI Automator | **2.4.0** |
-| Compose UI tests | Compose BOM | **2026.08.00** |
-| Macro/micro benchmarks | AndroidX Benchmark | **1.4.1** |
-| Profile installer | AndroidX ProfileInstaller | **1.4.1** |
-| Baseline Profile plugin | stable **1.4.1**, but deferred for AGP 9 new-DSL compatibility | **do not add yet** |
-| Detekt | 2.x is pre-release; 1.x deliberately not introduced | **deferred** |
-| GitHub checkout action | actions/checkout | **7.0.1** |
-| GitHub Gradle action | gradle/actions/setup-gradle | **6.2.0** |
-
-## 16. Sources used for this policy
-
-Primary vendor documentation:
-
-- Kotlin/Gradle/AGP compatibility: https://kotlinlang.org/docs/gradle-configure-project.html
-- Kotlin 2.4.20: https://kotlinlang.org/docs/whatsnew2420.html
-- Android JDK/toolchain guidance: https://developer.android.com/build/jdks
-- AGP releases/compatibility: https://developer.android.com/build/releases/about-agp
-- AGP 9.3 release notes: https://developer.android.com/build/releases/agp-9-3-0-release-notes
-- Gradle JVM compatibility: https://docs.gradle.org/current/userguide/compatibility.html
-- Gradle Daemon JVM criteria: https://docs.gradle.org/current/userguide/gradle_daemon.html
-- Gradle JVM toolchains: https://docs.gradle.org/current/userguide/toolchains.html
-- Foojay resolver: https://plugins.gradle.org/plugin/org.gradle.toolchains.foojay-resolver-convention
-- AndroidX Test releases: https://developer.android.com/jetpack/androidx/releases/test
-- UI Automator releases: https://developer.android.com/jetpack/androidx/releases/test-uiautomator
-- AndroidX Benchmark releases: https://developer.android.com/jetpack/androidx/releases/benchmark
-- Baseline Profiles: https://developer.android.com/topic/performance/baselineprofiles/overview
-- Android Lint: https://developer.android.com/studio/write/lint
-- ktlint: https://github.com/ktlint/ktlint/releases
-- ktlint Gradle plugin: https://github.com/JLLeitschuh/ktlint-gradle/releases
-- Detekt status: https://detekt.dev/changelog-2.0.0/
-- Dependency Analysis plugin: https://plugins.gradle.org/plugin/com.autonomousapps.dependency-analysis
-- Ben Manes Versions plugin: https://plugins.gradle.org/plugin/io.github.ben-manes.versions.settings
-- Gradle GitHub Actions: https://github.com/gradle/actions
-- GitHub checkout action: https://github.com/actions/checkout/releases
+The exact task names may change slightly when the scaffold is implemented; keep this section aligned with reality.

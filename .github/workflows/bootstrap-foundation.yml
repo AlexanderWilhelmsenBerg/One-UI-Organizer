@@ -24,9 +24,11 @@ jobs:
         with:
           gradle-version: '9.7.0'
 
-      - name: Provision baseline Android SDK tools
+      - name: Verify Android SDK baseline
         shell: bash
         run: |
+          test -f "${ANDROID_HOME}/platforms/android-37/android.jar"
+
           tools_dir="${RUNNER_TEMP}/android-command-line-tools"
           tools_zip="${RUNNER_TEMP}/commandlinetools-linux-15859902_latest.zip"
           mkdir -p "${tools_dir}"
@@ -34,19 +36,12 @@ jobs:
             https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip \
             -o "${tools_zip}"
           unzip -q "${tools_zip}" -d "${tools_dir}"
+          "${tools_dir}/cmdline-tools/bin/android" --version
 
-          android_cli="${tools_dir}/cmdline-tools/bin/android"
-          "${android_cli}" --sdk="${ANDROID_HOME}" sdk install \
-            platforms/android-37 \
-            platform-tools
-
-          echo "Android CLI:"
-          "${android_cli}" --version
-          echo "Android platform-tools:"
           "${ANDROID_HOME}/platform-tools/adb" --version
           "${ANDROID_HOME}/platform-tools/adb" --version | grep -F "Version 37.0.1"
 
-      - name: Generate wrapper and daemon JVM criteria
+      - name: Regenerate wrapper and daemon JVM criteria
         shell: bash
         run: |
           distribution_sha="$(curl -fsSL https://services.gradle.org/distributions/gradle-9.7.0-bin.zip.sha256)"
@@ -56,17 +51,7 @@ jobs:
             --gradle-distribution-sha256-sum "${distribution_sha}"
           chmod +x gradlew
           gradle updateDaemonJvm --jvm-version=26 --jvm-vendor=adoptium
-
-      - name: Commit generated Gradle bootstrap files
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add gradlew gradlew.bat gradle/wrapper gradle/gradle-daemon-jvm.properties
-          if ! git diff --cached --quiet; then
-            git commit -m "build: generate Gradle wrapper and daemon JVM criteria"
-            git push
-          fi
+          git diff --exit-code -- gradlew gradlew.bat gradle/wrapper gradle/gradle-daemon-jvm.properties
 
       - name: Generate SHA-256 dependency verification metadata
         shell: bash
@@ -86,6 +71,8 @@ jobs:
       - name: Commit verification metadata
         shell: bash
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add gradle/verification-metadata.xml
           if ! git diff --cached --quiet; then
             git commit -m "build: add SHA-256 dependency verification metadata"

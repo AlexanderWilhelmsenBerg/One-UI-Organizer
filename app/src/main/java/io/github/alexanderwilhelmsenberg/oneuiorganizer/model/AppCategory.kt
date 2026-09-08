@@ -18,5 +18,5 @@ enum class AppCategory {
     TOOLS,
     GAMES,
     OTHER,
-    UNSORTED,
+    UNSORTED
 }

@@ -4,6 +4,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 
 @Composable
-fun OneUiOrganizerTheme(content: @Composable () -> Unit) {
+fun oneUiOrganizerTheme(content: @Composable () -> Unit) {
     MaterialTheme(content = content)
 }

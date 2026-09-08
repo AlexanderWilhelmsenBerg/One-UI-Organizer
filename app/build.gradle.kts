@@ -1,9 +1,10 @@
+import org.gradle.api.attributes.Bundling
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ktlint)
+    alias(libs.plugins.dependency.analysis)
 }
 
 android {
@@ -46,10 +47,16 @@ kotlin {
     }
 }
 
-ktlint {
-    version.set(libs.versions.ktlint.engine)
-    android.set(true)
-    ignoreFailures.set(false)
+val ktlintCli by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes {
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+    }
+}
+
+val java17Launcher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(17)
 }
 
 dependencies {
@@ -62,4 +69,37 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.kotlin.test.junit)
+
+    ktlintCli(libs.ktlint.cli)
+}
+
+tasks.register<JavaExec>("ktlintCheck") {
+    group = "verification"
+    description = "Check Kotlin formatting with ktlint 1.8.0 on the Java 17 toolchain."
+    classpath = ktlintCli
+    mainClass.set("com.pinterest.ktlint.Main")
+    javaLauncher.set(java17Launcher)
+    workingDir(rootProject.projectDir)
+    args(
+        "--relative",
+        "**/src/**/*.kt",
+        "**.kts",
+        "!**/build/**",
+    )
+}
+
+tasks.register<JavaExec>("ktlintFormat") {
+    group = "formatting"
+    description = "Format Kotlin sources with ktlint 1.8.0 on the Java 17 toolchain."
+    classpath = ktlintCli
+    mainClass.set("com.pinterest.ktlint.Main")
+    javaLauncher.set(java17Launcher)
+    workingDir(rootProject.projectDir)
+    args(
+        "-F",
+        "--relative",
+        "**/src/**/*.kt",
+        "**.kts",
+        "!**/build/**",
+    )
 }

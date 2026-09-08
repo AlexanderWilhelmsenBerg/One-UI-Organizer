@@ -11,5 +11,5 @@ enum class PlatformAppCategory {
     PRODUCTIVITY,
     SOCIAL,
     VIDEO,
-    UNDEFINED,
+    UNDEFINED
 }

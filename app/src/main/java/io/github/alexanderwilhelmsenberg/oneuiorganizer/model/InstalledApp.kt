@@ -4,5 +4,5 @@ data class InstalledApp(
     val id: AppId,
     val launchTargetId: LaunchTargetId,
     val label: String,
-    val platformCategory: PlatformAppCategory = PlatformAppCategory.UNDEFINED,
+    val platformCategory: PlatformAppCategory = PlatformAppCategory.UNDEFINED
 )

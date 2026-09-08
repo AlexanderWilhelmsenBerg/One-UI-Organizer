@@ -12,18 +12,9 @@ interface OrganizerRepository {
 
     suspend fun refresh()
 
-    suspend fun setCategoryOverride(
-        appId: AppId,
-        category: AppCategory?,
-    )
+    suspend fun setCategoryOverride(appId: AppId, category: AppCategory?)
 
-    suspend fun setFavourite(
-        appId: AppId,
-        isFavourite: Boolean,
-    )
+    suspend fun setFavourite(appId: AppId, isFavourite: Boolean)
 
-    suspend fun setHidden(
-        appId: AppId,
-        isHidden: Boolean,
-    )
+    suspend fun setHidden(appId: AppId, isHidden: Boolean)
 }

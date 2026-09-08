@@ -5,8 +5,5 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 
 interface CategoryEngine {
-    fun categorize(
-        app: InstalledApp,
-        userOverride: AppCategory?,
-    ): CategorizedApp
+    fun categorize(app: InstalledApp, userOverride: AppCategory?): CategorizedApp
 }
