@@ -34,6 +34,7 @@ jobs:
           tools_dir="${RUNNER_TEMP}/android-command-line-tools"
           tools_zip="${RUNNER_TEMP}/commandlinetools-linux-15859902_latest.zip"
           android_cli="${tools_dir}/cmdline-tools/bin/android"
+          api37_package="platforms/android-37.0"
 
           mkdir -p "${tools_dir}"
           curl -fsSL \
@@ -43,13 +44,13 @@ jobs:
 
           echo "Android command-line tools archive: commandlinetools-linux-15859902_latest.zip"
           echo "Android CLI version:"
-          "${android_cli}" --version
+          "${android_cli}" --no-metrics --version
           echo "ANDROID_HOME=${ANDROID_HOME}"
-          echo "API 37 package visible on beta channel:"
-          "${android_cli}" --sdk="${ANDROID_HOME}" sdk list "platforms/android-37" --beta
+          echo "API 37 packages visible on beta channel:"
+          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk list "platforms/android-37.*" --beta --all-versions
 
-          echo "Installing only the API 37 platform from the beta channel."
-          "${android_cli}" --sdk="${ANDROID_HOME}" sdk install "platforms/android-37" --beta
+          echo "Installing only ${api37_package} from the beta channel."
+          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk install "${api37_package}" --beta
 
           test -f "${ANDROID_HOME}/platforms/android-37/android.jar"
           ls -l "${ANDROID_HOME}/platforms/android-37/android.jar"
