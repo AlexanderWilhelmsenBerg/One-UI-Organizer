@@ -2,7 +2,12 @@
 
 **Verified:** 2026-09-08
 
-The authoritative exact-version list is [`STABLE_BASELINE.md`](STABLE_BASELINE.md). This document explains the architectural choices behind that baseline.
+This document records **why** the project uses its chosen technologies.
+
+- Exact current versions: [`STABLE_BASELINE.md`](STABLE_BASELINE.md)
+- Toolchain, testing, benchmarking, coding-boundary and upgrade rules: [`ENGINEERING_BASELINE.md`](ENGINEERING_BASELINE.md)
+
+Do not duplicate version pins into feature documentation. The stable baseline is the single version inventory.
 
 ## 1. Framework decision
 
@@ -21,196 +26,170 @@ One UI Organizer is a greenfield project and should not begin life with avoidabl
 The rules are:
 
 - stable releases only;
-- no alpha, beta, RC, Canary-only package, EAP, snapshot, milestone, or dynamic `+` dependency in normal application development;
+- no alpha, beta, RC, Canary-only package, EAP, snapshot, milestone, nightly, or dynamic `+` dependency in normal development;
 - use the newest stable **compatible** build-tool set rather than mixing individually newest releases outside vendor compatibility matrices;
-- pin exact versions in a Gradle version catalog;
-- use the stable Compose BOM;
-- treat new build and deprecation warnings as work to resolve, not permanent background noise;
-- document any intentionally deferred stable upgrade and the compatibility reason blocking it;
+- pin exact versions centrally;
+- use stable BOMs where a vendor supplies one;
+- treat build, compiler, deprecation and lint warnings as work to resolve, not permanent background noise;
+- document every intentionally deferred stable upgrade and the compatibility reason blocking it;
 - verify versions before the initial scaffold and before release milestones.
 
-See [`STABLE_BASELINE.md`](STABLE_BASELINE.md) for the current exact versions.
+## 3. JVM/toolchain strategy
 
-## 3. Current build baseline
+The project deliberately separates the JDK that runs the build from the Java bytecode level used by Android code.
 
-As of 2026-09-08:
+- **Gradle daemon:** current supported stable JDK line (currently Temurin JDK 26).
+- **Android compile/test toolchain:** explicit Java 17.
+- **Java source compatibility:** 17.
+- **Java target compatibility:** 17.
+- **Kotlin JVM target:** 17.
 
-```text
-Android Studio: Quail 4 / 2026.1.4 stable
-Gradle runtime JDK: JDK 26
-Kotlin: 2.4.20
-Compose compiler plugin: 2.4.20
-Android Gradle Plugin: 9.3.1
-Gradle Wrapper: 9.7.0
-compileSdk: 37
-targetSdk: 36
-minSdk: 28
-```
+The build runtime JDK may therefore move forward when Gradle supports it without silently raising Android's language/bytecode contract.
 
-### Why JDK 26?
+The repository will commit Gradle Daemon JVM criteria and use Gradle Java toolchains. `JAVA_HOME` is bootstrap information, not the project's source of truth.
 
-The project must not confuse Android's source/bytecode compatibility level with the JDK used to run Gradle.
-
-Gradle 9.7 supports running on JDK 26. Android's build documentation also recommends explicitly selecting a project toolchain rather than accidentally inheriting the machine's ambient JDK.
-
-Therefore the development/build environment uses **JDK 26**, while Android bytecode compatibility remains an explicit independent setting appropriate for the Android platform.
-
-This avoids needlessly freezing the whole development environment on JDK 17.
-
-### Why not AGP 9.4.0 yet?
-
-AGP 9.4.0 is individually stable and current, but Kotlin 2.4.20 currently documents full AGP compatibility only through 9.3.1. Because this project explicitly wants a clean compatibility baseline, AGP 9.4 is tracked as a pending stable upgrade rather than adopted ahead of the compatibility matrix.
-
-### Why Gradle 9.7.0 rather than 9.7.1?
-
-Gradle 9.7.1 is the current stable patch and Gradle recommends it, but Kotlin 2.4.20's currently published fully-supported range explicitly tops out at 9.7.0. The project pins 9.7.0 until that compatibility statement catches up, then upgrades immediately.
-
-## 4. Core UI stack
+## 4. Build-system direction
 
 Use:
 
-```text
-Compose BOM 2026.08.00
-Compose UI/Foundation/Runtime 1.12.0 via BOM
-Material 3 1.4.0 via BOM
-Activity Compose 1.13.0
-Lifecycle 2.11.0
-AndroidX Core 1.19.0
-```
+- Gradle Wrapper;
+- Android Gradle Plugin with built-in Kotlin support;
+- `org.jetbrains.kotlin.plugin.compose` matching the Kotlin release;
+- Kotlin DSL only;
+- one Gradle version catalog;
+- centralized repositories;
+- dependency verification;
+- configuration-cache-compatible plugins;
+- AGP-managed Build Tools unless a documented issue requires an explicit pin.
 
-Compose 1.12 requires compileSdk 37 and AGP 9+, which the baseline satisfies.
+Do not depend on internal AGP task/classes or custom build hacks when a supported public DSL exists.
 
-Use `org.jetbrains.kotlin.plugin.compose` at exactly the Kotlin version. Since AGP 9+ has built-in Kotlin support, do not apply the obsolete `org.jetbrains.kotlin.android` plugin unless a documented compatibility reason requires opting out of built-in Kotlin.
+## 5. UI stack
 
-## 5. Persistence
+Use Jetpack Compose + Material 3.
 
-Use **DataStore 1.2.1** for v0.1.
+Compose is allowed to be a direct dependency of UI code because it is the selected UI platform. It must not leak into domain/repository contracts.
 
-The first persistent model is small: user category overrides, favourites, hidden apps, and later category metadata/order. A typed DataStore state is sufficient and avoids introducing SQL, KSP, and schema machinery prematurely.
+For One UI-inspired presentation, define project-owned theme/design tokens around intentional colors, shapes, dimensions, motion and typography instead of scattering raw Material defaults and magic numbers across screens. This provides one migration point when Material APIs or visual requirements change.
 
-Use **kotlinx.serialization 1.11.0** where typed serialization is needed.
+## 6. Persistence
 
-Room is intentionally deferred until the product actually develops relational requirements such as many-to-many tags, large editable rulesets, history, or complex queries.
+Use **DataStore** for v0.1.
 
-## 6. Concurrency
+The initial persistent model is small: user category overrides, favourites, hidden apps, and later category metadata/order. A typed DataStore-backed state is sufficient and avoids SQL/KSP/schema machinery prematurely.
 
-Use **kotlinx.coroutines 1.11.0** and the matching **kotlinx-coroutines-test 1.11.0**.
+Persist **app-owned versioned DTO/state**, not DataStore/framework-specific types. `OrganizerStateStore` is the application boundary. A future move to Room must not require category logic or UI state to be rewritten.
+
+Room is intentionally deferred until the product develops relational requirements such as many-to-many tags, large editable rulesets, history, or complex queries.
+
+## 7. Concurrency
+
+Use Kotlin coroutines and Flow as the app's asynchronous contract.
 
 Rules:
 
-- PackageManager scanning must not block the main thread;
+- PackageManager scanning does not block the main thread;
 - use lifecycle/repository-owned scopes;
-- use Flow/StateFlow for observable organizer state where useful;
+- expose `suspend`, `Flow` and immutable app-owned state across boundaries;
+- adapt callbacks/futures/other reactive types at integration boundaries rather than leaking them through the app;
 - do not add a background service merely to keep the app list current;
-- rescan on open/resume in the first version unless measurement proves another design necessary.
+- rescan on open/resume initially unless measurement proves another design necessary.
 
-## 7. Dependency injection
+## 8. Dependency injection
 
 Use **manual constructor injection** initially.
 
-The expected object graph is small:
+The expected graph is deliberately small. Dependencies are assembled in a narrow composition root; no service-locator globals.
+
+If Hilt/Koin is introduced later, domain/application objects must remain ordinary constructor-injected Kotlin classes so the DI framework does not become the architecture.
+
+## 9. Android platform boundaries
+
+Android framework types remain in Android/platform adapters wherever practical.
+
+The domain/application model should use app-owned types such as:
 
 ```text
-PackageInstalledAppSource
-CategoryEngine
+AppId
+InstalledApp
+AppCategory
+OrganizerState
+```
+
+rather than exposing types such as `ResolveInfo`, `ApplicationInfo`, `Intent`, `Drawable`, or package-manager objects throughout the project.
+
+Likely narrow boundaries include:
+
+```text
+InstalledAppSource
+AppLauncher
 OrganizerStateStore
-OrganizerRepository
-OrganizerViewModel
+PinnedCategoryShortcutManager (later)
+UsageSignalSource (later)
 ```
 
-Do not add Hilt, Dagger, or Koin until the object graph becomes large enough that a framework clearly reduces complexity rather than adding it.
+Avoid a giant generic `AndroidManager` abstraction.
 
-## 8. Navigation
+## 10. Navigation
 
-Do not add a navigation dependency to the initial platform spike.
+Do not add navigation to the initial one-surface platform spike.
 
-Add Navigation 3 only when the app has a second meaningful destination such as Settings, Hidden Apps, or Category Management. At the time it is introduced, re-check the then-current stable Navigation 3 release rather than carrying an unused pinned dependency from project creation.
+Adopt the then-current stable Navigation 3 line only after the app has a second meaningful destination such as Settings, Hidden Apps, or Category Management.
 
-## 9. App icons and images
+## 11. App icons and images
 
-Installed application icons are local Android Drawables supplied by PackageManager.
+Installed app icons come from Android. Do not add Coil/Glide merely to display local package icons.
 
-Do not add Coil or Glide merely to display them. Adapt platform drawables at the UI boundary and add caching only if profiling shows it is needed.
+Convert/adapt platform drawable/icon data at the Android/UI boundary. Introduce caching only if profiling identifies a real scrolling or decode cost.
 
-The v0.1 app should have **no Internet permission**.
+The v0.1 app has no Internet permission.
 
-## 10. Search
+## 12. Search
 
-Use simple in-memory Kotlin filtering over the discovered app model.
+Use simple in-memory Kotlin filtering for the initial few-hundred-app data set.
 
-Search should cover at least:
+Search covers app labels and category labels with deterministic normalization. Do not introduce AppSearch, SQLite FTS, or another indexing engine before measurement or product scope requires it.
 
-- case-insensitive app labels;
-- category labels;
-- trimmed input.
+## 13. Testing direction
 
-Do not add AppSearch, SQLite FTS, or another indexing system for a data set of a few hundred applications.
+Use the cheapest layer capable of proving each behavior:
 
-## 11. Widgets and shortcuts
+- pure Kotlin unit tests for categorization, state/migrations, search and repository logic;
+- Compose semantics tests for user-visible UI behavior;
+- Android instrumentation for actual platform integration;
+- UI Automator for cross-app/system/launcher flows;
+- real Samsung acceptance for One UI-specific behavior.
 
-Use Android's platform ShortcutManager APIs for dynamic and pinned shortcuts.
+Tests target app-owned contracts, not internal library object graphs. Prefer fakes over mocking frameworks.
 
-When widgets become part of scope, the current stable planned library is **AndroidX Glance 1.2.0**, but Glance is not an initial dependency.
+Exact stable test tool versions and the device matrix live in the two baseline documents linked above.
 
-## 12. Testing
+## 14. Performance direction
 
-Use stable first-party/Kotlin tools where practical:
+Use Macrobenchmark for real end-to-end performance journeys and Microbenchmark only for isolated hotspots.
 
-```text
-AndroidX Test Core 1.7.0
-AndroidX Test ext.junit 1.3.0
-Espresso 3.7.0
-UI Automator 2.4.0
-Compose UI tests via Compose BOM 2026.08.00
-kotlinx-coroutines-test 1.11.0
-```
+Performance work is measurement-driven. Do not add profile/benchmark infrastructure merely because it exists.
 
-Prefer fakes over a mocking framework for package-source, category, and persistence boundaries. Add Robolectric, mocking, snapshots, or other test frameworks only when a specific test cannot be expressed cleanly without them.
+Baseline Profile tooling is adopted only when a **stable** plugin line cleanly supports the selected AGP generation; pre-release tooling does not get a special exemption from the stable-only policy.
 
-## 13. Later performance tooling
+## 15. Dependency introduction rule
 
-When startup/scroll performance becomes worth measuring, use stable AndroidX Benchmark. At this policy date the stable line is **1.4.1**.
+Before adding any library/plugin, establish:
 
-Do not add benchmark/profile modules before there is a real flow to measure.
+1. the concrete requirement it solves;
+2. the latest stable release;
+3. compatibility with the current Kotlin/AGP/Gradle/JDK line;
+4. configuration-cache support for build plugins;
+5. runtime/build/permission/processor cost;
+6. what external types would enter our code;
+7. the narrow adapter or boundary that contains those types;
+8. how the dependency could be replaced later;
+9. tests that prove our behavior independently of that library.
 
-## 14. Initial dependency footprint
+Do not add packages speculatively.
 
-The first implementation slice should be intentionally small:
+## 16. Decision summary
 
-```text
-AndroidX Core
-Activity Compose
-Lifecycle
-Compose BOM
-Compose UI/Foundation/Runtime
-Material 3
-DataStore
-kotlinx.coroutines
-kotlinx.serialization
+Start with a **current, warning-free Kotlin + Compose Android stack** and keep it current through small isolated upgrades.
 
-Tests:
-Compose UI test artifacts
-kotlinx-coroutines-test
-AndroidX Test / Espresso as required
-```
-
-Not initially required:
-
-```text
-Room / KSP
-Hilt / Koin
-WorkManager
-Retrofit / Ktor / OkHttp
-Coil / Glide
-Paging
-AppSearch
-Glance
-Benchmark
-Navigation
-```
-
-## Decision summary
-
-Start One UI Organizer on a **modern JDK 26 development environment**, Kotlin + Compose, and the newest stable dependency versions that form a vendor-supported combination.
-
-The project explicitly prefers **continuous small upgrades** over letting the build become frozen around an old JDK or library generation. The exact current pins and upgrade rules live in [`STABLE_BASELINE.md`](STABLE_BASELINE.md).
+The key long-term rule is more important than any one version number: **build tools move forward independently, application contracts remain app-owned, external dependencies live behind controlled boundaries, and deprecations are fixed while they are small.**
