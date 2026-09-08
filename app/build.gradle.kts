@@ -53,6 +53,12 @@ val ktlintCli = configurations.create("ktlintCli") {
     isCanBeResolved = true
 }
 
+val ktlintCliDependency = libs.ktlint.cli.get().copy().apply {
+    attributes {
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+    }
+}
+
 val java17Launcher = javaToolchains.launcherFor {
     languageVersion = JavaLanguageVersion.of(17)
 }
@@ -68,11 +74,7 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit)
 
-    add(ktlintCli.name, libs.ktlint.cli.get()) {
-        attributes {
-            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
-        }
-    }
+    add(ktlintCli.name, ktlintCliDependency)
 }
 
 tasks.register<JavaExec>("ktlintCheck") {
