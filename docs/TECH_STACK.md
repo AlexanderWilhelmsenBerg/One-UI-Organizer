@@ -2,153 +2,113 @@
 
 **Verified:** 2026-09-08
 
-This project is unusually Android-specific: its core job is discovering Android launcher activities, reading package metadata, launching explicit components, integrating with Android shortcuts/widgets later, and presenting naturally over Samsung One UI. Framework choice should optimize those facts rather than hypothetical portability.
+The authoritative exact-version list is [`STABLE_BASELINE.md`](STABLE_BASELINE.md). This document explains the architectural choices behind that baseline.
 
-## 1. Framework choice
+## 1. Framework decision
 
-| Choice | Status | Advantages | Costs / risks | Decision |
-|---|---|---|---|---|
-| **Native Android: Kotlin + Jetpack Compose** | Current stable Android stack | Direct PackageManager/Intent/ShortcutManager access; smallest platform boundary; best Android lifecycle/window integration; excellent testing; no bridge | Android-only | **Recommended** |
-| Native Android: Kotlin + XML Views | Very mature | Maximum historical Android compatibility; direct platform access | More UI boilerplate; less attractive for a new small app; no benefit for this Compose-friendly UI | Do not choose for a greenfield app |
-| Flutter 3.47 | Current stable Flutter release line | Strong UI toolkit; fast iteration; cross-platform potential | Package discovery, explicit Android launching, translucent activity details, shortcuts and widgets still require Android platform-channel/native code; larger conceptual stack for an Android-only utility | Viable, not recommended |
-| React Native 0.87 | Current stable RN release | Strong ecosystem; React/TypeScript development model | Core feature still needs native Android modules; JS/runtime/tooling adds another layer with no product benefit | Viable, not recommended |
-| Kotlin Multiplatform / Compose Multiplatform | Modern Kotlin option | Could share domain logic later | There is no second platform requirement and almost all valuable integration is Android-specific | Do not introduce in v0.1 |
+Use **native Android with Kotlin + Jetpack Compose + Material 3**.
 
-### Framework decision
+This app is intentionally Android-specific. Its useful work depends on Android platform APIs such as PackageManager, launcher activities, intents, shortcuts, widgets, profile behavior, and Samsung/One UI window integration. Native Kotlin avoids introducing a platform bridge around the app's core purpose.
 
-Use **native Kotlin + Jetpack Compose + Material 3**.
+Flutter remains a good UI framework, but for this product it would add a Dart/native boundary around functionality that is naturally Kotlin. React Native and other cross-platform stacks have the same disadvantage without giving the project a meaningful second platform.
 
-The project should be Android-first rather than "portable by architecture ceremony." Pure category rules and models should naturally remain platform-light, but the project should not pay a multiplatform tax until a second platform actually exists.
+Do not introduce Kotlin Multiplatform merely for theoretical portability. Pure domain code should remain platform-light where natural, so extraction remains possible later.
 
-## 2. Build-tool choices
+## 2. Stable-only development policy
 
-There are two sensible stable tracks as of 2026-09-08.
+One UI Organizer is a greenfield project and should not begin life with avoidable dependency debt.
 
-### Option A — compatibility-first stable stack — **recommended**
+The rules are:
 
-- Kotlin / Kotlin Gradle Plugin: **2.4.20**
-- Android Gradle Plugin: **9.3.1**
-- Gradle: **9.5.0**
-- JDK toolchain: **17**
-- compileSdk: **37**
-- targetSdk: **37**
-- minSdk: **28**
+- stable releases only;
+- no alpha, beta, RC, Canary-only package, EAP, snapshot, milestone, or dynamic `+` dependency in normal application development;
+- use the newest stable **compatible** build-tool set rather than mixing individually newest releases outside vendor compatibility matrices;
+- pin exact versions in a Gradle version catalog;
+- use the stable Compose BOM;
+- treat new build and deprecation warnings as work to resolve, not permanent background noise;
+- document any intentionally deferred stable upgrade and the compatibility reason blocking it;
+- verify versions before the initial scaffold and before release milestones.
 
-Why this is the default:
+See [`STABLE_BASELINE.md`](STABLE_BASELINE.md) for the current exact versions.
 
-- Kotlin 2.4.20 documents full support through AGP 9.3.1 and Gradle 9.7.0.
-- AGP 9.3 requires Gradle 9.5.0.
-- Compose 1.12 requires only AGP 9.1.2 or newer, so this track comfortably supports the current stable Compose release.
-- It avoids starting the project on an individually-stable but not-yet-listed-as-fully-supported Kotlin/AGP pairing.
+## 3. Current build baseline
 
-### Option B — newest individually stable Android build stack
+As of 2026-09-08:
 
-- Kotlin: **2.4.20**
-- Android Gradle Plugin: **9.4.0**
-- Gradle: **9.6.0** (AGP default/minimum) or **9.7.0** (newer stable Gradle)
-- JDK: **17**
+```text
+Android Studio: Quail 4 / 2026.1.4 stable
+Gradle runtime JDK: JDK 26
+Kotlin: 2.4.20
+Compose compiler plugin: 2.4.20
+Android Gradle Plugin: 9.3.1
+Gradle Wrapper: 9.7.0
+compileSdk: 37
+targetSdk: 36
+minSdk: 28
+```
 
-Why not make this the default immediately:
+### Why JDK 26?
 
-AGP 9.4.0 is the newest stable Android Gradle Plugin, but Kotlin's current compatibility table lists Kotlin 2.4.20 as fully supported only through AGP 9.3.1. Kotlin notes that newer AGP versions can still work, but may produce warnings or expose unsupported-new-feature edges. There is no feature in v0.1 that needs AGP 9.4 specifically.
+The project must not confuse Android's source/bytecode compatibility level with the JDK used to run Gradle.
 
-**Upgrade rule:** move to AGP 9.4 once Kotlin's fully supported range catches up, or earlier only if a concrete AGP 9.4 feature/fix matters to this app.
+Gradle 9.7 supports running on JDK 26. Android's build documentation also recommends explicitly selecting a project toolchain rather than accidentally inheriting the machine's ambient JDK.
 
-## 3. Core UI stack
+Therefore the development/build environment uses **JDK 26**, while Android bytecode compatibility remains an explicit independent setting appropriate for the Android platform.
 
-### Compose BOM — **2026.08.00** — recommended
+This avoids needlessly freezing the whole development environment on JDK 17.
 
-Use the stable Compose BOM rather than pinning each Compose artifact independently.
+### Why not AGP 9.4.0 yet?
 
-The August 2026 stable line maps the core Compose libraries to 1.12.x and gives a tested compatible set.
+AGP 9.4.0 is individually stable and current, but Kotlin 2.4.20 currently documents full AGP compatibility only through 9.3.1. Because this project explicitly wants a clean compatibility baseline, AGP 9.4 is tracked as a pending stable upgrade rather than adopted ahead of the compatibility matrix.
 
-### Compose UI/Foundation/Runtime — **1.12.0** through BOM
+### Why Gradle 9.7.0 rather than 9.7.1?
 
-Use for all primary UI.
+Gradle 9.7.1 is the current stable patch and Gradle recommends it, but Kotlin 2.4.20's currently published fully-supported range explicitly tops out at 9.7.0. The project pins 9.7.0 until that compatibility statement catches up, then upgrades immediately.
 
-### Material 3 — **1.4.0** through BOM
+## 4. Core UI stack
 
-Use as the component baseline, then layer a small app-owned token system for One UI-inspired proportions/spacing.
+Use:
 
-Do not use Material 3 alpha purely for visual novelty.
+```text
+Compose BOM 2026.08.00
+Compose UI/Foundation/Runtime 1.12.0 via BOM
+Material 3 1.4.0 via BOM
+Activity Compose 1.13.0
+Lifecycle 2.11.0
+AndroidX Core 1.19.0
+```
 
-### Activity Compose — **1.13.0**
+Compose 1.12 requires compileSdk 37 and AGP 9+, which the baseline satisfies.
 
-Use `ComponentActivity` and Compose activity integration.
+Use `org.jetbrains.kotlin.plugin.compose` at exactly the Kotlin version. Since AGP 9+ has built-in Kotlin support, do not apply the obsolete `org.jetbrains.kotlin.android` plugin unless a documented compatibility reason requires opting out of built-in Kotlin.
 
-### Lifecycle — **2.11.0**
+## 5. Persistence
 
-Use ViewModel/lifecycle Compose integrations as needed.
+Use **DataStore 1.2.1** for v0.1.
 
-### Core — **1.19.0**
+The first persistent model is small: user category overrides, favourites, hidden apps, and later category metadata/order. A typed DataStore state is sufficient and avoids introducing SQL, KSP, and schema machinery prematurely.
 
-Use `androidx.core:core`; `core-ktx` is now effectively compatibility-only because Kotlin extensions have been folded into Core.
+Use **kotlinx.serialization 1.11.0** where typed serialization is needed.
 
-## 4. Navigation choice
-
-### Choice A — no navigation dependency for the first spike — **recommended initially**
-
-Milestone 1 needs essentially one diagnostic/shelf surface. Do not add a navigation framework before a second meaningful destination exists.
-
-### Choice B — Navigation 3 **1.1.7** — **recommended when navigation becomes necessary**
-
-Navigation 3 is stable, Compose-first, and appropriate for a greenfield Compose project.
-
-Likely adoption point: when Settings / Hidden Apps / Category Management become real destinations.
-
-### Choice C — Navigation 2 **2.10.0**
-
-Stable and mature, but Navigation 3 is the better greenfield Compose direction. Choose Navigation 2 only if an integration gap is discovered during implementation.
-
-## 5. Persistence choice
-
-### Choice A — DataStore **1.2.1** + kotlinx.serialization **1.11.0** — **recommended for v0.1**
-
-Store a small typed organizer-state document containing user-owned state such as:
-
-- category overrides;
-- favourites;
-- hidden apps;
-- category order/custom category metadata when introduced.
-
-Benefits:
-
-- simple;
-- transactional update semantics;
-- no SQL schema;
-- no annotation processor;
-- no KSP requirement;
-- easy to test and migrate with an explicit state version.
-
-### Choice B — Room 3 **3.0.2** — new stable, intentionally deferred
-
-Room 3 is a strong option if the data model later becomes relational: multiple tags per app, rule editing, history, complex sorting/filtering, or large user-authored rule sets.
-
-Do **not** add Room simply because it is available. Room 3 requires KSP and a SQLite driver, which is unnecessary for the initial state volume.
-
-### Choice C — Preferences DataStore only
-
-Mature and simple for a handful of independent values, but a growing graph of package overrides/categories becomes awkward. Prefer one typed state model rather than dozens of string-key conventions.
+Room is intentionally deferred until the product actually develops relational requirements such as many-to-many tags, large editable rulesets, history, or complex queries.
 
 ## 6. Concurrency
 
-### kotlinx.coroutines — **1.11.0** — recommended
-
-Use coroutines/Flow for scanner work, repository state, and ViewModel state.
+Use **kotlinx.coroutines 1.11.0** and the matching **kotlinx-coroutines-test 1.11.0**.
 
 Rules:
 
-- PackageManager scanning must not block the main thread.
-- Keep long-lived scopes lifecycle/repository owned.
-- Do not create a background worker/service solely to keep the app list current; rescan on open/resume in v0.1.
-
-Use `kotlinx-coroutines-test` at the same version for deterministic coroutine tests.
+- PackageManager scanning must not block the main thread;
+- use lifecycle/repository-owned scopes;
+- use Flow/StateFlow for observable organizer state where useful;
+- do not add a background service merely to keep the app list current;
+- rescan on open/resume in the first version unless measurement proves another design necessary.
 
 ## 7. Dependency injection
 
-### Choice A — manual constructor injection — **recommended**
+Use **manual constructor injection** initially.
 
-The initial graph is tiny:
+The expected object graph is small:
 
 ```text
 PackageInstalledAppSource
@@ -158,99 +118,80 @@ OrganizerRepository
 OrganizerViewModel
 ```
 
-Wire these explicitly. This is clearer than adding a framework to save a few constructor calls.
+Do not add Hilt, Dagger, or Koin until the object graph becomes large enough that a framework clearly reduces complexity rather than adding it.
 
-### Choice B — Hilt
+## 8. Navigation
 
-AndroidX Hilt integrations are stable at **1.4.0**. Introduce Hilt only if the object graph genuinely grows across services, workers, multiple feature modules, or many ViewModels.
+Do not add a navigation dependency to the initial platform spike.
 
-If Hilt is adopted later, re-check the current compatible Dagger/Hilt processor versions at that time rather than freezing an unused processor dependency now.
+Add Navigation 3 only when the app has a second meaningful destination such as Settings, Hidden Apps, or Category Management. At the time it is introduced, re-check the then-current stable Navigation 3 release rather than carrying an unused pinned dependency from project creation.
 
-### Choice C — Koin
+## 9. App icons and images
 
-Reasonable lightweight alternative, but still unnecessary for the v0.1 graph. Avoid adding a service locator/DI runtime without a concrete benefit.
+Installed application icons are local Android Drawables supplied by PackageManager.
 
-## 8. Image/icon loading
+Do not add Coil or Glide merely to display them. Adapt platform drawables at the UI boundary and add caching only if profiling shows it is needed.
 
-Do **not** add Coil/Glide solely to display installed application icons.
+The v0.1 app should have **no Internet permission**.
 
-Package icons are local Android `Drawable`s. Adapt them at the Android/UI boundary and cache only if measurements show a real scrolling cost.
+## 10. Search
 
-If remote images ever become a product requirement, reevaluate an image-loading library then. v0.1 has no network permission anyway.
+Use simple in-memory Kotlin filtering over the discovered app model.
 
-## 9. Search
+Search should cover at least:
 
-Start with pure in-memory Kotlin filtering over the discovered/categorized app model.
+- case-insensitive app labels;
+- category labels;
+- trimmed input.
 
-Normalization should cover at least:
+Do not add AppSearch, SQLite FTS, or another indexing system for a data set of a few hundred applications.
 
-- case-insensitive matching;
-- trimmed input;
-- app label;
-- category label.
+## 11. Widgets and shortcuts
 
-Do not add AppSearch, SQLite FTS, or a search framework until the data volume proves it useful.
+Use Android's platform ShortcutManager APIs for dynamic and pinned shortcuts.
 
-## 10. Widgets and shortcuts — later
+When widgets become part of scope, the current stable planned library is **AndroidX Glance 1.2.0**, but Glance is not an initial dependency.
 
-### Android shortcuts
+## 12. Testing
 
-Use platform `ShortcutManager` APIs for dynamic/pinned category shortcuts. No third-party dependency is needed.
-
-### Glance — **1.2.0**
-
-If/when the app gains a home-screen widget, use stable AndroidX Glance rather than a custom RemoteViews abstraction unless a concrete Glance limitation blocks the design.
-
-## 11. Performance tooling — later hardening
-
-### AndroidX Benchmark — **1.4.1** stable
-
-A newer 1.5 release candidate exists, but the project should use stable Benchmark when macrobenchmarking becomes valuable.
-
-Add benchmark/profile tooling only after the primary flow exists; measuring an empty scaffold is impressive only to spreadsheets.
-
-## 12. Testing package policy
-
-Prefer first-party / Kotlin tooling where practical:
-
-- `kotlin-test` / JUnit-compatible unit tests;
-- `kotlinx-coroutines-test:1.11.0`;
-- Compose UI test artifacts through the Compose BOM;
-- AndroidX Test runner/core at the stable versions current when the implementation scaffold is created.
-
-Avoid adding a second assertion framework, mocking framework, Robolectric, or snapshot-testing package until a test case demonstrates why it is needed. Fakes are preferred for `InstalledAppSource` and persistence boundaries.
-
-## 13. Version-management policy
-
-Use a Gradle version catalog (`gradle/libs.versions.toml`) from the first implementation commit.
-
-Rules:
-
-1. Pin exact stable versions; no `+` dynamic versions.
-2. Use the stable Compose BOM.
-3. Do not use alpha/beta/RC libraries in production code unless a documented decision names the required feature/fix.
-4. Separate "latest available" from "latest fully compatible stack." Prefer the latter by default.
-5. Dependency-update PRs should be isolated from feature work where practical.
-6. Record intentional deferred upgrades when compatibility—not neglect—is the reason for staying one minor version back.
-
-## 14. Recommended initial dependency footprint
-
-For the first real implementation slice, aim for roughly this conceptual set:
+Use stable first-party/Kotlin tools where practical:
 
 ```text
-AndroidX Core 1.19.0
-Activity Compose 1.13.0
-Lifecycle 2.11.0
-Compose BOM 2026.08.00
-Compose UI/Foundation/Material3 (via BOM)
-DataStore 1.2.1
-kotlinx.coroutines 1.11.0
-kotlinx.serialization 1.11.0
+AndroidX Test Core 1.7.0
+AndroidX Test ext.junit 1.3.0
+Espresso 3.7.0
+UI Automator 2.4.0
+Compose UI tests via Compose BOM 2026.08.00
+kotlinx-coroutines-test 1.11.0
+```
+
+Prefer fakes over a mocking framework for package-source, category, and persistence boundaries. Add Robolectric, mocking, snapshots, or other test frameworks only when a specific test cannot be expressed cleanly without them.
+
+## 13. Later performance tooling
+
+When startup/scroll performance becomes worth measuring, use stable AndroidX Benchmark. At this policy date the stable line is **1.4.1**.
+
+Do not add benchmark/profile modules before there is a real flow to measure.
+
+## 14. Initial dependency footprint
+
+The first implementation slice should be intentionally small:
+
+```text
+AndroidX Core
+Activity Compose
+Lifecycle
+Compose BOM
+Compose UI/Foundation/Runtime
+Material 3
+DataStore
+kotlinx.coroutines
+kotlinx.serialization
 
 Tests:
-Compose UI test artifacts (via BOM)
-kotlinx-coroutines-test 1.11.0
-AndroidX Test stable line
+Compose UI test artifacts
+kotlinx-coroutines-test
+AndroidX Test / Espresso as required
 ```
 
 Not initially required:
@@ -265,26 +206,11 @@ Paging
 AppSearch
 Glance
 Benchmark
-Navigation (until a second destination exists)
+Navigation
 ```
-
-## 15. Sources checked for this decision
-
-- Android Gradle Plugin releases and compatibility: https://developer.android.com/build/releases/about-agp
-- AGP 9.4 release notes: https://developer.android.com/build/releases/agp-9-4-0-release-notes
-- Kotlin Gradle compatibility: https://kotlinlang.org/docs/gradle-configure-project.html
-- Compose BOM: https://developer.android.com/develop/ui/compose/bom
-- AndroidX current versions: https://developer.android.com/jetpack/androidx/versions
-- Navigation 3 releases: https://developer.android.com/jetpack/androidx/releases/navigation3
-- DataStore releases: https://developer.android.com/jetpack/androidx/releases/datastore
-- Room 3 releases: https://developer.android.com/jetpack/androidx/releases/room3
-- Flutter release archive: https://docs.flutter.dev/install/archive
-- React Native releases: https://reactnative.dev/blog/
 
 ## Decision summary
 
-Start with the **smallest fully supported native stack**:
+Start One UI Organizer on a **modern JDK 26 development environment**, Kotlin + Compose, and the newest stable dependency versions that form a vendor-supported combination.
 
-**Kotlin 2.4.20 + AGP 9.3.1 + Gradle 9.5.0 + JDK 17 + Compose BOM 2026.08.00 + Material 3 + DataStore + coroutines, with manual DI and no navigation dependency until it is actually needed.**
-
-This gives the app modern Android APIs and current stable Compose while deliberately avoiding a just-released AGP/Kotlin compatibility edge and unnecessary infrastructure.
+The project explicitly prefers **continuous small upgrades** over letting the build become frozen around an old JDK or library generation. The exact current pins and upgrade rules live in [`STABLE_BASELINE.md`](STABLE_BASELINE.md).
