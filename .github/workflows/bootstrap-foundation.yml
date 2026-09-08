@@ -35,13 +35,13 @@ jobs:
             -o "${tools_zip}"
           unzip -q "${tools_zip}" -d "${tools_dir}"
 
-          sdkmanager="${tools_dir}/cmdline-tools/bin/sdkmanager"
-          "${sdkmanager}" --sdk_root="${ANDROID_HOME}" \
-            "platforms;android-37" \
-            "platform-tools"
+          android_cli="${tools_dir}/cmdline-tools/bin/android"
+          "${android_cli}" --sdk="${ANDROID_HOME}" sdk install \
+            platforms/android-37 \
+            platform-tools
 
-          echo "Android SDK command-line tools:"
-          "${sdkmanager}" --version
+          echo "Android CLI:"
+          "${android_cli}" --version
           echo "Android platform-tools:"
           "${ANDROID_HOME}/platform-tools/adb" --version
           "${ANDROID_HOME}/platform-tools/adb" --version | grep -F "Version 37.0.1"
