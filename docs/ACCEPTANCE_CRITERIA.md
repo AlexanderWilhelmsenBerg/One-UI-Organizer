@@ -2,6 +2,8 @@
 
 These criteria define the acceptance bar for the first useful release of One UI Organizer. They are intentionally stricter than a demo but narrower than a full launcher replacement.
 
+Implementation ownership and sequencing are defined in `PARALLEL_DEVELOPMENT.md`; these product criteria remain the final acceptance contract regardless of which agent implements a behavior.
+
 ## A. Platform integration
 
 ### A1 — Discover launchable apps
@@ -21,12 +23,14 @@ Acceptance notes:
 
 Each listed launch target has enough identity to distinguish and reopen the correct launcher activity.
 
-At minimum the internal model carries:
+At minimum the internal model carries app-owned equivalents of:
 
 - package name;
-- launch component or equivalent stable launch target;
+- launch component/target identity;
 - display label;
 - Android-declared application category when available.
+
+Android framework types must not become the cross-layer domain model.
 
 ### A3 — Launch selected app
 
@@ -90,7 +94,13 @@ Hidden apps must not be deleted from the underlying organizer state merely becau
 
 If an app with persisted organizer state is uninstalled, Organizer does not crash or surface a dead launcher entry in the normal shelf.
 
-Stale state may be retained temporarily for reinstall recovery or cleaned deterministically, but the chosen behaviour must be tested and documented.
+Stale state may be retained for reinstall recovery or cleaned deterministically, but the chosen behavior must be tested and documented.
+
+### C4 — Versioned local state
+
+The first persisted organizer state uses an explicit schema version beginning at version 1.
+
+Any later persisted-state schema change requires migration tests proving existing category overrides, favourites and hidden state survive unless an explicitly documented migration decision says otherwise.
 
 ## D. Search
 
@@ -118,7 +128,7 @@ The preferred presentation is a One UI-inspired translucent/sheet activity. If b
 
 Organizer must not block the main thread while scanning packages.
 
-For a cold start with no cached snapshot, the UI shows a meaningful loading state and completes a normal scan without ANR behaviour. On the primary Samsung test device with up to roughly 500 launch targets, first usable categorized results should appear within 2 seconds.
+For a cold start with no cached snapshot, the UI shows a meaningful loading state and completes a normal scan without ANR behavior. On the primary Samsung test device with up to roughly 500 launch targets, first usable categorized results should appear within 2 seconds.
 
 This is a product acceptance threshold, not a benchmark guarantee across all hardware.
 
@@ -142,7 +152,11 @@ The app remains readable and usable in both light and dark system themes.
 
 Interactive controls expose meaningful accessibility semantics/content descriptions where the icon or gesture alone would otherwise be ambiguous.
 
-Text and touch targets must remain usable with common Android font/display scaling settings.
+Text and touch targets remain usable with common Android font/display scaling settings.
+
+### E7 — Replaceable host presentation
+
+The shelf composables are not coupled to Samsung-only blur/window APIs. The same content can be hosted in the selected translucent/sheet presentation or the documented fallback without rewriting domain/data code.
 
 ## F. Privacy and permissions
 
@@ -160,7 +174,7 @@ v0.1 contains no analytics SDK, advertising SDK, telemetry backend, account syst
 
 ### F4 — Minimal local persistence
 
-Persist only organizer state required for product behaviour. Installed-app labels and icons should be read from Android rather than stored as long-lived authoritative copies unless a later measured performance need justifies caching.
+Persist only organizer state required for product behavior. Installed-app labels and icons should be read from Android rather than stored as long-lived authoritative copies unless a later measured performance need justifies caching.
 
 ## G. Architecture and maintainability
 
@@ -180,14 +194,28 @@ The UI does not independently merge package scans and persistence. One repositor
 
 v0.1 does not add Room, Hilt/Koin, WorkManager, a background service, or a networking stack unless an accepted requirement is added that materially needs it.
 
+### G5 — App-owned contracts
+
+Cross-layer contracts use app-owned models. Android framework, DataStore/serialization and Compose-specific types remain inside their appropriate adapters/layers.
+
+### G6 — Upgrade-friendly dependencies
+
+Every direct dependency has a documented purpose, is declared explicitly rather than relied on transitively, uses the stable-compatible baseline, and is isolated so replacing/upgrading it does not require unrelated feature rewrites.
+
 ## H. Quality gates
 
 Before v0.1 is considered testable:
 
 - project builds from a clean checkout;
+- exact toolchain/library versions comply with `STABLE_BASELINE.md`;
 - unit tests pass;
-- Compose/instrumented tests covering critical UI flows pass in the supported test lane;
-- Android lint passes or every suppression is documented;
+- Compose/instrumented tests covering critical flows pass in the supported test lane;
+- Android Lint passes with no greenfield lint baseline;
+- ktlint passes;
+- dependency health passes;
+- Gradle/compiler/deprecation output has no unexplained warnings;
+- dependency verification passes;
+- normal verification tasks remain configuration-cache compatible;
 - debug APK installs and launches on the target Samsung device;
 - no crash occurs during scan, search, category override, hide/unhide, favourite, or launching sampled apps.
 
@@ -196,14 +224,41 @@ Before v0.1 is considered releasable:
 - all Must items in `MOSCOW.md` are complete;
 - all acceptance criteria above pass or an explicit documented exception is approved;
 - physical Samsung device acceptance is complete;
-- package visibility is rechecked against the user's expected launchable-app set;
-- release notes and privacy behaviour are documented.
+- package visibility is rechecked against the expected launchable-app set;
+- release notes and privacy behavior are documented;
+- performance-sensitive journeys have been measured after integration rather than optimized from intuition.
 
-## I. Milestone-1 spike acceptance
+## I. Milestone-1 platform spike acceptance
 
-The project must **not** proceed into full UI implementation until the first Android integration spike demonstrates all of the following on the target Samsung device:
+The project must **not** treat the platform lane as complete until the Android integration spike demonstrates all of the following on the target Samsung device:
 
 1. the launcher-intent package query returns a practically complete expected app set without `QUERY_ALL_PACKAGES`;
 2. the chosen launch-target model reliably opens sampled apps;
-3. duplicate/alias behaviour is understood;
-4. the proposed companion sheet/translucent activity is visually and functionally acceptable, or a documented fallback presentation is selected.
+3. duplicate/alias behavior is understood and deterministic;
+4. the proposed companion sheet/translucent activity is visually/functionally acceptable, or a documented fallback presentation is selected.
+
+If the agent environment cannot access the physical device, the PR may be code-review-ready but this acceptance remains explicitly pending for owner testing.
+
+## J. Parallel-development acceptance
+
+Parallel coding must not reduce maintainability merely to finish sooner.
+
+### J1 — Foundation gate
+
+Agents 10/20/30/40 start from `main` only after Agent 00 has merged a clean scaffold with shared app-owned contracts, reproducible toolchains and CI gates.
+
+### J2 — Lane ownership
+
+Wave-1 PRs remain inside the ownership defined by `PARALLEL_DEVELOPMENT.md`. A feature agent does not create a duplicate scanner, category engine, state model, repository or UI model merely to avoid coordinating a shared contract.
+
+### J3 — Shared contract changes are explicit
+
+If a Wave-1 PR must change a frozen shared contract, the PR explains why, makes the smallest compatible change, and identifies sibling branches that must rebase before merge.
+
+### J4 — Integration is a separate gate
+
+Agent 50 integrates the merged lanes and runs cross-layer regression/acceptance tests. Four individually green Wave-1 PRs do not by themselves make v0.1 testable.
+
+### J5 — Agents do not merge themselves
+
+Coding agents leave their PRs unmerged for owner/reviewer control unless the owner explicitly instructs otherwise.
