@@ -18,6 +18,8 @@ No application code has been implemented yet. The first engineering milestone is
 - **Tiny on purpose.** Avoid services, heavy frameworks, and dependencies until they solve a demonstrated need.
 - **Supported Android APIs first.** Do not depend on Samsung private launcher storage or unsupported launcher manipulation.
 - **Play-policy friendly.** The initial design avoids `QUERY_ALL_PACKAGES` and discovers launchable apps through declared launcher-intent visibility.
+- **Current without becoming fragile.** Use the latest stable, fully compatible toolchain/library versions and keep upgrades warning-free.
+- **Replaceable dependencies.** Keep app-owned models and narrow platform/library adapters so future upgrades do not ripple through unrelated features.
 
 ## Planned v0.1 experience
 
@@ -35,12 +37,18 @@ No application code has been implemented yet. The first engineering milestone is
 - [Acceptance criteria](docs/ACCEPTANCE_CRITERIA.md)
 - [MoSCoW scope](docs/MOSCOW.md)
 - [Framework and dependency decisions](docs/TECH_STACK.md)
+- [Authoritative stable version baseline](docs/STABLE_BASELINE.md)
+- [Engineering, toolchain, testing and upgrade policy](docs/ENGINEERING_BASELINE.md)
 
 ## Initial technical direction
 
-The recommended stack is native Android with Kotlin and Jetpack Compose. The project will target current Android while supporting the first One UI generation as its practical lower bound (`minSdk 28`).
+The stack is native Android with Kotlin and Jetpack Compose. The project will target current Android while supporting the first One UI generation as its practical lower bound (`minSdk 28`).
+
+Build infrastructure and Android compilation are deliberately separated: the current stable Gradle runtime JDK can move forward independently, while Android source/bytecode compatibility is pinned through explicit Java/Kotlin toolchains. Exact versions are maintained in `docs/STABLE_BASELINE.md`.
 
 The initial architecture deliberately avoids a database and dependency-injection framework. A small scanner boundary, categorization engine, repository, typed local state store, and Compose UI are enough for v0.1. Room, Hilt/Koin, widgets, usage statistics, and background monitoring are deferred until requirements justify them.
+
+All implementation work follows `docs/ENGINEERING_BASELINE.md`: platform and third-party types are kept at controlled boundaries, persisted state is app-owned and versioned, warnings are not accumulated, and dependency/toolchain upgrades are isolated and fully tested.
 
 ## Non-goals for v0.1
 
