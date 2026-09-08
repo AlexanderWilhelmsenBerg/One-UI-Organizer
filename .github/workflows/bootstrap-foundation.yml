@@ -32,7 +32,7 @@ jobs:
           tools_dir="${RUNNER_TEMP}/android-command-line-tools"
           tools_zip="${RUNNER_TEMP}/commandlinetools-linux-15859902_latest.zip"
           android_cli="${tools_dir}/cmdline-tools/bin/android"
-          api37_package="platforms/android-37.0"
+          api37_package="platforms/android-37.0@2.0.0"
 
           mkdir -p "${tools_dir}"
           curl -fsSL \
@@ -46,12 +46,18 @@ jobs:
           echo "ANDROID_HOME=${ANDROID_HOME}"
           echo "API 37 packages visible on beta channel:"
           "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk list "platforms/android-37.*" --beta --all-versions
+          echo "API 37 directories before install:"
+          find "${ANDROID_HOME}/platforms" -maxdepth 1 -type d -name 'android-37*' -print 2>/dev/null || true
 
           echo "Installing only ${api37_package} from the beta channel."
-          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk install "${api37_package}" --beta
+          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk install --force "${api37_package}" --beta
 
+          echo "API 37 directories after install:"
+          find "${ANDROID_HOME}/platforms" -maxdepth 1 -type d -name 'android-37*' -print
           test -f "${ANDROID_HOME}/platforms/android-37/android.jar"
           ls -l "${ANDROID_HOME}/platforms/android-37/android.jar"
+          echo "Installed API 37 source properties:"
+          cat "${ANDROID_HOME}/platforms/android-37/source.properties"
 
           echo "Android platform-tools:"
           "${ANDROID_HOME}/platform-tools/adb" --version
