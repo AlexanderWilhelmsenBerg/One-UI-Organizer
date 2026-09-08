@@ -6,9 +6,13 @@ The app is intended to act as a fast categorized app shelf: open it from One UI,
 
 ## Status
 
-Planning / pre-implementation.
+**Planning complete / implementation ready.**
 
-No application code has been implemented yet. The first engineering milestone is a device spike that proves app discovery, app launching, and the translucent/sheet presentation on a current Samsung device before the project expands.
+The product scope, acceptance criteria, MoSCoW priorities, stable toolchain, engineering/upgrade policy, and parallel coding plan are now defined on `main`.
+
+Implementation starts with one foundation/scaffold PR. After that PR is merged, four feature agents can work in parallel on Android platform integration, pure categorization/search, persistence/repository, and Compose UI. A final integration agent then closes v0.1 acceptance and performance work.
+
+No production Organizer feature code has been implemented yet.
 
 ## Product principles
 
@@ -20,6 +24,7 @@ No application code has been implemented yet. The first engineering milestone is
 - **Play-policy friendly.** The initial design avoids `QUERY_ALL_PACKAGES` and discovers launchable apps through declared launcher-intent visibility.
 - **Current without becoming fragile.** Use the latest stable, fully compatible toolchain/library versions and keep upgrades warning-free.
 - **Replaceable dependencies.** Keep app-owned models and narrow platform/library adapters so future upgrades do not ripple through unrelated features.
+- **Parallel by ownership, not duplication.** Coding agents work in explicit lanes against frozen app-owned contracts rather than inventing competing implementations.
 
 ## Planned v0.1 experience
 
@@ -31,20 +36,58 @@ No application code has been implemented yet. The first engineering milestone is
 6. Long-press an app to change its category, favourite it, or hide it.
 7. Corrections persist locally and take priority on future scans.
 
+## Implementation sequence
+
+```text
+Agent 00 — Foundation / scaffold / CI
+                 |
+                 v
+        merge foundation PR
+                 |
+     +-----------+-----------+-----------+-----------+
+     |           |           |           |           |
+Agent 10     Agent 20    Agent 30    Agent 40
+Platform      Domain       Data          UI
+     |           |           |           |
+     +-----------+-----------+-----------+
+                 |
+                 v
+Agent 50 — Integration / acceptance / performance
+                 |
+                 v
+        Samsung device acceptance
+                 |
+                 v
+                v0.1
+```
+
+See [Parallel development plan](docs/PARALLEL_DEVELOPMENT.md) for ownership and merge rules, and [Coding agent prompts](docs/agents/README.md) for copy/paste briefs.
+
 ## Documentation
+
+### Product and scope
 
 - [Product and delivery plan](docs/PLAN.md)
 - [Acceptance criteria](docs/ACCEPTANCE_CRITERIA.md)
 - [MoSCoW scope](docs/MOSCOW.md)
+
+### Engineering
+
 - [Framework and dependency decisions](docs/TECH_STACK.md)
 - [Authoritative stable version baseline](docs/STABLE_BASELINE.md)
 - [Engineering, toolchain, testing and upgrade policy](docs/ENGINEERING_BASELINE.md)
+- [Repository-wide coding-agent rules](AGENTS.md)
+
+### Parallel implementation
+
+- [Parallel development plan](docs/PARALLEL_DEVELOPMENT.md)
+- [Coding agent prompt index](docs/agents/README.md)
 
 ## Initial technical direction
 
-The stack is native Android with Kotlin and Jetpack Compose. The project will target current Android while supporting the first One UI generation as its practical lower bound (`minSdk 28`).
+The stack is native Android with Kotlin and Jetpack Compose. The project targets modern Android while keeping `minSdk 28` as the practical lower bound.
 
-Build infrastructure and Android compilation are deliberately separated: the current stable Gradle runtime JDK can move forward independently, while Android source/bytecode compatibility is pinned through explicit Java/Kotlin toolchains. Exact versions are maintained in `docs/STABLE_BASELINE.md`.
+Build infrastructure and Android compilation are deliberately separated: the current supported stable Gradle runtime JDK can move forward independently, while Android source/bytecode compatibility is pinned through explicit Java/Kotlin toolchains. Exact versions are maintained in `docs/STABLE_BASELINE.md`.
 
 The initial architecture deliberately avoids a database and dependency-injection framework. A small scanner boundary, categorization engine, repository, typed local state store, and Compose UI are enough for v0.1. Room, Hilt/Koin, widgets, usage statistics, and background monitoring are deferred until requirements justify them.
 
