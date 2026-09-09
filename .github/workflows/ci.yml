@@ -70,21 +70,46 @@ jobs:
           ./gradlew --version
           ./gradlew javaToolchains --warning-mode=fail --dependency-verification=strict
 
-      - name: Verify scaffold
+      - name: Clean scaffold
         run: >-
-          ./gradlew clean :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
+          ./gradlew clean
           --warning-mode=fail
           --dependency-verification=strict
           --configuration-cache
           --configuration-cache-problems=fail
 
-      - name: Verify configuration-cache reuse
+      - name: Verify scaffold
         run: >-
           ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
           --warning-mode=fail
           --dependency-verification=strict
           --configuration-cache
           --configuration-cache-problems=fail
+
+      - name: Report dependency health
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="build/reports/dependency-analysis/build-health-report.txt"
+          test -f "${report}"
+          cat "${report}"
+
+      - name: Verify configuration-cache reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew \
+            :app:assembleDebug \
+            :app:testDebugUnitTest \
+            :app:lintDebug \
+            :app:ktlintCheck \
+            buildHealth \
+            --warning-mode=fail \
+            --dependency-verification=strict \
+            --configuration-cache \
+            --configuration-cache-problems=fail \
+            2>&1 | tee "${RUNNER_TEMP}/configuration-cache-reuse.log"
+          grep -F "Reusing configuration cache." "${RUNNER_TEMP}/configuration-cache-reuse.log"
 
       - name: Verify forbidden permissions remain absent
         shell: bash
