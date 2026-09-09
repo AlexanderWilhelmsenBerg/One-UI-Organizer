@@ -32,6 +32,9 @@ android {
     lint {
         abortOnError = true
         warningsAsErrors = true
+        // These version-policy checks conflict with frozen baseline decisions: API 37 is compile-only,
+        // and Kotlin 2.4.20's fully-supported ceiling is AGP 9.3.1 / Gradle 9.7.0.
+        disable += setOf("AndroidGradlePluginVersion", "OldTargetApi")
     }
 }
 
