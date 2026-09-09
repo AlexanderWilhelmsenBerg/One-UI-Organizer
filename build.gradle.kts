@@ -6,6 +6,16 @@ plugins {
     alias(libs.plugins.dependency.analysis)
 }
 
+dependencyAnalysis {
+    issues {
+        all {
+            onAny {
+                severity("fail")
+            }
+        }
+    }
+}
+
 fun String.isNonStable(): Boolean {
     val stableKeyword = listOf("RELEASE", "FINAL", "GA").any { uppercase().contains(it) }
     val stableVersion = "^[0-9,.v-]+(-r)?$".toRegex()
