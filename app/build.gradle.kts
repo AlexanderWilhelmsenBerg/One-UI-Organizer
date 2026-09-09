@@ -88,7 +88,7 @@ tasks.register<JavaExec>("ktlintCheck") {
         "--relative",
         "**/src/**/*.kt",
         "**.kts",
-        "!**/build/**",
+        "!**/build/**"
     )
 }
 
@@ -104,6 +104,6 @@ tasks.register<JavaExec>("ktlintFormat") {
         "--relative",
         "**/src/**/*.kt",
         "**.kts",
-        "!**/build/**",
+        "!**/build/**"
     )
 }
