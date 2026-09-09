@@ -76,6 +76,8 @@ jobs:
           git diff --exit-code -- gradlew gradlew.bat gradle/wrapper gradle/gradle-daemon-jvm.properties
 
       - name: Generate SHA-256 dependency verification metadata
+        id: metadata
+        continue-on-error: true
         shell: bash
         run: |
           rm -f gradle/verification-metadata.xml
@@ -90,7 +92,25 @@ jobs:
             --configuration-cache \
             --configuration-cache-problems=fail
 
+      - name: Print lint diagnostics on bootstrap failure
+        if: steps.metadata.outcome == 'failure'
+        shell: bash
+        run: |
+          report="app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt"
+          if [[ -f "${report}" ]]; then
+            echo "===== FULL LINT REPORT ====="
+            cat "${report}"
+          else
+            echo "Lint report not present; failure occurred elsewhere."
+          fi
+
+      - name: Fail bootstrap after diagnostics
+        if: steps.metadata.outcome == 'failure'
+        shell: bash
+        run: exit 1
+
       - name: Commit verification metadata
+        if: steps.metadata.outcome == 'success'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
