@@ -3,6 +3,13 @@
     <string name="app_name">One UI Organizer</string>
     <string name="scaffold_ready">One UI Organizer scaffold ready</string>
 
+    <string name="platform_spike_title">Platform apps spike</string>
+    <string name="platform_spike_dismiss">Dismiss</string>
+    <string name="platform_spike_description">Diagnostic surface for launcher discovery and exact target launch testing.</string>
+    <string name="platform_spike_loading">Scanning launcher-visible apps…</string>
+    <string name="platform_spike_error">Launcher scan failed.</string>
+    <string name="platform_spike_count">%1$d launcher targets discovered</string>
+
     <string name="shelf_title">Apps</string>
     <string name="shelf_subtitle">Everything in its place, without replacing One UI Home.</string>
     <string name="search_content_description">Search apps and categories</string>
