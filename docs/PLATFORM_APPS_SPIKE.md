@@ -16,9 +16,9 @@ The manifest declares the matching `<queries><intent>...</intent></queries>` vis
 
 Android application categories are translated at the adapter boundary into `PlatformAppCategory`; Android framework types do not leave the platform adapter.
 
-A physical Samsung pass demonstrated an important limitation of the public query: One UI Home applies launcher-owned presentation/filtering beyond the raw set of activities that advertise `ACTION_MAIN` + `CATEGORY_LAUNCHER`. The raw supported query therefore includes some system/helper components that One UI does not present as ordinary app-drawer entries. There is no supported public API that exposes One UI's private app-drawer filtering policy to a companion app.
+A physical Samsung pass initially raised concern that some system/helper-looking entries might be false positives. The owner then checked those examples against One UI and confirmed that Disk and Assistant are in fact launcher apps, and could not identify any discovered entry that was absent from the One UI app drawer. The supported `ACTION_MAIN` + `CATEGORY_LAUNCHER` query is therefore accepted for the primary Samsung device.
 
-Do not address this by excluding every Android system application. Legitimate user-facing Samsung/Google apps can also be system applications and are required by product acceptance. Likewise, do not read Samsung launcher databases or use undocumented Samsung APIs. The diagnostic exposes exact package/component identity so false positives can be characterized before any narrow app-owned filtering policy is considered.
+Do not add blanket system-app filtering. Legitimate user-facing Samsung/Google apps can be system applications and are required by product acceptance. Likewise, do not read Samsung launcher databases or use undocumented Samsung APIs.
 
 ## Launcher aliases and multiple activities
 
@@ -54,7 +54,7 @@ The activity-specific `Theme.OneUIOrganizer.Translucent` sets:
 
 The host calls the existing Activity edge-to-edge API. `Theme.OneUIOrganizer` remains an ordinary non-translucent theme and is the normal edge-to-edge/fullscreen fallback if Samsung/Android window behavior proves the translucent host unreliable.
 
-The diagnostic Compose screen is intentionally temporary. For physical validation it now shows the entire lazily rendered target list, rather than only the first 12 sorted entries, and displays exact package/component identity under each label so unexpected launcher matches can be identified. Agent 40/50 can replace its contents without changing the platform source/launcher adapters or the host theme decision.
+The diagnostic Compose screen is intentionally temporary. For physical validation it shows the entire lazily rendered target list and displays exact package/component identity under each label. Agent 40/50 can replace its contents without changing the platform source/launcher adapters or the host theme decision.
 
 ## Automated coverage
 
@@ -77,13 +77,14 @@ Confirmed on the owner's Samsung device:
 - the companion activity opens successfully;
 - the launcher scan completes;
 - the translucent/dimmed diagnostic presentation is usable;
-- the corrected exact-component launch path opens a selected app successfully;
+- the corrected exact-component launch path opens selected apps successfully;
 - the scan reports **566 launcher targets across 564 distinct packages**;
 - the two-target difference shows that aliases/multiple launcher activities contribute only two additional targets, so the large package count is not caused by alias inflation;
 - the original diagnostic displayed only the first 12 alphabetically sorted entries, which all began with `A`; that cap has now been removed;
-- the full result includes system/helper entries such as Disk/Assistant that are not presented by One UI as ordinary app-drawer apps, proving that raw public launcher-intent matches are broader than One UI's final presented set.
+- entries that initially looked suspicious, including Disk and Assistant, were verified to be real One UI app-drawer entries;
+- after inspecting the full result, the owner could not identify a discovered entry that was absent from the One UI app drawer.
 
-Discovery acceptance remains **blocked**. The query is valid for public Android launcher-capable activities, but the resulting set is not yet a sufficiently clean approximation of the ordinary One UI app set required by the product intent. A broad `FLAG_SYSTEM` exclusion is explicitly rejected because it would remove legitimate Samsung/Google applications.
+**Discovery acceptance is passed for the primary Samsung device.** The public launcher query is a practically complete/clean match for the expected One UI launchable app set without `QUERY_ALL_PACKAGES`.
 
 ## Samsung / Android 16 acceptance checklist
 
@@ -91,7 +92,7 @@ Run this checklist on the primary Samsung device before declaring I1-I4 complete
 
 1. Install the debug APK without changing launcher/default-HOME settings.
 2. Open One UI Organizer from One UI Home and confirm the translucent/dimmed sheet presentation is visually acceptable. If it is clipped, incorrectly sized, opaque, or unstable across repeated opens, switch the activity to the normal `Theme.OneUIOrganizer` fallback and record the reason.
-3. Scroll the full diagnostic list and identify representative false positives using the exact package/component identity shown under each label. Compare representative entries against ordinary user-launchable apps visible in One UI.
+3. Compare the full diagnostic list against ordinary user-launchable apps visible in One UI. **Passed:** no false-positive entry could be identified; Disk and Assistant were confirmed as real One UI launcher apps.
 4. Confirm One UI Organizer itself does not appear in the discovered target list.
 5. Launch at least one Samsung app, one Google app, one third-party app, one game, and one work/productivity app from the diagnostic list.
 6. If the device contains a package with a launcher alias or multiple launcher activities, confirm the entries are deterministic and each selected entry launches its exact intended component.
@@ -100,6 +101,6 @@ Run this checklist on the primary Samsung device before declaring I1-I4 complete
 9. Repeat open/dismiss several times and confirm dismiss returns directly to One UI Home.
 10. Launch a sampled app, navigate back/exit it, and confirm the finished Organizer host does not unexpectedly remain as a stale foreground surface.
 11. Rotate/change display mode if applicable and confirm the translucent host remains usable; otherwise select the normal fallback.
-12. Record device model, Android version, One UI version, discovered target count, sampled apps, alias result, presentation choice, false-positive examples, and any deviations in the PR before merge.
+12. Record device model, Android version, One UI version, discovered target count, sampled apps, alias result, presentation choice, and any deviations in the PR before merge.
 
-Until the remaining checklist items are completed and discovery false positives are resolved or explicitly accepted, physical-device acceptance is explicitly **pending**.
+Discovery, launch-path correctness, and basic companion presentation have now been demonstrated on the primary Samsung device. The remaining checklist items still require completion or explicit owner acceptance before the full physical-device gate is closed.
