@@ -105,12 +105,22 @@ internal fun PlatformAppsSpikeScreen(
                     }
 
                     is PlatformAppsSpikeState.Ready -> {
+                        val packageCount = currentState.apps.distinctBy(InstalledApp::id).size
+
                         Text(
                             text =
                                 pluralStringResource(
                                     R.plurals.platform_spike_count,
                                     currentState.apps.size,
                                     currentState.apps.size
+                                )
+                        )
+                        Text(
+                            text =
+                                pluralStringResource(
+                                    R.plurals.platform_spike_package_count,
+                                    packageCount,
+                                    packageCount
                                 )
                         )
                         LazyColumn(
