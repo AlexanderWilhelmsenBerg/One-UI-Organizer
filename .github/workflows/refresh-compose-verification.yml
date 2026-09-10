@@ -1,0 +1,69 @@
+name: Refresh Compose verification metadata
+
+on:
+  push:
+    branches:
+      - feature/category-engine
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-compose-verification
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    if: github.event.head_commit.message == 'ci: refresh Compose verification metadata'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: feature/category-engine
+          fetch-depth: 0
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Provision API 37.0 compile SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tools_dir="${RUNNER_TEMP}/android-command-line-tools"
+          tools_zip="${RUNNER_TEMP}/commandlinetools-linux-15859902_latest.zip"
+          android_cli="${tools_dir}/cmdline-tools/bin/android"
+          api37_package="platforms/android-37.0@2.0.0"
+
+          mkdir -p "${tools_dir}"
+          curl -fsSL \
+            https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip \
+            -o "${tools_zip}"
+          unzip -q "${tools_zip}" -d "${tools_dir}"
+          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk install --force "${api37_package}" --beta
+          test -f "${ANDROID_HOME}/platforms/android-37.0/android.jar"
+
+      - name: Resolve verification lane and refresh checksums
+        run: >-
+          ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
+          --warning-mode=fail
+          --write-verification-metadata sha256
+          --configuration-cache
+          --configuration-cache-problems=fail
+
+      - name: Commit refreshed verification metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add gradle/verification-metadata.xml
+          if git diff --cached --quiet; then
+            echo "Verification metadata already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build: refresh Compose dependency verification"
+          git push origin HEAD:feature/category-engine
