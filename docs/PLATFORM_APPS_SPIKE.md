@@ -16,7 +16,7 @@ The manifest declares the matching `<queries><intent>...</intent></queries>` vis
 
 Android application categories are translated at the adapter boundary into `PlatformAppCategory`; Android framework types do not leave the platform adapter.
 
-A physical Samsung pass initially raised concern that some system/helper-looking entries might be false positives. The owner then checked those examples against One UI and confirmed that Disk and Assistant are in fact launcher apps, and could not identify any discovered entry that was absent from the One UI app drawer. The false-positive concern is therefore resolved for the primary Samsung device.
+A physical Samsung pass initially raised concern that some system/helper-looking entries might be false positives. The owner then checked those examples against One UI and confirmed that Disk and Assistant are in fact launcher apps, and could not identify any discovered entry that was absent from the One UI app drawer. Representative expected Samsung, Google, third-party, game, and work/productivity apps were also present. Discovery is therefore accepted for the primary Samsung device.
 
 Do not add blanket system-app filtering. Legitimate user-facing Samsung/Google apps can be system applications and are required by product acceptance. Likewise, do not read Samsung launcher databases or use undocumented Samsung APIs.
 
@@ -34,11 +34,18 @@ Policy:
 
 The diagnostic calculates multiple-target packages automatically. A compact section at the top reports how many packages expose more than one launcher target and lists each package together with every discovered launcher component. The owner does not need to manually search the full launcher list to identify alias/multiple-activity candidates.
 
+On the primary Samsung device the 566 targets across 564 packages are fully explained by two legitimate multi-target packages:
+
+- Tasker exposes its normal launcher target plus Tasker Secondary;
+- Daijisho exposes its normal launcher target plus DaiRescue.
+
+Both secondary entries were launched successfully on-device and opened their intended targets. This closes the alias/multiple-launcher-entry acceptance case.
+
 ## Launching
 
 `AndroidAppLauncher` validates the frozen target through a small pure `LaunchComponentSpec` seam, then builds a main-launcher intent for that exact `ComponentName` and adds `FLAG_ACTIVITY_NEW_TASK` because the adapter is intentionally created with application context. It returns `false` for blank target identity, missing activities, or security rejection.
 
-The initial Samsung device pass exposed the missing `FLAG_ACTIVITY_NEW_TASK`: every target tap crashed before the external app could open. After the flag was added, the owner retested on-device and confirmed that tapping a diagnostic target opens the selected app successfully.
+The initial Samsung device pass exposed the missing `FLAG_ACTIVITY_NEW_TASK`: every target tap crashed before the external app could open. After the flag was added, the owner retested on-device and confirmed that tapping diagnostic targets opens the selected apps successfully.
 
 The adapter does not expose `Intent`, `ComponentName`, `ResolveInfo`, `ApplicationInfo`, or `PackageManager` through the app-owned contracts.
 
@@ -74,36 +81,38 @@ The platform adapter itself requires real Android behavior to prove package visi
 
 ## Samsung device observations — 2026-09-10
 
-Confirmed on the owner's Samsung device:
+Physical acceptance on the owner's primary Samsung device is complete.
 
-- the companion activity opens successfully;
-- the launcher scan completes;
-- the translucent/dimmed diagnostic presentation is usable;
-- the corrected exact-component launch path opens selected apps successfully;
-- the scan reports **566 launcher targets across 564 distinct packages**;
-- the two-target difference proves there are two additional targets beyond a one-target-per-package baseline, but does not by itself identify whether that is two packages with two targets or one package with three targets;
-- the diagnostic now computes and displays the actual multiple-target package grouping automatically;
-- the original diagnostic displayed only the first 12 alphabetically sorted entries, which all began with `A`; that cap has now been removed;
-- entries that initially looked suspicious, including Disk and Assistant, were verified to be real One UI app-drawer entries;
-- after inspecting the full result, the owner could not identify a discovered entry that was absent from the One UI app drawer.
+Confirmed:
 
-**False-positive discovery quality is passed for the primary Samsung device.** The remaining discovery-completeness evidence is the representative-app/omission check in the checklist below; do not infer completeness solely from the absence of false positives.
+- debug APK installs without changing the default HOME app;
+- companion activity opens successfully from One UI Home;
+- launcher scan completes off the main thread;
+- translucent/dimmed presentation is usable and stable;
+- scan reports **566 launcher targets across 564 distinct packages**;
+- no discovered entry absent from the One UI app drawer could be identified;
+- representative expected Samsung, Google, third-party, game, and work/productivity apps are present;
+- One UI Organizer itself is excluded from the discovered list;
+- representative apps launch successfully through their exact components;
+- Tasker/Tasker Secondary and Daijisho/DaiRescue account for the two additional launcher targets and both secondary targets work correctly;
+- install/remove followed by reopen/resume refreshes the discovered set without a package observer/background service;
+- repeated dismiss returns directly to One UI Home;
+- after launching an external app, the finished Organizer host does not remain as a stale foreground surface;
+- rotate/display-mode testing leaves the selected presentation usable.
 
 ## Samsung / Android 16 acceptance checklist
 
-Run this checklist on the primary Samsung device before declaring I1-I4 complete:
+1. Install the debug APK without changing launcher/default-HOME settings. **Passed.**
+2. Open One UI Organizer from One UI Home and confirm the translucent/dimmed sheet presentation is visually acceptable. **Passed.**
+3. Compare the full diagnostic list against ordinary user-launchable apps visible in One UI, checking both false positives and representative omissions. **Passed.**
+4. Confirm One UI Organizer itself does not appear in the discovered target list. **Passed.**
+5. Launch at least one Samsung app, one Google app, one third-party app, one game, and one work/productivity app from the diagnostic list. **Passed.**
+6. Test reported alias/multiple-launcher-entry candidates and confirm exact targets open as intended. **Passed:** Tasker Secondary and DaiRescue both work.
+7. Install a small test app, resume or reopen Organizer, and confirm it appears without a package observer/background service. **Passed.**
+8. Remove that test app, resume or reopen Organizer, and confirm it disappears. **Passed.**
+9. Repeat open/dismiss several times and confirm dismiss returns directly to One UI Home. **Passed.**
+10. Launch a sampled app, navigate back/exit it, and confirm the finished Organizer host does not unexpectedly remain as a stale foreground surface. **Passed.**
+11. Rotate/change display mode if applicable and confirm the translucent host remains usable; otherwise select the normal fallback. **Passed.**
+12. Record device result, discovered target count, sampled behavior, alias result, presentation choice, and deviations before merge. **Passed in this document and PR.**
 
-1. Install the debug APK without changing launcher/default-HOME settings.
-2. Open One UI Organizer from One UI Home and confirm the translucent/dimmed sheet presentation is visually acceptable. **Passed:** presentation is usable on the primary Samsung device.
-3. Compare the full diagnostic list against ordinary user-launchable apps visible in One UI. **False-positive side passed:** no extra entry could be identified; Disk and Assistant were confirmed as real One UI launcher apps. Representative omissions still need to be checked by sampling known One UI apps across categories.
-4. Confirm One UI Organizer itself does not appear in the discovered target list.
-5. Launch at least one Samsung app, one Google app, one third-party app, one game, and one work/productivity app from the diagnostic list.
-6. Use the automatic multiple-target section to test each reported alias/multiple-launcher-entry candidate and confirm the selected components open their intended targets deterministically.
-7. Install a small test app, resume or reopen Organizer, and confirm it appears without a package observer/background service.
-8. Remove that test app, resume or reopen Organizer, and confirm it disappears.
-9. Repeat open/dismiss several times and confirm dismiss returns directly to One UI Home.
-10. Launch a sampled app, navigate back/exit it, and confirm the finished Organizer host does not unexpectedly remain as a stale foreground surface.
-11. Rotate/change display mode if applicable and confirm the translucent host remains usable; otherwise select the normal fallback.
-12. Record device model, Android version, One UI version, discovered target count, sampled apps, alias result, presentation choice, and any deviations in the PR before merge.
-
-Launch-path correctness, basic companion presentation, and absence of observed discovery false positives have now been demonstrated on the primary Samsung device. The remaining checklist items still require completion or explicit owner acceptance before the full physical-device gate is closed.
+**Milestone-1 platform spike physical-device acceptance is complete for PR #3.**
