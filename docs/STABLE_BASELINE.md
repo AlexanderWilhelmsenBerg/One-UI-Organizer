@@ -1,7 +1,7 @@
 # Stable Development Baseline
 
-**Policy date:** 2026-09-08
-**Last upstream verification:** 2026-09-08
+**Policy date:** 2026-09-10
+**Last upstream verification:** 2026-09-10
 
 This file is the **authoritative exact-version inventory** for One UI Organizer.
 
@@ -17,7 +17,7 @@ One qualification is intentional: mutually dependent stable build tools must als
 
 A preview **Android SDK platform** may be installed only when a selected latest-stable AndroidX/Compose release requires that compile API and no final SDK platform is available yet. This is a compile-time platform exception, not a general preview-dependency exception.
 
-The current approved exception is **Android API 37.0 / Cinnamon Bun Preview**, package `platforms/android-37.0@2.0.0`, because stable Compose BOM **2026.08.00 / Compose 1.12** requires API 37 while the platform is still distributed through the Android SDK beta channel. CI installs only that SDK platform using stable Android command-line tools and the current non-deprecated `android` CLI.
+The current approved exception is **Android API 37.0 / Cinnamon Bun Preview**, package `platforms/android-37.0@2.0.0`, because stable Compose BOM **2026.09.00 / Compose 1.12.1** requires API 37 while the platform is still distributed through the Android SDK beta channel. CI installs only that SDK platform using stable Android command-line tools and the current non-deprecated `android` CLI.
 
 This exception does **not** permit preview Kotlin, AGP, Gradle, Android Studio, Maven dependencies, libraries, Gradle plugins, runtime APIs, Build Tools, emulator/system images, or `targetSdk`. `targetSdk` remains **36** until Android 17 is final and separately approved. Compiling against API 37.0 does not authorize Android-17-only product behavior or API usage.
 
@@ -60,10 +60,10 @@ This lets the development/build environment stay current without accidentally pr
 
 | Dependency | Stable baseline |
 |---|---:|
-| Compose BOM | **2026.08.00** |
-| Compose UI | **1.12.0** via BOM |
-| Compose Foundation | **1.12.0** via BOM |
-| Compose Runtime | **1.12.0** via BOM |
+| Compose BOM | **2026.09.00** |
+| Compose UI | **1.12.1** via BOM |
+| Compose Foundation | **1.12.1** via BOM |
+| Compose Runtime | **1.12.1** via BOM |
 | Material 3 | **1.4.0** via BOM |
 | Activity / activity-compose | **1.13.0** |
 | Lifecycle | **2.11.0** |
@@ -80,7 +80,7 @@ Use the stable Compose BOM rather than independently pinning Compose artifacts.
 |---|---:|---|
 | Kotlin test APIs | **2.4.20** | Pure unit assertions |
 | kotlinx-coroutines-test | **1.11.0** | Deterministic coroutine/Flow tests |
-| Compose UI test artifacts | **BOM 2026.08.00** | Compose semantics/interaction tests |
+| Compose UI test artifacts | **BOM 2026.09.00** | Compose semantics/interaction tests |
 | AndroidX Test Core | **1.7.0** | Instrumentation support |
 | AndroidX Test Runner | **1.7.0** | Instrumentation runner |
 | AndroidX Test Rules | **1.7.0** | Android test rules |
@@ -102,7 +102,7 @@ Prefer fakes over a mocking framework. MockK/Mockito/Robolectric are not baselin
 | Dependency usage analysis | `com.autonomousapps.dependency-analysis` | **3.19.1** |
 | Detekt | Deferred | **Do not add until Detekt 2.x reaches stable** |
 
-The initial scaffold verified a compatibility mismatch in the otherwise-stable ktlint pair: plugin 14.2.0 launches ktlint in a process-isolated worker using the Gradle daemon JVM and exposes no worker Java-launcher selector. Under JDK 26, ktlint 1.8.0's embedded Kotlin compiler emits terminal `sun.misc.Unsafe::objectFieldOffset` deprecation warnings. The project therefore uses ktlint's documented custom Gradle/JavaExec integration with the same stable 1.8.0 engine and the already-required Java 17 toolchain. This is an execution-isolation change, not a dependency downgrade. Re-evaluate the plugin when a stable version can choose the worker JVM or no longer emits that warning on JDK 26.
+The initial scaffold verified a compatibility mismatch in the otherwise-stable ktlint pair: plugin 14.2.0 launches ktlint in a process-isolated worker using the Gradle daemon JVM and exposes no worker Java-launcher selector. Under JDK 26, ktlint 1.8.0's embedded Kotlin compiler emits terminal `sun.misc.Unsafe::objectFieldOffset` deprecation warnings. The project therefore uses ktlint's documented custom Gradle/JavaExec integration with the same stable 1.8.0 engine and the already-required Java 17 toolchain. This is an execution-isolation change, not a dependency downgrade. Re-evaluate the plugin when a stable version can choose the worker JVM or no longer emits the warning on JDK 26.
 
 Greenfield quality policy:
 
@@ -118,7 +118,7 @@ Greenfield quality policy:
 ## 5. Benchmark and performance tooling
 
 | Feature | Stable baseline | Adoption |
-|---|---:|
+|---|---:|---|
 | AndroidX Macrobenchmark | **1.4.1** | Add dedicated benchmark module when primary flow exists |
 | AndroidX Microbenchmark | **1.4.1** | Only for isolated hot code where useful |
 | ProfileInstaller | **1.4.1** | Use when baseline/profile flow is adopted |
