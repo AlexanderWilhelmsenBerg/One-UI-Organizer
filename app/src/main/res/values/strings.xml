@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">One UI Organizer</string>
-    <string name="scaffold_ready">One UI Organizer scaffold ready</string>
 
     <string name="platform_spike_title">Platform apps spike</string>
     <string name="platform_spike_dismiss">Dismiss</string>
