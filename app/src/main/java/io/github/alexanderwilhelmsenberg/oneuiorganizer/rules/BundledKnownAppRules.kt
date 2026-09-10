@@ -3,10 +3,7 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.rules
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 
-data class KnownAppRule(
-    val appId: AppId,
-    val category: AppCategory
-)
+data class KnownAppRule(val appId: AppId, val category: AppCategory)
 
 object BundledKnownAppRules {
     val entries: List<KnownAppRule> = listOf(
