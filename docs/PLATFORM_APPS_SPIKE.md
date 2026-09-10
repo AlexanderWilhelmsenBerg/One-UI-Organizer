@@ -70,7 +70,7 @@ The platform adapter itself requires real Android behavior to prove package visi
 
 Initial owner testing on 2026-09-10 established that the companion activity opens and the diagnostic scan completes. That build reported 566 launcher targets and displayed the first 12 diagnostic entries. Tapping any entry crashed the Organizer process.
 
-The launch crash was traced to the adapter using an application context with an intent from `Intent.makeMainActivity()` that lacked `FLAG_ACTIVITY_NEW_TASK`. Android requires that flag when `startActivity()` is called outside an Activity context. The adapter now adds the flag explicitly. Device retest of exact target launch remains pending.
+The launch crash was traced to the adapter using an application context with an intent from `Intent.makeMainActivity()` that lacked `FLAG_ACTIVITY_NEW_TASK`. Android requires that flag when `startActivity()` is called outside an Activity context. The adapter now adds the flag explicitly. CI run #98 is green with the correction; device retest of exact target launch remains pending.
 
 The reported 566 launcher targets are not yet accepted as the expected app set. The diagnostic now also reports distinct package count so the next device pass can distinguish legitimate multi-component/alias expansion from unexpected over-inclusion.
 
