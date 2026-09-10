@@ -11,6 +11,10 @@
         <item quantity="one">%1$d launcher target discovered</item>
         <item quantity="other">%1$d launcher targets discovered</item>
     </plurals>
+    <plurals name="platform_spike_package_count">
+        <item quantity="one">%1$d package represented</item>
+        <item quantity="other">%1$d packages represented</item>
+    </plurals>
 
     <string name="shelf_title">Apps</string>
     <string name="shelf_subtitle">Everything in its place, without replacing One UI Home.</string>
