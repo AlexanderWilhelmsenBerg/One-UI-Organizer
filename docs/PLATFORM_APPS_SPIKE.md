@@ -32,6 +32,8 @@ Policy:
 - ordering is deterministic by case-normalized label, original label, package name, then component class name;
 - `AppId` remains package-scoped, so higher layers may treat multiple launch entries from one package as one app for organizer-owned state while still launching the selected component exactly.
 
+The diagnostic calculates multiple-target packages automatically. A compact section at the top reports how many packages expose more than one launcher target and lists each package together with every discovered launcher component. The owner does not need to manually search the full launcher list to identify alias/multiple-activity candidates.
+
 ## Launching
 
 `AndroidAppLauncher` validates the frozen target through a small pure `LaunchComponentSpec` seam, then builds a main-launcher intent for that exact `ComponentName` and adds `FLAG_ACTIVITY_NEW_TASK` because the adapter is intentionally created with application context. It returns `false` for blank target identity, missing activities, or security rejection.
@@ -54,7 +56,7 @@ The activity-specific `Theme.OneUIOrganizer.Translucent` sets:
 
 The host calls the existing Activity edge-to-edge API. `Theme.OneUIOrganizer` remains an ordinary non-translucent theme and is the normal edge-to-edge/fullscreen fallback if Samsung/Android window behavior proves the translucent host unreliable.
 
-The diagnostic Compose screen is intentionally temporary. For physical validation it shows the entire lazily rendered target list and displays exact package/component identity under each label. Agent 40/50 can replace its contents without changing the platform source/launcher adapters or the host theme decision.
+The diagnostic Compose screen is intentionally temporary. For physical validation it shows the multiple-target package summary first, followed by the entire lazily rendered target list with exact package/component identity under each label. Agent 40/50 can replace its contents without changing the platform source/launcher adapters or the host theme decision.
 
 ## Automated coverage
 
@@ -79,7 +81,8 @@ Confirmed on the owner's Samsung device:
 - the translucent/dimmed diagnostic presentation is usable;
 - the corrected exact-component launch path opens selected apps successfully;
 - the scan reports **566 launcher targets across 564 distinct packages**;
-- the two-target difference shows that aliases/multiple launcher activities contribute only two additional targets, so the large package count is not caused by alias inflation;
+- the two-target difference proves there are two additional targets beyond a one-target-per-package baseline, but does not by itself identify whether that is two packages with two targets or one package with three targets;
+- the diagnostic now computes and displays the actual multiple-target package grouping automatically;
 - the original diagnostic displayed only the first 12 alphabetically sorted entries, which all began with `A`; that cap has now been removed;
 - entries that initially looked suspicious, including Disk and Assistant, were verified to be real One UI app-drawer entries;
 - after inspecting the full result, the owner could not identify a discovered entry that was absent from the One UI app drawer.
@@ -95,7 +98,7 @@ Run this checklist on the primary Samsung device before declaring I1-I4 complete
 3. Compare the full diagnostic list against ordinary user-launchable apps visible in One UI. **False-positive side passed:** no extra entry could be identified; Disk and Assistant were confirmed as real One UI launcher apps. Representative omissions still need to be checked by sampling known One UI apps across categories.
 4. Confirm One UI Organizer itself does not appear in the discovered target list.
 5. Launch at least one Samsung app, one Google app, one third-party app, one game, and one work/productivity app from the diagnostic list.
-6. If the device contains a package with a launcher alias or multiple launcher activities, confirm the entries are deterministic and each selected entry launches its exact intended component.
+6. Use the automatic multiple-target section to test each reported alias/multiple-launcher-entry candidate and confirm the selected components open their intended targets deterministically.
 7. Install a small test app, resume or reopen Organizer, and confirm it appears without a package observer/background service.
 8. Remove that test app, resume or reopen Organizer, and confirm it disappears.
 9. Repeat open/dismiss several times and confirm dismiss returns directly to One UI Home.
