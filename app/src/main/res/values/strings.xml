@@ -2,4 +2,38 @@
 <resources>
     <string name="app_name">One UI Organizer</string>
     <string name="scaffold_ready">One UI Organizer scaffold ready</string>
+
+    <string name="shelf_title">Apps</string>
+    <string name="shelf_subtitle">Everything in its place, without replacing One UI Home.</string>
+    <string name="search_content_description">Search apps and categories</string>
+    <string name="search_placeholder">Search apps or categories</string>
+    <string name="clear_search">Clear search</string>
+    <string name="favourites_title">Favourites</string>
+    <string name="manage_hidden_apps">Manage hidden apps</string>
+    <string name="manage_hidden_apps_count">Manage hidden apps (%1$d)</string>
+
+    <string name="loading_title">Organizing your apps</string>
+    <string name="loading_body">Your shelf will appear as soon as local app state is ready.</string>
+    <string name="no_results_title">No results</string>
+    <string name="no_results_body">Nothing visible matches “%1$s”.</string>
+    <string name="empty_shelf_title">No apps to show</string>
+    <string name="empty_shelf_body">Apps will appear here when organizer state is available.</string>
+    <string name="unsorted_empty_body">Everything is sorted.</string>
+
+    <string name="open_app">Open %1$s</string>
+    <string name="organize_app">Organize %1$s</string>
+    <string name="add_to_favourites">Add to favourites</string>
+    <string name="remove_from_favourites">Remove from favourites</string>
+    <string name="move_category">Move category</string>
+    <string name="move_app_title">Move %1$s</string>
+    <string name="hide_app">Hide</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="hidden_apps_title">Hidden apps</string>
+    <string name="hidden_apps_body">Restore apps to make them visible on the shelf again.</string>
+    <string name="hidden_apps_done">Done</string>
+    <string name="restore_app">Restore</string>
+    <string name="restore_app_content_description">Restore %1$s</string>
+    <string name="hidden_apps_empty_title">No hidden apps</string>
+    <string name="hidden_apps_empty_body">Apps you hide from the shelf will appear here.</string>
 </resources>
