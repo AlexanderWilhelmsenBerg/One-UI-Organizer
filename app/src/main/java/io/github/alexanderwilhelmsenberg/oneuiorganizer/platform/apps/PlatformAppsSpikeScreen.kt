@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
@@ -106,8 +107,9 @@ internal fun PlatformAppsSpikeScreen(
                     is PlatformAppsSpikeState.Ready -> {
                         Text(
                             text =
-                                stringResource(
-                                    R.string.platform_spike_count,
+                                pluralStringResource(
+                                    R.plurals.platform_spike_count,
+                                    currentState.apps.size,
                                     currentState.apps.size
                                 )
                         )
