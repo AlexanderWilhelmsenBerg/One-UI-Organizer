@@ -106,6 +106,12 @@ internal fun PlatformAppsSpikeScreen(
 
                     is PlatformAppsSpikeState.Ready -> {
                         val packageCount = currentState.apps.distinctBy(InstalledApp::id).size
+                        val multiTargetPackages =
+                            currentState.apps
+                                .groupBy { app -> app.id }
+                                .filterValues { apps -> apps.size > 1 }
+                                .entries
+                                .sortedBy { entry -> entry.key.packageName.lowercase() }
 
                         Text(
                             text =
@@ -127,6 +133,46 @@ internal fun PlatformAppsSpikeScreen(
                             modifier = Modifier.heightIn(max = 360.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
+                            item {
+                                Text(
+                                    text =
+                                        pluralStringResource(
+                                            R.plurals.platform_spike_multi_target_package_count,
+                                            multiTargetPackages.size,
+                                            multiTargetPackages.size
+                                        ),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                            }
+                            items(
+                                items = multiTargetPackages,
+                                key = { entry -> "multiple/${entry.key.packageName}" }
+                            ) { entry ->
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = entry.key.packageName,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    entry.value.forEach { app ->
+                                        Text(
+                                            text = "${app.label}: ${app.launchTargetId.className}",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                            }
+                            item {
+                                Text(
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    text = stringResource(R.string.platform_spike_all_targets),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                            }
                             items(
                                 items = currentState.apps,
                                 key = { app ->
