@@ -22,4 +22,6 @@ class AndroidAppLauncher(private val context: Context) : AppLauncher {
 }
 
 private fun LaunchComponentSpec.toLaunchIntent(): Intent =
-    Intent.makeMainActivity(ComponentName(packageName, className))
+    Intent.makeMainActivity(ComponentName(packageName, className)).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
