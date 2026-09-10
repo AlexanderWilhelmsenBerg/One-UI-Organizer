@@ -146,6 +146,7 @@ These are **not initial dependencies**. Re-check stable versions again at adopti
 |---|---:|
 | GitHub checkout action | `actions/checkout` **7.0.1** |
 | Gradle GitHub Action | `gradle/actions/setup-gradle` **6.2.0** |
+| GitHub artifact upload action | `actions/upload-artifact` **7.0.1**; direct single-file APK uploads use `archive: false` |
 | GitHub Actions dependencies | Pin to **immutable commit SHA**, annotate release tag in comments |
 | Gradle dependency verification | **SHA-256 metadata committed** |
 | Gradle configuration cache | **Required compatible** |
