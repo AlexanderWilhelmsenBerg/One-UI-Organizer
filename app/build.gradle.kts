@@ -7,6 +7,10 @@ plugins {
     alias(libs.plugins.dependency.analysis)
 }
 
+val releaseSigningKeyAlias = "oneui-organizer-upload"
+val releaseKeystorePathProvider = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
+val releaseKeystorePasswordProvider = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
+
 android {
     namespace = "io.github.alexanderwilhelmsenberg.oneuiorganizer"
     compileSdk = 37
@@ -19,6 +23,27 @@ android {
         versionCode = 1
         versionName = "0.1.0-dev"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    val releaseCredentials =
+        releaseKeystorePathProvider.orNull?.takeIf(String::isNotBlank)?.let { keystorePath ->
+            releaseKeystorePasswordProvider.orNull?.takeIf(String::isNotBlank)?.let { password ->
+                keystorePath to password
+            }
+        }
+
+    // Release signing is opt-in. Missing credentials must not break debug, test, lint, or local verification tasks.
+    releaseCredentials?.let { (keystorePath, password) ->
+        val releaseSigning =
+            signingConfigs.create("release") {
+                storeFile = file(keystorePath)
+                storePassword = password
+                keyAlias = releaseSigningKeyAlias
+                keyPassword = password
+            }
+        buildTypes.getByName("release") {
+            signingConfig = releaseSigning
+        }
     }
 
     buildFeatures {
