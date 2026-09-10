@@ -128,7 +128,7 @@ internal fun PlatformAppsSpikeScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             items(
-                                items = currentState.apps.take(MAX_DIAGNOSTIC_TARGETS),
+                                items = currentState.apps,
                                 key = { app ->
                                     "${app.launchTargetId.packageName}/${app.launchTargetId.className}"
                                 }
@@ -162,5 +162,3 @@ private sealed interface PlatformAppsSpikeState {
 
     data class Ready(val apps: List<InstalledApp>) : PlatformAppsSpikeState
 }
-
-private const val MAX_DIAGNOSTIC_TARGETS = 12
