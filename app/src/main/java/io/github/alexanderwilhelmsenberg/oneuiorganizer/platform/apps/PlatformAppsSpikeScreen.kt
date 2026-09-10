@@ -144,7 +144,9 @@ internal fun PlatformAppsSpikeScreen(
                                     Column(modifier = Modifier.fillMaxWidth()) {
                                         Text(text = app.label)
                                         Text(
-                                            text = app.id.packageName,
+                                            text =
+                                                "${app.launchTargetId.packageName}/" +
+                                                    app.launchTargetId.className,
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     }
