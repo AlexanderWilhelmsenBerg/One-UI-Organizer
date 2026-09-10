@@ -2,6 +2,8 @@
 
 **Lane:** Agent 10 / `feature/platform-apps`
 
+**Rebase status:** Rebased onto the current integrated `main` baseline on 2026-09-10 after the sibling domain, persistence, UI, baseline/dependency and workflow changes landed. The frozen `InstalledAppSource` / `AppLauncher` contracts remain unchanged.
+
 This note records the platform decisions made by the Android launcher-app discovery and launch spike. It does not define the final organizer UI.
 
 ## Discovery
