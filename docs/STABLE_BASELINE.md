@@ -9,16 +9,25 @@ For the rules governing how these tools and libraries are used, isolated, tested
 
 ## Policy
 
-The project uses **latest stable releases only**. Alpha, beta, RC, milestone, EAP, preview, nightly, snapshot, and dynamic `+` versions are not allowed in normal development.
+The project uses **latest stable releases only** for Maven artifacts, libraries, Kotlin, AGP, Gradle, Android Studio, Gradle plugins and other normal build/runtime dependencies. Alpha, beta, RC, milestone, EAP, preview, nightly, snapshot, and dynamic `+` versions are not allowed in those dependency/tool categories.
 
-One qualification is intentional: mutually dependent build tools must also be inside their vendors' documented compatibility ranges. If the individually newest stable versions are not yet documented as fully compatible, use the newest fully supported combination and record the newer stable release as deferred.
+One qualification is intentional: mutually dependent stable build tools must also be inside their vendors' documented compatibility ranges. If the individually newest stable versions are not yet documented as fully compatible, use the newest fully supported combination and record the newer stable release as deferred.
+
+### Narrow preview compile-SDK exception
+
+A preview **Android SDK platform** may be installed only when a selected latest-stable AndroidX/Compose release requires that compile API and no final SDK platform is available yet. This is a compile-time platform exception, not a general preview-dependency exception.
+
+The current approved exception is **Android API 37.0 / Cinnamon Bun Preview**, package `platforms/android-37.0@2.0.0`, because stable Compose BOM **2026.08.00 / Compose 1.12** requires API 37 while the platform is still distributed through the Android SDK beta channel. CI installs only that SDK platform using stable Android command-line tools and the current non-deprecated `android` CLI.
+
+This exception does **not** permit preview Kotlin, AGP, Gradle, Android Studio, Maven dependencies, libraries, Gradle plugins, runtime APIs, Build Tools, emulator/system images, or `targetSdk`. `targetSdk` remains **36** until Android 17 is final and separately approved. Compiling against API 37.0 does not authorize Android-17-only product behavior or API usage.
 
 ## 1. Build and JVM toolchains
 
 | Component | Baseline | Reason / status |
 |---|---:|---|
 | Android Studio | **Quail 4 / 2026.1.4** | Current stable Android Studio at policy date |
-| Android SDK Command-line Tools | **package build 15859902 (`latest`)** | Current stable command-line tools package from Google |
+| Android SDK Command-line Tools | **package build 15859902 (`latest`)** | Current stable command-line tools package from Google; `sdkmanager` is deprecated, so automation uses the package's current `android` CLI |
+| Android SDK Platform | **API 37.0 / `platforms/android-37.0@2.0.0`** | Narrow compile-SDK exception required by stable Compose 1.12; provisioned from the beta SDK channel |
 | Android SDK Platform-Tools | **37.0.1** | Current stable `adb` / platform-tools release |
 | Android Emulator | **37.1.11** | Current stable emulator release |
 | Gradle daemon JDK vendor | **Eclipse Temurin / Adoptium** | Reproducible OpenJDK distribution for local and CI |
@@ -29,20 +38,21 @@ One qualification is intentional: mutually dependent build tools must also be in
 | Compose Compiler Gradle plugin | **2.4.20** | Match Kotlin version |
 | Android Gradle Plugin | **9.3.1** | Highest AGP fully supported by Kotlin 2.4.20 |
 | Gradle Wrapper | **9.7.0** | Highest Gradle fully supported by Kotlin 2.4.20 |
-| compileSdk | **37** | Current compile API required by stable Compose line |
-| targetSdk | **36 initially** | Raise to 37 after Android 17 final + acceptance testing |
+| compileSdk | **37, minor API 0** | Expressed as `compileSdk = 37` plus `compileSdkMinor = 0`; does not imply target/runtime behavior |
+| targetSdk | **36 initially** | Keep at 36 until Android 17 final + explicit acceptance/approval |
 | minSdk | **28** | Product compatibility decision |
-| Android SDK Build Tools | **AGP-managed** | Do not pin unless a concrete build issue requires it |
+| Android SDK Build Tools | **AGP-managed** | Do not install/pin preview Build Tools unless a concrete build failure proves they are required |
 | NDK | **Not used** | No native code requirement |
 
 ### The JDK split is deliberate
 
 Do not treat "the project's JDK" as one setting.
 
-- **JDK 26.0.2.1+1** runs Gradle/build tooling.
+- **JDK 26.0.2.1+1** runs the Gradle daemon/build orchestration.
 - **Java 17 toolchain** compiles Android production code and local JVM tests.
+- ktlint's CLI process also uses the provisioned **Java 17 toolchain**; this keeps the JDK 26 daemon current without globally suppressing the terminal `sun.misc.Unsafe` warning emitted by ktlint 1.8.0's embedded compiler on JDK 26.
 - `sourceCompatibility`, `targetCompatibility`, and Kotlin JVM target are explicitly **17**.
-- The repository must commit Gradle Daemon JVM criteria so CI and developers do not silently inherit whatever `JAVA_HOME` happens to point at.
+- The repository commits Gradle Daemon JVM criteria so CI and developers do not silently inherit whatever `JAVA_HOME` happens to point at.
 
 This lets the development/build environment stay current without accidentally producing Android code against Java 26 APIs or bytecode.
 
@@ -57,7 +67,7 @@ This lets the development/build environment stay current without accidentally pr
 | Material 3 | **1.4.0** via BOM |
 | Activity / activity-compose | **1.13.0** |
 | Lifecycle | **2.11.0** |
-| AndroidX Core | **1.19.0** |
+| AndroidX Core | **1.19.0** (`androidx.core:core`; Core KTX APIs are merged into the main artifact) |
 | DataStore | **1.2.1** |
 | kotlinx.coroutines | **1.11.0** |
 | kotlinx.serialization | **1.11.0** |
@@ -86,11 +96,13 @@ Prefer fakes over a mocking framework. MockK/Mockito/Robolectric are not baselin
 | Concern | Stable tool | Version / policy |
 |---|---|---:|
 | Android semantic/static analysis | Android Lint | **Bundled with AGP 9.3.1** |
-| Kotlin formatting/lint engine | ktlint | **1.8.0** |
-| ktlint Gradle integration | `org.jlleitschuh.gradle.ktlint` | **14.2.0** |
+| Kotlin formatting/lint engine | ktlint CLI | **1.8.0**, executed with the Java 17 toolchain |
+| ktlint Gradle plugin | `org.jlleitschuh.gradle.ktlint` | **14.2.0 stable, tracked but not applied while its worker cannot select Java 17 under the JDK 26 daemon** |
 | Dependency update discovery | `io.github.ben-manes.versions.settings` | **0.61.0** |
 | Dependency usage analysis | `com.autonomousapps.dependency-analysis` | **3.19.1** |
 | Detekt | Deferred | **Do not add until Detekt 2.x reaches stable** |
+
+The initial scaffold verified a compatibility mismatch in the otherwise-stable ktlint pair: plugin 14.2.0 launches ktlint in a process-isolated worker using the Gradle daemon JVM and exposes no worker Java-launcher selector. Under JDK 26, ktlint 1.8.0's embedded Kotlin compiler emits terminal `sun.misc.Unsafe::objectFieldOffset` deprecation warnings. The project therefore uses ktlint's documented custom Gradle/JavaExec integration with the same stable 1.8.0 engine and the already-required Java 17 toolchain. This is an execution-isolation change, not a dependency downgrade. Re-evaluate the plugin when a stable version can choose the worker JVM or no longer emits that warning on JDK 26.
 
 Greenfield quality policy:
 
@@ -106,7 +118,7 @@ Greenfield quality policy:
 ## 5. Benchmark and performance tooling
 
 | Feature | Stable baseline | Adoption |
-|---|---:|---|
+|---|---:|
 | AndroidX Macrobenchmark | **1.4.1** | Add dedicated benchmark module when primary flow exists |
 | AndroidX Microbenchmark | **1.4.1** | Only for isolated hot code where useful |
 | ProfileInstaller | **1.4.1** | Use when baseline/profile flow is adopted |
@@ -145,117 +157,36 @@ The exact `setup-java` action version is not part of the authoritative toolchain
 
 ## 8. Known newer/pre-release versions intentionally not selected
 
+The preview compile-SDK exception above is the only approved preview input. It is an SDK platform, not a Maven/library/plugin dependency.
+
 ### AGP 9.4.0
 
 AGP **9.4.0** is stable, but Kotlin 2.4.20 currently documents full AGP compatibility only through **9.3.1**. Upgrade when a stable Kotlin line expands that compatibility range.
 
-### Gradle 9.7.1
+### Kotlin 2.5.0-Beta1
 
-Gradle **9.7.1** is a newer stable patch, but Kotlin 2.4.20's published fully-compatible maximum is **9.7.0**. Stay on 9.7.0 until Kotlin's compatibility matrix catches up or a newer stable Kotlin release supports the newer Gradle line.
+Kotlin **2.5.0-Beta1** exists but is a beta and is therefore excluded.
 
-### JDK 27
+### Compose BOM / libraries
 
-JDK 27 is not yet a supported Gradle runtime in the current stable Gradle compatibility table. Do not move until both a GA JDK 27 exists and the pinned stable Gradle/Kotlin/AGP stack supports it.
+No newer pre-release Compose BOM or library line is allowed in the normal dependency graph.
 
 ### Benchmark 1.5.x
 
-Current 1.5 releases are pre-release/RC. Stay on **1.4.1** until 1.5 reaches stable and passes the project compatibility lane.
+Benchmark 1.5.x is not stable on the policy date, so the project remains on 1.4.1 when benchmark tooling is adopted.
 
-### Detekt 2.x
+## 9. Upgrade procedure
 
-Detekt 2.x is pre-release. Do not introduce old Detekt 1.x just to have a second analyzer in a new project; re-evaluate when 2.x is stable.
+When intentionally upgrading any baseline component:
 
-## 9. Version policy for future development
+1. verify the candidate is stable upstream, except for the narrowly approved compile-SDK platform rule;
+2. verify compatibility with dependent build tools;
+3. change the version catalog / wrapper / Daemon JVM criteria in a dedicated upgrade change;
+4. regenerate dependency verification metadata;
+5. run unit, instrumentation, Lint, ktlint and dependency-health gates;
+6. run Gradle with deprecation warnings enabled/failing;
+7. verify configuration-cache reuse;
+8. verify debug APK install/launch on the primary Samsung device when platform/UI behavior may be affected;
+9. record any deferred incompatibility rather than silently accepting warnings.
 
-Every dependency/tool change follows these rules:
-
-1. **Stable only.** No prerelease or dynamic versions.
-2. **Newest stable compatible.** Compatibility matrices outrank version-number vanity.
-3. **Exact central pins.** Versions live in the catalog/build policy, not scattered through modules.
-4. **No silent debt.** Every deliberately deferred stable upgrade has a recorded reason.
-5. **Built-in Kotlin.** AGP 9+ built-in Kotlin is the default; do not reintroduce `org.jetbrains.kotlin.android` without a documented reason.
-6. **Compose compiler matches Kotlin.** `org.jetbrains.kotlin.plugin.compose` uses the same version as Kotlin.
-7. **No warning baseline.** Deprecation/compiler/lint warnings are fixed, not accumulated.
-8. **Upgrade PRs are isolated.** Prefer dependency/toolchain upgrades separate from product features.
-9. **Re-check before scaffolding and every release milestone.** This file is a living baseline, not a time capsule.
-10. **Code for replacement.** Follow [ENGINEERING_BASELINE.md](ENGINEERING_BASELINE.md) so external library/platform types remain at controlled boundaries.
-
-## 10. Initial implementation footprint
-
-The first real implementation slice should remain deliberately small:
-
-```text
-Build/runtime
-- Android Studio Quail 4 / 2026.1.4
-- Android SDK Command-line Tools build 15859902
-- Android SDK Platform-Tools 37.0.1
-- Android Emulator 37.1.11
-- Temurin JDK 26.0.2.1+1 for Gradle
-- Java 17 Android compile/test toolchain
-- Foojay resolver 1.0.0
-- Kotlin 2.4.20
-- Compose compiler plugin 2.4.20
-- AGP 9.3.1
-- Gradle 9.7.0
-- compileSdk 37 / targetSdk 36 / minSdk 28
-
-Runtime/UI
-- AndroidX Core 1.19.0
-- Activity Compose 1.13.0
-- Lifecycle 2.11.0
-- Compose BOM 2026.08.00
-- Material 3 1.4.0 via BOM
-- DataStore 1.2.1
-- kotlinx.coroutines 1.11.0
-- kotlinx.serialization 1.11.0
-
-Quality/tests
-- ktlint 1.8.0 + Gradle plugin 14.2.0
-- Android Lint from AGP 9.3.1
-- Dependency Analysis 3.19.1
-- Versions settings plugin 0.61.0
-- AndroidX Test Core/Runner/Rules 1.7.0
-- ext.junit 1.3.0
-- Espresso 3.7.0
-- UI Automator 2.4.0
-- Compose UI tests via BOM
-- kotlinx-coroutines-test 1.11.0
-```
-
-Not initially required:
-
-```text
-Room / KSP
-Hilt / Koin
-WorkManager
-Retrofit / Ktor / OkHttp
-Coil / Glide
-Paging / AppSearch
-Robolectric / MockK / Mockito
-Detekt
-Navigation
-Glance
-Baseline Profile plugin
-```
-
-## 11. Upstream references
-
-- Android Studio and Command-line Tools: https://developer.android.com/studio
-- Android SDK Platform-Tools: https://developer.android.com/tools/releases/platform-tools
-- Android Emulator releases: https://developer.android.com/studio/releases/emulator
-- Kotlin Gradle/AGP compatibility: https://kotlinlang.org/docs/gradle-configure-project.html
-- Kotlin 2.4.20: https://kotlinlang.org/docs/whatsnew2420.html
-- Android Java/JDK configuration: https://developer.android.com/build/jdks
-- Gradle Java compatibility: https://docs.gradle.org/current/userguide/compatibility.html
-- Gradle Daemon JVM criteria/toolchains: https://docs.gradle.org/current/userguide/gradle_daemon.html and https://docs.gradle.org/current/userguide/toolchains.html
-- Eclipse Temurin releases: https://adoptium.net/
-- AGP releases: https://developer.android.com/build/releases/about-agp
-- Compose BOM: https://developer.android.com/develop/ui/compose/bom
-- AndroidX Test: https://developer.android.com/jetpack/androidx/releases/test
-- UI Automator: https://developer.android.com/jetpack/androidx/releases/test-uiautomator
-- AndroidX Benchmark: https://developer.android.com/jetpack/androidx/releases/benchmark
-- Foojay toolchain resolver: https://plugins.gradle.org/plugin/org.gradle.toolchains.foojay-resolver-convention
-- ktlint: https://github.com/ktlint/ktlint/releases
-- ktlint Gradle plugin: https://plugins.gradle.org/plugin/org.jlleitschuh.gradle.ktlint
-- Dependency Analysis: https://plugins.gradle.org/plugin/com.autonomousapps.dependency-analysis
-- Versions plugin: https://plugins.gradle.org/plugin/io.github.ben-manes.versions.settings
+The point of this policy is not to chase version numbers. It is to keep the project on the newest stable **compatible** stack, with the one documented compile-SDK platform exception, and keep upgrade work small and deliberate.

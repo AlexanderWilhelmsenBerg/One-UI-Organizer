@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build and quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Provision API 37.0 compile SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tools_dir="${RUNNER_TEMP}/android-command-line-tools"
+          tools_zip="${RUNNER_TEMP}/commandlinetools-linux-15859902_latest.zip"
+          android_cli="${tools_dir}/cmdline-tools/bin/android"
+          api37_package="platforms/android-37.0@2.0.0"
+
+          mkdir -p "${tools_dir}"
+          curl -fsSL \
+            https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip \
+            -o "${tools_zip}"
+          unzip -q "${tools_zip}" -d "${tools_dir}"
+
+          echo "Android command-line tools archive: commandlinetools-linux-15859902_latest.zip"
+          echo "Android CLI version:"
+          "${android_cli}" --no-metrics --version
+          echo "ANDROID_HOME=${ANDROID_HOME}"
+          echo "API 37 packages visible on beta channel:"
+          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk list "platforms/android-37.*" --beta --all-versions
+          echo "API 37 directories before install:"
+          find "${ANDROID_HOME}/platforms" -maxdepth 1 -type d -name 'android-37*' -print 2>/dev/null || true
+
+          echo "Installing only ${api37_package} from the beta channel."
+          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk install --force "${api37_package}" --beta
+
+          echo "API 37 directories after install:"
+          find "${ANDROID_HOME}/platforms" -maxdepth 1 -type d -name 'android-37*' -print
+          test -f "${ANDROID_HOME}/platforms/android-37.0/android.jar"
+          ls -l "${ANDROID_HOME}/platforms/android-37.0/android.jar"
+          echo "Installed API 37.0 source properties:"
+          cat "${ANDROID_HOME}/platforms/android-37.0/source.properties"
+
+          echo "Android platform-tools:"
+          "${ANDROID_HOME}/platform-tools/adb" --version
+          "${ANDROID_HOME}/platform-tools/adb" --version | grep -F "Version 37.0.1"
+
+      - name: Report toolchains
+        run: |
+          ./gradlew --version
+          ./gradlew javaToolchains --warning-mode=fail --dependency-verification=strict
+
+      - name: Clean scaffold
+        run: >-
+          ./gradlew clean
+          --warning-mode=fail
+          --dependency-verification=strict
+          --configuration-cache
+          --configuration-cache-problems=fail
+
+      - name: Verify scaffold
+        run: >-
+          ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
+          --warning-mode=fail
+          --dependency-verification=strict
+          --configuration-cache
+          --configuration-cache-problems=fail
+
+      - name: Report dependency health
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="build/reports/dependency-analysis/build-health-report.txt"
+          test -f "${report}"
+          cat "${report}"
+
+      - name: Verify configuration-cache reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew \
+            :app:assembleDebug \
+            :app:testDebugUnitTest \
+            :app:lintDebug \
+            :app:ktlintCheck \
+            buildHealth \
+            --warning-mode=fail \
+            --dependency-verification=strict \
+            --configuration-cache \
+            --configuration-cache-problems=fail \
+            2>&1 | tee "${RUNNER_TEMP}/configuration-cache-reuse.log"
+          grep -F "Reusing configuration cache." "${RUNNER_TEMP}/configuration-cache-reuse.log"
+
+      - name: Verify forbidden permissions remain absent
+        shell: bash
+        run: |
+          if grep -Eq 'android\.permission\.(INTERNET|QUERY_ALL_PACKAGES)' app/src/main/AndroidManifest.xml; then
+            echo "Forbidden v0.1 permission found in AndroidManifest.xml"
+            exit 1
+          fi

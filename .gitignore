@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Android / local SDK
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+
+# Signing material
+*.jks
+*.keystore
+keystore.properties
+
+# Generated reports
+reports/
