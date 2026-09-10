@@ -16,7 +16,7 @@ The manifest declares the matching `<queries><intent>...</intent></queries>` vis
 
 Android application categories are translated at the adapter boundary into `PlatformAppCategory`; Android framework types do not leave the platform adapter.
 
-A physical Samsung pass initially raised concern that some system/helper-looking entries might be false positives. The owner then checked those examples against One UI and confirmed that Disk and Assistant are in fact launcher apps, and could not identify any discovered entry that was absent from the One UI app drawer. The supported `ACTION_MAIN` + `CATEGORY_LAUNCHER` query is therefore accepted for the primary Samsung device.
+A physical Samsung pass initially raised concern that some system/helper-looking entries might be false positives. The owner then checked those examples against One UI and confirmed that Disk and Assistant are in fact launcher apps, and could not identify any discovered entry that was absent from the One UI app drawer. The false-positive concern is therefore resolved for the primary Samsung device.
 
 Do not add blanket system-app filtering. Legitimate user-facing Samsung/Google apps can be system applications and are required by product acceptance. Likewise, do not read Samsung launcher databases or use undocumented Samsung APIs.
 
@@ -84,7 +84,7 @@ Confirmed on the owner's Samsung device:
 - entries that initially looked suspicious, including Disk and Assistant, were verified to be real One UI app-drawer entries;
 - after inspecting the full result, the owner could not identify a discovered entry that was absent from the One UI app drawer.
 
-**Discovery acceptance is passed for the primary Samsung device.** The public launcher query is a practically complete/clean match for the expected One UI launchable app set without `QUERY_ALL_PACKAGES`.
+**False-positive discovery quality is passed for the primary Samsung device.** The remaining discovery-completeness evidence is the representative-app/omission check in the checklist below; do not infer completeness solely from the absence of false positives.
 
 ## Samsung / Android 16 acceptance checklist
 
@@ -92,7 +92,7 @@ Run this checklist on the primary Samsung device before declaring I1-I4 complete
 
 1. Install the debug APK without changing launcher/default-HOME settings.
 2. Open One UI Organizer from One UI Home and confirm the translucent/dimmed sheet presentation is visually acceptable. **Passed:** presentation is usable on the primary Samsung device.
-3. Compare the full diagnostic list against ordinary user-launchable apps visible in One UI. **Passed:** no false-positive entry could be identified; Disk and Assistant were confirmed as real One UI launcher apps.
+3. Compare the full diagnostic list against ordinary user-launchable apps visible in One UI. **False-positive side passed:** no extra entry could be identified; Disk and Assistant were confirmed as real One UI launcher apps. Representative omissions still need to be checked by sampling known One UI apps across categories.
 4. Confirm One UI Organizer itself does not appear in the discovered target list.
 5. Launch at least one Samsung app, one Google app, one third-party app, one game, and one work/productivity app from the diagnostic list.
 6. If the device contains a package with a launcher alias or multiple launcher activities, confirm the entries are deterministic and each selected entry launches its exact intended component.
@@ -103,4 +103,4 @@ Run this checklist on the primary Samsung device before declaring I1-I4 complete
 11. Rotate/change display mode if applicable and confirm the translucent host remains usable; otherwise select the normal fallback.
 12. Record device model, Android version, One UI version, discovered target count, sampled apps, alias result, presentation choice, and any deviations in the PR before merge.
 
-Discovery, launch-path correctness, and basic companion presentation have now been demonstrated on the primary Samsung device. The remaining checklist items still require completion or explicit owner acceptance before the full physical-device gate is closed.
+Launch-path correctness, basic companion presentation, and absence of observed discovery false positives have now been demonstrated on the primary Samsung device. The remaining checklist items still require completion or explicit owner acceptance before the full physical-device gate is closed.
