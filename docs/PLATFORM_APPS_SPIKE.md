@@ -86,7 +86,7 @@ Run this checklist on the primary Samsung device before declaring I1-I4 complete
 
 1. Install the debug APK without changing launcher/default-HOME settings.
 2. Open One UI Organizer from One UI Home and confirm the translucent/dimmed sheet presentation is visually acceptable. If it is clipped, incorrectly sized, opaque, or unstable across repeated opens, switch the activity to the normal `Theme.OneUIOrganizer` fallback and record the reason.
-3. Compare the diagnostic launcher-target count/list against ordinary user-launchable apps visible in One UI. Record any material omissions or extra launcher-capable packages and whether they are explained by Android package visibility, hidden-app settings, work/profile behavior, or Samsung presentation policy.
+3. Scroll the full diagnostic list and compare representative entries against ordinary user-launchable apps visible in One UI. Record material omissions or extra launcher-capable packages and whether they are explained by Android package visibility, hidden-app settings, work/profile behavior, or Samsung presentation policy.
 4. Confirm One UI Organizer itself does not appear in the discovered target list.
 5. Launch at least one Samsung app, one Google app, one third-party app, one game, and one work/productivity app from the diagnostic list.
 6. If the device contains a package with a launcher alias or multiple launcher activities, confirm the entries are deterministic and each selected entry launches its exact intended component.
