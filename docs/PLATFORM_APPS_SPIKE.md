@@ -91,7 +91,7 @@ Confirmed on the owner's Samsung device:
 Run this checklist on the primary Samsung device before declaring I1-I4 complete:
 
 1. Install the debug APK without changing launcher/default-HOME settings.
-2. Open One UI Organizer from One UI Home and confirm the translucent/dimmed sheet presentation is visually acceptable. If it is clipped, incorrectly sized, opaque, or unstable across repeated opens, switch the activity to the normal `Theme.OneUIOrganizer` fallback and record the reason.
+2. Open One UI Organizer from One UI Home and confirm the translucent/dimmed sheet presentation is visually acceptable. **Passed:** presentation is usable on the primary Samsung device.
 3. Compare the full diagnostic list against ordinary user-launchable apps visible in One UI. **Passed:** no false-positive entry could be identified; Disk and Assistant were confirmed as real One UI launcher apps.
 4. Confirm One UI Organizer itself does not appear in the discovered target list.
 5. Launch at least one Samsung app, one Google app, one third-party app, one game, and one work/productivity app from the diagnostic list.
