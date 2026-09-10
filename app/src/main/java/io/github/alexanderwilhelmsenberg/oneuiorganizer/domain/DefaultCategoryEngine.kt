@@ -8,9 +8,8 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.PlatformAppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.BundledKnownAppRules
 
-class DefaultCategoryEngine(
-    private val knownAppCategory: (AppId) -> AppCategory? = BundledKnownAppRules::categoryFor
-) : CategoryEngine {
+class DefaultCategoryEngine(private val knownAppCategory: (AppId) -> AppCategory? = BundledKnownAppRules::categoryFor) :
+    CategoryEngine {
     override fun categorize(app: InstalledApp, userOverride: AppCategory?): CategorizedApp {
         if (userOverride != null) {
             return CategorizedApp(
