@@ -141,10 +141,13 @@ internal fun PlatformAppsSpikeScreen(
                                         }
                                     }
                                 ) {
-                                    Text(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        text = app.label
-                                    )
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Text(text = app.label)
+                                        Text(
+                                            text = app.id.packageName,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
                                 }
                             }
                         }
