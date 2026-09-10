@@ -8,7 +8,10 @@
     <string name="platform_spike_description">Diagnostic surface for launcher discovery and exact target launch testing.</string>
     <string name="platform_spike_loading">Scanning launcher-visible apps…</string>
     <string name="platform_spike_error">Launcher scan failed.</string>
-    <string name="platform_spike_count">%1$d launcher targets discovered</string>
+    <plurals name="platform_spike_count">
+        <item quantity="one">%1$d launcher target discovered</item>
+        <item quantity="other">%1$d launcher targets discovered</item>
+    </plurals>
 
     <string name="shelf_title">Apps</string>
     <string name="shelf_subtitle">Everything in its place, without replacing One UI Home.</string>
