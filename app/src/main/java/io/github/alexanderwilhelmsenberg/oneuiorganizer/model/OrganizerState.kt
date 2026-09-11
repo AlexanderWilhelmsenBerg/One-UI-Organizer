@@ -15,8 +15,8 @@ data class OrganizerState(
     }
 
     fun categoryDefinition(id: CategoryId): CategoryDefinition? =
-        AppCategory.fromId(id)?.toCategoryDefinition()
-            ?: customCategories.firstOrNull { category -> category.id == id }?.toCategoryDefinition()
+        AppCategory.fromId(id)
+            ?: customCategories.firstOrNull { category -> category.id == id }
 
     fun normalizedCategoryOrder(): List<CategoryId> {
         val knownIds =
