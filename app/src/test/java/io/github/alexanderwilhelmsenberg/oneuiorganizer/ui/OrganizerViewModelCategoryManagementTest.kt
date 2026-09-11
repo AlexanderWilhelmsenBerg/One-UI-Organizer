@@ -133,7 +133,10 @@ class OrganizerViewModelCategoryManagementTest {
     ): OrganizerViewModel = OrganizerViewModel(
         organizerRepository = FakeOrganizerRepository(organizerState),
         categoryManagementRepository = categoryManagementRepository,
-        appLauncher = AppLauncher { true },
+        appLauncher =
+            object : AppLauncher {
+                override fun launch(target: LaunchTargetId): Boolean = true
+            },
         scope = scope
     )
 }
