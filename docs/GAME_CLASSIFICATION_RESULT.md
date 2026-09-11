@@ -1,12 +1,12 @@
 # Game Classification Result
 
-This note records the sanitized aggregate result of the Agent 62 game-rule lane plus the Agent 70 integration correction discovered from the fresh Samsung acceptance report.
+This note records the sanitized aggregate result of the Agent 62 game-genre lane plus the Agent 70 false-positive correction. The later Agent 70 emulator pack is documented separately in the integrated acceptance record.
 
 The private owner-device classification report remains diagnostic input only. Raw launcher rows are not committed.
 
 ## Rule selection
 
-The final game pack contains 105 deterministic exact-package rules. It uses only the five game categories frozen by Agent 60:
+The final game-genre pack contains 105 deterministic exact-package rules. It uses only the five genre categories frozen by Agent 60:
 
 - `GAME_ACTION_ADVENTURE`
 - `GAME_RPG`
@@ -14,23 +14,23 @@ The final game pack contains 105 deterministic exact-package rules. It uses only
 - `GAME_PUZZLE_CASUAL`
 - `GAME_BOARD_CARD`
 
-`GAMES` remains the safe fallback.
+`GAMES` remains the safe broad fallback for this game-genre lane.
 
-Rules are retained only where the game identity and broad genre are high-confidence. Mixed or unclear entries remain in `GAMES` rather than being forced into a narrower category. Launcher entries that are primarily emulators, game frontends, streaming clients or compatibility tools also remain in `GAMES` because the frozen taxonomy describes game genres, not gaming software roles.
+Rules are retained only where the game identity and broad genre are high-confidence. Mixed or unclear games stay in `GAMES` rather than being forced into a narrower genre.
 
 ## Agent 70 false-positive correction
 
-The fresh Samsung acceptance report exposed one false positive that aggregate-only review could not reveal. A launcher entry labeled `Eden Optimized` used package identity `com.miHoYo.Yuanshen` but launched through an `org.yuzu.yuzu_emu` activity. The exact-package rule therefore classified an emulator variant as RPG.
+The first fresh Samsung acceptance report exposed one false positive that aggregate-only review could not reveal. A launcher entry labeled `Eden Optimized` used package identity `com.miHoYo.Yuanshen` but launched through an `org.yuzu.yuzu_emu` activity. The original exact-package game rule therefore classified an emulator variant as RPG.
 
-Agent 70 removed `com.miHoYo.Yuanshen` from the narrow RPG rule pack and added a regression proving that this owner-device evidence stays in broad `Games` through the Android-declared `GAME` fallback.
+Agent 70 removed `com.miHoYo.Yuanshen` from the narrow RPG pack and added regression coverage.
 
-The correction intentionally does not attempt to distinguish an official game installation from emulator variants sharing that package identity. The low-false-positive policy prefers the broad fallback when package identity is demonstrably ambiguous in the accepted device evidence.
+The owner then approved a first-class `Emulators` category. Emulator classification now lives in a separate rule pack, including an exact-component selector for the observed Eden/Yuzu launcher. This keeps emulator/software-role classification separate from the game-genre pack and avoids package-only ambiguity.
 
-## Final same-device game projection
+## Corrected game-lane-only projection
 
-After the Agent 70 correction, the expected game distribution on the same 129-entry game population is:
+Before the separate emulator pack is applied, the corrected game-genre lane produces:
 
-| Game category | Before | Final expected |
+| Game category | Before | Corrected game lane |
 | --- | ---: | ---: |
 | Action & Adventure | 0 | 12 |
 | RPG | 0 | 37 |
@@ -40,28 +40,23 @@ After the Agent 70 correction, the expected game distribution on the same 129-en
 | Games fallback | 129 | 24 |
 | **Total** | **129** | **129** |
 
-The narrow rules therefore move 105 of the 129 broad `Games` entries while deliberately retaining 24 safe fallback entries.
+The 105 genre rules move 105 of the original 129 broad `Games` entries to a specific genre.
+
+The integrated emulator pack subsequently moves evidence-backed emulator software out of broad `Games` into `Emulators`; therefore this table is intentionally a game-lane-only result, not the final integrated category distribution.
 
 ## Classification-source impact
 
-Applying only the final game-rule lane against the original frozen report:
+Applying only the corrected game-genre lane against the original frozen report:
 
-| Classification source | Before | Final expected |
+| Classification source | Before | Corrected game lane |
 | --- | ---: | ---: |
 | User override | 0 | 0 |
 | Bundled known-app rule | 5 | 110 |
 | Android-declared category | 336 | 231 |
 | Unsorted fallback | 225 | 225 |
 
-The 105 narrowed game entries move from Android-declared category to bundled known-app rule. No `Unsorted` entry is affected by this lane.
+The integrated emulator pack has its own additional source-count effect documented in `CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`.
 
 ## Scope confirmation
 
-This lane does not change:
-
-- `AppCategory` or taxonomy;
-- selector/index/composition infrastructure;
-- Android discovery;
-- persistence schema or migration behavior;
-- UI;
-- dependencies, SDKs or toolchains.
+The game-genre lane itself does not own emulator taxonomy or emulator selectors. Agent 70's owner-approved emulator integration is a separate bundled rule pack composed through the same `KnownAppRuleSet`.
