@@ -27,6 +27,9 @@
     <string name="search_placeholder">Search apps or categories</string>
     <string name="clear_search">Clear search</string>
     <string name="favourites_title">Favourites</string>
+    <string name="share_classification_report">Share classification report</string>
+    <string name="classification_report_subject">One UI Organizer classification report</string>
+    <string name="classification_report_chooser_title">Share local classification report</string>
     <string name="manage_hidden_apps">Manage hidden apps</string>
     <string name="manage_hidden_apps_count">Manage hidden apps (%1$d)</string>
 

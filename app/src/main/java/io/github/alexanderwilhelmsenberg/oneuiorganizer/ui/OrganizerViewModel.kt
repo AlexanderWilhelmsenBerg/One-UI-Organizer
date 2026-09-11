@@ -1,6 +1,7 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.OrganizerRepository
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.ClassificationReportFormatter
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
@@ -39,9 +40,16 @@ class OrganizerViewModel(
             initialValue = OrganizerState()
         )
 
+    private val categorizedApps =
+        organizerRepository.apps.stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = emptyList()
+        )
+
     private val shelfInputs =
         combine(
-            organizerRepository.apps,
+            categorizedApps,
             organizerState,
             query
         ) { apps, state, currentQuery ->
@@ -142,6 +150,8 @@ class OrganizerViewModel(
     fun hideHiddenApps() {
         _showHiddenApps.value = false
     }
+
+    fun classificationReport(): String = ClassificationReportFormatter.format(categorizedApps.value)
 
     private fun updateOrganizerState(update: suspend () -> Unit) {
         scope.launch {

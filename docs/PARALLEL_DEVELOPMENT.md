@@ -320,3 +320,63 @@ Parallel implementation is ready when Agent 00 is merged and `main` contains:
 - no feature agent-specific implementation hidden in the foundation PR.
 
 Copy/paste prompts for each agent live under [`agents/`](agents/README.md).
+
+## 10. Post-v0.1 classification wave
+
+The Agent 00–50 sequence above is the historical v0.1 delivery structure. v0.1 is merged. Classification-quality work uses a new evidence-first gate rather than reopening those completed lanes.
+
+### Agent 60 — classification foundation / evidence
+
+Agent 60 starts alone from current `main` on `feature/classification-foundation` and owns the shared classification seams:
+
+```text
+app/src/main/java/**/domain/ClassificationReportFormatter.kt
+app/src/main/java/**/rules/KnownAppRules.kt
+app/src/main/java/**/rules/BundledKnownAppRules.kt
+app/src/main/java/**/rules/general/GeneralKnownAppRules.kt
+app/src/main/java/**/rules/games/GameKnownAppRules.kt
+app/src/main/java/**/rules/web/WebShortcutKnownAppRules.kt
+classification-report integration and its regression tests
+classification taxonomy/migration decision
+classification-wave documentation
+```
+
+Agent 60 must collect or review the owner-device classification report before freezing new taxonomy values. The raw report is private and must never be committed. If device access is unavailable to the agent, the PR remains evidence-gated until the owner supplies the report privately.
+
+### Parallel classification lanes after Agent 60 merges
+
+Only after Agent 60 has reviewed the real report, frozen the accepted taxonomy/rule selectors, resolved migration implications, and merged may the rule expansion lanes start from the same updated `main`.
+
+| Lane | Production ownership | Test ownership | Shared files it must not edit |
+|---|---|---|---|
+| General rules | `app/src/main/java/**/rules/general/GeneralKnownAppRules.kt` | matching `app/src/test/**/rules/general/**` tests | selector/index/composition, taxonomy, persistence |
+| Game rules | `app/src/main/java/**/rules/games/GameKnownAppRules.kt` | matching `app/src/test/**/rules/games/**` tests | selector/index/composition, taxonomy, Android mapping |
+| Web/PWA rules | `app/src/main/java/**/rules/web/WebShortcutKnownAppRules.kt` | matching `app/src/test/**/rules/web/**` tests | selector/index/composition, taxonomy, platform scanner unless explicitly re-coordinated |
+
+These lanes add evidence-backed rules only. They do not create alternate engines, duplicate selectors, local taxonomies, or label-guessing systems to avoid coordination.
+
+### Classification-wave conflict rules
+
+1. `KnownAppSelector`, `KnownAppRuleSet`, `BundledKnownAppRules`, `AppCategory`, `ClassificationSource`, and persisted schema are shared foundation contracts after Agent 60.
+2. Exact component matching precedes exact package matching inside the bundled-rule tier; the outer precedence remains user override > bundled rule > Android category > `Unsorted`.
+3. Duplicate exact selectors across the composed packs are a build/test failure, not a merge-time convention.
+4. A new matcher requires reviewed device evidence and an explicit shared-contract PR before parallel rule branches consume it.
+5. A taxonomy rename/removal is persistence work and cannot be slipped into a rule-pack PR.
+6. Each rule lane reports before/after aggregate effects from the same evidence set where practical, while raw owner-device rows remain private.
+
+### Post-v0.1 merge shape
+
+```text
+60 Classification foundation + evidence
+                  |
+                  +----------------+----------------+
+                  |                |                |
+             General rules     Game rules      Web/PWA rules
+                  |                |                |
+                  +----------------+----------------+
+                                   |
+                         classification integration
+                         + owner-device validation
+```
+
+Green CI on Agent 60 is necessary but not sufficient: the foundation PR is not merge-ready until the real report has been reviewed and taxonomy/migration decisions are documented.

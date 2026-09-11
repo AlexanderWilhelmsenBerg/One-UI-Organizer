@@ -50,6 +50,7 @@ fun OrganizerShelf(
     onToggleFavourite: (LaunchTargetId) -> Unit,
     onHideApp: (LaunchTargetId) -> Unit,
     onRestoreApp: (LaunchTargetId) -> Unit,
+    onClassificationReportRequested: () -> Unit,
     onHiddenAppsRequested: () -> Unit,
     onHiddenAppsDismissed: () -> Unit,
     modifier: Modifier = Modifier
@@ -152,6 +153,16 @@ fun OrganizerShelf(
                             UnsortedEmptyState()
                         }
                     }
+                }
+            }
+
+            item(key = "classification-report") {
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = state.hasAnyCurrentApps,
+                    onClick = onClassificationReportRequested
+                ) {
+                    Text(stringResource(R.string.share_classification_report))
                 }
             }
 
