@@ -1,6 +1,6 @@
 # MoSCoW Scope Analysis
 
-This document separates the shipped core from the highest-value follow-up work. v0.1 is merged; classification-quality implementation is passing through Agent 70 integration/owner-device acceptance.
+This document separates the shipped core from the highest-value follow-up work. v0.1 is merged; classification-quality implementation and owner-device acceptance are complete on Agent 70 pending the owner's merge decision.
 
 Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). The current integrated classification result is in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md).
 
@@ -82,7 +82,7 @@ The current build still has no `INTERNET` permission. The owner has approved fut
 
 ## Completed post-v0.1 Should work
 
-### Classification quality and taxonomy tuning — implemented, final device recheck pending
+### Classification quality and taxonomy tuning — complete
 
 The classification wave delivered:
 
@@ -97,16 +97,16 @@ The classification wave delivered:
 
 The first fresh Samsung report exposed one false positive: an Eden/Yuzu-family emulator reused a package previously treated as an RPG identity. Agent 70 removed that package-only game rule and then used the observed launch component to classify the emulator safely.
 
-Expected final result on the same 566-target population is:
+The final Samsung report from the emulator-category build confirms the same 566-target result exactly:
 
-- `Unsorted`: 225 -> 123;
-- `Emulators`: 0 -> 15;
-- `Games`: 129 -> 10;
-- RPG: 37;
-- bundled known-rule source: 5 -> 249;
-- Android-declared source: 336 -> 194.
+- `Unsorted`: 225 -> **123**;
+- `Emulators`: 0 -> **15**;
+- `Games`: 129 -> **10**;
+- RPG: **37**;
+- bundled known-rule source: 5 -> **249**;
+- Android-declared source: 336 -> **194**.
 
-A fresh same-device capture from the emulator-category build is required before those final figures are device-confirmed.
+Manual review confirms all 15 emulator rows are actual emulator software/components, including Eden/Yuzu and Citra. Ambiguous gaming frontends, streaming and compatibility software remains broad instead of being over-classified.
 
 ### Better `Unsorted` management / rule explanation — implemented baseline
 
