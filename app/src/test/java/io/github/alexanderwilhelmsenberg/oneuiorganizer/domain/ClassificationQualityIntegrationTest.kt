@@ -90,11 +90,10 @@ class ClassificationQualityIntegrationTest {
     private fun installedApp(
         packageName: String,
         platformCategory: PlatformAppCategory = PlatformAppCategory.UNDEFINED
-    ): InstalledApp =
-        InstalledApp(
-            id = AppId(packageName),
-            launchTargetId = LaunchTargetId(packageName, "$packageName.MainActivity"),
-            label = "Integration fixture",
-            platformCategory = platformCategory
-        )
+    ): InstalledApp = InstalledApp(
+        id = AppId(packageName),
+        launchTargetId = LaunchTargetId(packageName, "$packageName.MainActivity"),
+        label = "Integration fixture",
+        platformCategory = platformCategory
+    )
 }
