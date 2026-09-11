@@ -172,7 +172,9 @@ The final fresh Samsung report from the emulator-category build confirms the pre
 - Android-declared source: 336 -> **194**;
 - total remains 566.
 
-Manual review confirms all 15 emulator rows are actual emulator software/components. Eden/Yuzu and Citra are correctly classified as `Emulators`, while ambiguous gaming frontends/streaming/compatibility software remains in broad `Games` rather than being over-classified.
+Manual review confirms all 15 emulator rows are actual emulator software/components. Eden/Yuzu and Citra are correctly classified as `Emulators`.
+
+The 10 broad `Games` rows are MonsterFactory, Magic Timer, Xbox Game Pass, Moonlight, Artemis, Prado, Better xCloud, Winlator, GameHub and ES-DE. Several are intentionally broad gaming frontends, streaming or compatibility tools; the remaining game entries lack enough evidence for a permanent narrower bucket.
 
 The classification-quality Samsung device gate is therefore complete. The report still cannot observe manual override/favourite/hidden persistence, so a strict physical proof of those state types remains separate if required literally; repository migration coverage is green.
 
