@@ -100,9 +100,7 @@ class DefaultOrganizerRepository(
         }
     }
 
-    override suspend fun createCustomCategory(
-        displayName: String
-    ): CategoryManagementResult<CustomCategoryDefinition> {
+    override suspend fun createCustomCategory(displayName: String): CategoryManagementResult<CustomCategoryDefinition> {
         val generatedId = customCategoryIdGenerator.generate()
         val sanitizedName = CategoryNamePolicy.sanitized(displayName)
         val mutation =
@@ -167,43 +165,40 @@ class DefaultOrganizerRepository(
     override suspend fun deleteCustomCategory(
         categoryId: CategoryId,
         policy: CategoryDeletionPolicy
-    ): CategoryManagementResult<Unit> =
-        mutateCategoryState { state ->
-            if (AppCategory.fromId(categoryId) != null) {
-                rejectCategoryMutation(CategoryManagementError.BuiltInCategoryImmutable(categoryId))
-            }
-            if (state.customCategories.none { category -> category.id == categoryId }) {
-                rejectCategoryMutation(CategoryManagementError.CategoryNotFound(categoryId))
-            }
-
-            val updatedOverrides =
-                when (policy) {
-                    CategoryDeletionPolicy.ReturnToAutomatic ->
-                        state.categoryOverrides.filterValues { overrideId -> overrideId != categoryId }
-
-                    is CategoryDeletionPolicy.Reassign -> {
-                        val destinationId = policy.destinationCategoryId
-                        if (destinationId == categoryId || state.categoryDefinition(destinationId) == null) {
-                            rejectCategoryMutation(
-                                CategoryManagementError.InvalidReassignmentDestination(destinationId)
-                            )
-                        }
-                        state.categoryOverrides.mapValues { (_, overrideId) ->
-                            if (overrideId == categoryId) destinationId else overrideId
-                        }
-                    }
-                }
-
-            state.copy(
-                categoryOverrides = updatedOverrides,
-                customCategories = state.customCategories.filterNot { category -> category.id == categoryId },
-                categoryOrder = state.categoryOrder.filterNot { id -> id == categoryId }
-            )
+    ): CategoryManagementResult<Unit> = mutateCategoryState { state ->
+        if (AppCategory.fromId(categoryId) != null) {
+            rejectCategoryMutation(CategoryManagementError.BuiltInCategoryImmutable(categoryId))
+        }
+        if (state.customCategories.none { category -> category.id == categoryId }) {
+            rejectCategoryMutation(CategoryManagementError.CategoryNotFound(categoryId))
         }
 
-    override suspend fun reorderCategories(
-        categoryIds: List<CategoryId>
-    ): CategoryManagementResult<List<CategoryId>> {
+        val updatedOverrides =
+            when (policy) {
+                CategoryDeletionPolicy.ReturnToAutomatic ->
+                    state.categoryOverrides.filterValues { overrideId -> overrideId != categoryId }
+
+                is CategoryDeletionPolicy.Reassign -> {
+                    val destinationId = policy.destinationCategoryId
+                    if (destinationId == categoryId || state.categoryDefinition(destinationId) == null) {
+                        rejectCategoryMutation(
+                            CategoryManagementError.InvalidReassignmentDestination(destinationId)
+                        )
+                    }
+                    state.categoryOverrides.mapValues { (_, overrideId) ->
+                        if (overrideId == categoryId) destinationId else overrideId
+                    }
+                }
+            }
+
+        state.copy(
+            categoryOverrides = updatedOverrides,
+            customCategories = state.customCategories.filterNot { category -> category.id == categoryId },
+            categoryOrder = state.categoryOrder.filterNot { id -> id == categoryId }
+        )
+    }
+
+    override suspend fun reorderCategories(categoryIds: List<CategoryId>): CategoryManagementResult<List<CategoryId>> {
         val requestedOrder = categoryIds.toList()
         val mutation =
             mutateCategoryState { state ->
@@ -246,17 +241,16 @@ class DefaultOrganizerRepository(
 
     private suspend fun mutateCategoryState(
         transform: (OrganizerState) -> OrganizerState
-    ): CategoryManagementResult<Unit> =
-        try {
-            organizerStateStore.update(transform)
-            CategoryManagementResult.Success(Unit)
-        } catch (rejected: CategoryMutationRejectedException) {
-            CategoryManagementResult.Failure(rejected.error)
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (_: Exception) {
-            CategoryManagementResult.Failure(CategoryManagementError.PersistenceFailure)
-        }
+    ): CategoryManagementResult<Unit> = try {
+        organizerStateStore.update(transform)
+        CategoryManagementResult.Success(Unit)
+    } catch (rejected: CategoryMutationRejectedException) {
+        CategoryManagementResult.Failure(rejected.error)
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (_: Exception) {
+        CategoryManagementResult.Failure(CategoryManagementError.PersistenceFailure)
+    }
 
     private fun OrganizerState.referencesCategoryId(categoryId: CategoryId): Boolean =
         categoryDefinition(categoryId) != null ||
@@ -272,9 +266,7 @@ private class CategoryMutationRejectedException(val error: CategoryManagementErr
 private fun rejectCategoryMutation(error: CategoryManagementError): Nothing =
     throw CategoryMutationRejectedException(error)
 
-private inline fun <T, R> CategoryManagementResult<T>.mapSuccess(
-    transform: (T) -> R
-): CategoryManagementResult<R> =
+private inline fun <T, R> CategoryManagementResult<T>.mapSuccess(transform: (T) -> R): CategoryManagementResult<R> =
     when (this) {
         is CategoryManagementResult.Failure -> this
         is CategoryManagementResult.Success -> CategoryManagementResult.Success(transform(value))
