@@ -6,7 +6,7 @@ This document records the integrated user-owned category-management design and t
 
 Agents 80, 81 and 82 are merged to `main` as PRs #15, #16 and #17. Agent 83 integrates those lanes in PR #18 on `integration/category-management`.
 
-The automated quality gate is green. Physical Samsung acceptance is **in progress**: owner-device evidence now proves a real manual category override and diagnostic reporting while preserving the full 566-target inventory. The implementation is not considered fully accepted, and PR #18 is not merge-ready, until the remaining physical upgrade/migration checklist in this document has been completed without clearing application data and the generalized result has been recorded.
+The owner-device lifecycle/migration exercise has now passed all requested behavior except one presentation defect discovered during acceptance: the category-management list showed counts derived only from explicit persisted overrides, so automatically classified built-in categories incorrectly displayed `0 assigned apps`. The defect is patched on the Agent 83 branch and covered by a regression test. PR #18 remains non-merge-ready until the corrected signed debug APK is installed over the existing test installation and the category-count display is rechecked on the Samsung device. The final PR CI on the corrected head is also required to be green.
 
 ## Final category model
 
@@ -55,10 +55,12 @@ Deletion, reassignment/override clearing, definition removal and order removal a
 
 `OrganizerViewModel` translates presentation intents to those repository contracts. It does not repeat name validation, lifecycle rules or persistence behavior. Adjacent UI reorder actions are translated to the current complete ordered-ID permutation and the repository performs final validation.
 
-The category-management presentation is derived from persisted `OrganizerState`:
+The category-management presentation is derived from the same live classified-app/state streams used by the organizer:
 
 - definitions/order come from `orderedCategories()`;
-- assigned counts come from persisted override IDs, including retained overrides for hidden or currently uninstalled apps;
+- assigned counts use each currently installed launch target's effective `CategorizedApp.category`, so automatic and user-overridden membership are both represented;
+- a retained override for an app that is not currently installed contributes one retained assignment without double-counting current installed targets;
+- hidden installed apps remain represented because hiding is a presentation filter, not removal from repository classification state;
 - the shelf and move picker continue to consume the same app-owned definitions/order;
 - category-management and hidden-app management are mutually exclusive surfaces;
 - Android back/dismiss returns from category management to the organizer shelf.
@@ -91,7 +93,7 @@ The integrated presentation maps failures to safe messages for blank/too-long/du
 
 ## Automated acceptance
 
-The permanent PR quality lane is green on the integrated Agent 83 branch. It covers:
+The permanent PR quality lane must be green on the corrected Agent 83 head. It covers:
 
 - debug app assembly;
 - instrumentation-test APK compilation;
@@ -104,13 +106,13 @@ The permanent PR quality lane is green on the integrated Agent 83 branch. It cov
 - configuration-cache creation and reuse;
 - forbidden-permission checks.
 
-Repository tests additionally prove stable rename identity, explicit deletion policies, invalid-destination atomicity, exact reorder validation, custom-category search, persistence recreation, schema-v1 migration, classification precedence and custom diagnostic-report representation.
+Repository tests additionally prove stable rename identity, explicit deletion policies, invalid-destination atomicity, exact reorder validation, custom-category search, persistence recreation, schema-v1 migration, classification precedence, custom diagnostic-report representation and effective category-management assignment counts.
 
-## Physical Samsung migration gate — in progress
+## Physical Samsung migration gate — targeted retest pending
 
-Use the repository `Build APK` workflow with the **debug** variant on the Agent 83 branch. That workflow uses the permanent distribution keystore, verifies the signature and publishes the signed debug APK. Install it over the existing pre-category-management application; do not clear data.
+Use the repository `Build APK` workflow with the **debug** variant on the Agent 83 branch. That workflow uses the permanent distribution keystore, verifies the signature and publishes the signed debug APK. Install it over the existing application; do not clear data.
 
-Before upgrade, retain representative existing state:
+Before the original upgrade exercise, representative existing state was retained for migration verification:
 
 - one manual built-in category override;
 - one favourite;
@@ -131,30 +133,24 @@ Sanitized evidence:
 - bundled-rule and Android-declared source counts remained unchanged at 249 and 194 respectively;
 - `UNSORTED_FALLBACK` decreased to 122, matching the single manual override.
 
-This proves the real-device manual-override path and diagnostic-report source attribution without changing target inventory. It does **not** yet prove custom-category lifecycle behavior, process-recreation persistence, delete/reassign behavior, or the pre-category-management over-install preservation checks.
+This proves the real-device manual-override path and diagnostic-report source attribution without changing target inventory.
 
-After upgrade verify, using only generalized/sanitized evidence:
+The owner subsequently completed the requested migration/category-management lifecycle exercise and reported all other requested behaviors as passing, including preservation through the over-install, custom-category creation/movement/search/rename/reorder, process recreation, both deletion policies, built-in protection, representative launch behavior, back/dismiss behavior and layout sanity.
 
-1. installation succeeds over the existing app without clearing data;
-2. the previous built-in override survives;
-3. the previous favourite survives;
-4. the previous hidden state survives;
-5. at least two custom categories can be created;
-6. several apps can be moved into them;
-7. custom categories appear in the shelf and move picker;
-8. search by a custom-category name returns assigned apps;
-9. renaming a custom category preserves its assigned apps;
-10. reordering changes shelf order;
-11. force-stop/reopen preserves categories, order and assignments;
-12. deleting one populated custom category can reassign its apps;
-13. deleting another using return-to-automatic restores automatic classification;
-14. built-in categories cannot be renamed or deleted;
-15. representative apps still launch;
-16. back/dismiss behavior is correct;
-17. classification explanation/reporting still identifies user override correctly — **PASS for a real built-in manual override; custom-category reporting remains to be exercised during the lifecycle pass**;
-18. additional custom categories cause no obvious layout failure.
+One acceptance defect was found: opening **Manage categories** showed `0 assigned apps` for built-in categories even though those categories contained automatically classified apps. Newly created test categories showed nonzero counts because their membership came from explicit user overrides. Inspection confirmed that the UI mapper was counting only `OrganizerState.categoryOverrides`, not effective classified membership.
 
-Also sanity-check organizer startup/scan against the existing first-use usability threshold. Do not add benchmark infrastructure unless a measured regression is observed.
+The fix changes the management count source to the current effective `CategorizedApp.category` values while still retaining overrides for currently uninstalled apps. A regression test proves an automatically classified built-in category is counted and that current/retained custom assignments are not double-counted.
+
+### Required targeted retest after the fix
+
+After CI passes, install the corrected signed debug APK over the current test installation without clearing data, open **Manage categories**, and verify:
+
+1. populated built-in categories show nonzero counts consistent with their effective shelf membership;
+2. the custom/test categories still show their expected assignment counts;
+3. the previously exercised user override is still present after the over-install;
+4. no obvious category-management layout or interaction regression is introduced.
+
+No repetition of the full lifecycle/migration checklist is required unless one of those checks fails.
 
 ## Permission/privacy gate
 
@@ -164,8 +160,8 @@ Category management requires no network or broad package permission. The integra
 
 The Agent 80–83 wave is complete only when:
 
-1. PR #18 final automated CI is green; and
-2. the physical Samsung migration gate above passes and its generalized result is recorded.
+1. PR #18 final automated CI is green on the corrected head; and
+2. the targeted physical count retest above passes and its generalized result is recorded.
 
 Until both are true, keep PR #18 unmerged and keep the category-management wave marked as pending physical acceptance.
 
