@@ -8,15 +8,14 @@ object CategoryManagementUiStateMapper {
         categoryAssignmentCounts: Map<CategoryId, Int>,
         organizerState: OrganizerState,
         operationError: String?
-    ): CategoryManagementUiState =
-        CategoryManagementUiState(
-            categories =
-                organizerState.orderedCategories().map { category ->
-                    CategoryManagementItemUiModel(
-                        category = category,
-                        assignedAppCount = categoryAssignmentCounts[category.id] ?: 0
-                    )
-                },
-            operationError = operationError
-        )
+    ): CategoryManagementUiState = CategoryManagementUiState(
+        categories =
+            organizerState.orderedCategories().map { category ->
+                CategoryManagementItemUiModel(
+                    category = category,
+                    assignedAppCount = categoryAssignmentCounts[category.id] ?: 0
+                )
+            },
+        operationError = operationError
+    )
 }
