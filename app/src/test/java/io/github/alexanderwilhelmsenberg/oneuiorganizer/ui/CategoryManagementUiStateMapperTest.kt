@@ -106,15 +106,14 @@ class CategoryManagementUiStateMapperTest {
         appId: AppId,
         category: CategoryDefinition,
         source: ClassificationSource
-    ): CategorizedApp =
-        CategorizedApp(
-            app =
-                InstalledApp(
-                    id = appId,
-                    launchTargetId = LaunchTargetId(appId.packageName, "MainActivity"),
-                    label = appId.packageName
-                ),
-            category = category,
-            source = source
-        )
+    ): CategorizedApp = CategorizedApp(
+        app =
+            InstalledApp(
+                id = appId,
+                launchTargetId = LaunchTargetId(appId.packageName, "MainActivity"),
+                label = appId.packageName
+            ),
+        category = category,
+        source = source
+    )
 }
