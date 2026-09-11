@@ -534,24 +534,21 @@ class DefaultOrganizerRepositoryCategoryManagementTest {
         )
     }
 
-    private fun installedApp(appId: AppId): InstalledApp =
-        InstalledApp(
-            id = appId,
-            launchTargetId = LaunchTargetId(appId.packageName, "${appId.packageName}.MainActivity"),
-            label = appId.packageName
-        )
+    private fun installedApp(appId: AppId): InstalledApp = InstalledApp(
+        id = appId,
+        launchTargetId = LaunchTargetId(appId.packageName, "${appId.packageName}.MainActivity"),
+        label = appId.packageName
+    )
 
-    private fun <T> assertSuccess(result: CategoryManagementResult<T>): T =
-        when (result) {
-            is CategoryManagementResult.Success -> result.value
-            is CategoryManagementResult.Failure -> fail("Expected success but got ${result.error}.")
-        }
+    private fun <T> assertSuccess(result: CategoryManagementResult<T>): T = when (result) {
+        is CategoryManagementResult.Success -> result.value
+        is CategoryManagementResult.Failure -> fail("Expected success but got ${result.error}.")
+    }
 
-    private fun assertFailure(result: CategoryManagementResult<*>): CategoryManagementError =
-        when (result) {
-            is CategoryManagementResult.Failure -> result.error
-            is CategoryManagementResult.Success -> fail("Expected failure but got ${result.value}.")
-        }
+    private fun assertFailure(result: CategoryManagementResult<*>): CategoryManagementError = when (result) {
+        is CategoryManagementResult.Failure -> result.error
+        is CategoryManagementResult.Success -> fail("Expected failure but got ${result.value}.")
+    }
 
     private class FakeInstalledAppSource(val apps: MutableList<InstalledApp>) : InstalledAppSource {
         override suspend fun loadInstalledApps(): List<InstalledApp> = apps.toList()
@@ -565,29 +562,26 @@ class DefaultOrganizerRepositoryCategoryManagementTest {
 
         override val state: Flow<OrganizerState> = mutableState
 
-        override suspend fun update(transform: (OrganizerState) -> OrganizerState): OrganizerState =
-            mutex.withLock {
-                updateAttempts += 1
-                val updated =
-                    transform(mutableState.value)
-                        .copy(schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION)
-                        .normalized()
-                mutableState.value = updated
-                updated
-            }
+        override suspend fun update(transform: (OrganizerState) -> OrganizerState): OrganizerState = mutex.withLock {
+            updateAttempts += 1
+            val updated =
+                transform(mutableState.value)
+                    .copy(schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION)
+                    .normalized()
+            mutableState.value = updated
+            updated
+        }
     }
 
     private class FailingOrganizerStateStore : OrganizerStateStore {
         override val state: Flow<OrganizerState> = MutableStateFlow(OrganizerState())
 
-        override suspend fun update(transform: (OrganizerState) -> OrganizerState): OrganizerState {
+        override suspend fun update(transform: (OrganizerState) -> OrganizerState): OrganizerState =
             throw IllegalStateException("simulated persistence failure")
-        }
     }
 
-    private class FakeCategoryEngine(
-        private val automaticCategories: MutableMap<AppId, AppCategory> = mutableMapOf()
-    ) : CategoryEngine {
+    private class FakeCategoryEngine(private val automaticCategories: MutableMap<AppId, AppCategory> = mutableMapOf()) :
+        CategoryEngine {
         override fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp =
             if (userOverride != null) {
                 CategorizedApp(app, userOverride, ClassificationSource.USER_OVERRIDE)
