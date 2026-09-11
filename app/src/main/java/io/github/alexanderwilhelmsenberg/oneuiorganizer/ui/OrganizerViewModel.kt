@@ -207,8 +207,8 @@ class OrganizerViewModel(
         val policy =
             when (choice) {
                 CategoryDeletionChoiceUiModel.AutomaticClassification -> CategoryDeletionPolicy.ReturnToAutomatic
-                is CategoryDeletionChoiceUiModel.Reassign ->
-                    CategoryDeletionPolicy.Reassign(choice.targetCategoryId)
+
+                is CategoryDeletionChoiceUiModel.Reassign -> CategoryDeletionPolicy.Reassign(choice.targetCategoryId)
             }
         updateCategoryManagement {
             categoryManagementRepository.deleteCustomCategory(categoryId, policy)
@@ -278,24 +278,30 @@ class OrganizerViewModel(
         categoryManagementError.value = null
     }
 
-    private fun CategoryManagementError.userMessage(): String =
-        when (this) {
-            CategoryManagementError.BlankName -> "Enter a category name."
-            is CategoryManagementError.NameTooLong ->
-                "Category names can be at most $maximumCodePoints characters."
-            is CategoryManagementError.DuplicateName -> "A category with that name already exists."
-            is CategoryManagementError.CategoryNotFound -> CATEGORY_UNAVAILABLE_MESSAGE
-            is CategoryManagementError.BuiltInCategoryImmutable ->
-                "Built-in categories cannot be renamed or deleted."
-            is CategoryManagementError.InvalidReassignmentDestination ->
-                "That reassignment destination is no longer available. Choose another category."
-            is CategoryManagementError.InvalidOrder ->
-                "The category order changed. Try moving the category again."
-            CategoryManagementError.PersistenceFailure,
-            is CategoryManagementError.InvalidGeneratedCategoryId,
-            is CategoryManagementError.CategoryIdAlreadyExists ->
-                "Could not save the category change. Try again."
-        }
+    private fun CategoryManagementError.userMessage(): String = when (this) {
+        CategoryManagementError.BlankName -> "Enter a category name."
+
+        is CategoryManagementError.NameTooLong ->
+            "Category names can be at most $maximumCodePoints characters."
+
+        is CategoryManagementError.DuplicateName -> "A category with that name already exists."
+
+        is CategoryManagementError.CategoryNotFound -> CATEGORY_UNAVAILABLE_MESSAGE
+
+        is CategoryManagementError.BuiltInCategoryImmutable ->
+            "Built-in categories cannot be renamed or deleted."
+
+        is CategoryManagementError.InvalidReassignmentDestination ->
+            "That reassignment destination is no longer available. Choose another category."
+
+        is CategoryManagementError.InvalidOrder ->
+            "The category order changed. Try moving the category again."
+
+        CategoryManagementError.PersistenceFailure,
+        is CategoryManagementError.InvalidGeneratedCategoryId,
+        is CategoryManagementError.CategoryIdAlreadyExists ->
+            "Could not save the category change. Try again."
+    }
 
     private fun LaunchTargetId.toAppId(): AppId = AppId(packageName)
 

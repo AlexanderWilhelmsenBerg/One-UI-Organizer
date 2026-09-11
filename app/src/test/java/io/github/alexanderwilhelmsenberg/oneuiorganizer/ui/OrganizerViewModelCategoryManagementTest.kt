@@ -163,9 +163,8 @@ private class FakeCategoryManagementRepository : CategoryManagementRepository {
     var lastDeletedCategoryId: CategoryId? = null
     var lastDeletionPolicy: CategoryDeletionPolicy? = null
 
-    override suspend fun createCustomCategory(
-        displayName: String
-    ): CategoryManagementResult<CustomCategoryDefinition> = createResult
+    override suspend fun createCustomCategory(displayName: String): CategoryManagementResult<CustomCategoryDefinition> =
+        createResult
 
     override suspend fun renameCustomCategory(
         categoryId: CategoryId,
@@ -182,9 +181,7 @@ private class FakeCategoryManagementRepository : CategoryManagementRepository {
         return CategoryManagementResult.Success(Unit)
     }
 
-    override suspend fun reorderCategories(
-        categoryIds: List<CategoryId>
-    ): CategoryManagementResult<List<CategoryId>> {
+    override suspend fun reorderCategories(categoryIds: List<CategoryId>): CategoryManagementResult<List<CategoryId>> {
         lastRequestedOrder = categoryIds
         return CategoryManagementResult.Success(categoryIds)
     }
