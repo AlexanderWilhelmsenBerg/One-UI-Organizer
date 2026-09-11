@@ -5,36 +5,20 @@ enum class CategoryKind {
     CUSTOM
 }
 
-data class CategoryDefinition(
-    val id: CategoryId,
-    val name: String,
+sealed interface CategoryDefinition {
+    val id: CategoryId
+    val displayName: String
     val kind: CategoryKind
-) {
-    init {
-        require(name.isNotBlank()) { "Category name must not be blank." }
-    }
 }
 
 data class CustomCategoryDefinition(
-    val id: CategoryId,
-    val name: String
-) {
+    override val id: CategoryId,
+    override val displayName: String
+) : CategoryDefinition {
     init {
         require(id.isCustom) { "Custom category identities must use the custom namespace." }
-        require(name.isNotBlank()) { "Custom category name must not be blank." }
+        require(displayName.isNotBlank()) { "Custom category name must not be blank." }
     }
 
-    fun toCategoryDefinition(): CategoryDefinition =
-        CategoryDefinition(
-            id = id,
-            name = name,
-            kind = CategoryKind.CUSTOM
-        )
+    override val kind: CategoryKind = CategoryKind.CUSTOM
 }
-
-fun AppCategory.toCategoryDefinition(): CategoryDefinition =
-    CategoryDefinition(
-        id = id,
-        name = displayName,
-        kind = CategoryKind.BUILT_IN
-    )
