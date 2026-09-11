@@ -6,7 +6,9 @@ This document records the integrated user-owned category-management design and t
 
 Agents 80, 81 and 82 are merged to `main` as PRs #15, #16 and #17. Agent 83 integrates those lanes in PR #18 on `integration/category-management`.
 
-The owner-device lifecycle/migration exercise has now passed all requested behavior except one presentation defect discovered during acceptance: the category-management list showed counts derived only from explicit persisted overrides, so automatically classified built-in categories incorrectly displayed `0 assigned apps`. The defect is patched on the Agent 83 branch and covered by a regression test. PR #18 remains non-merge-ready until the corrected signed debug APK is installed over the existing test installation and the category-count display is rechecked on the Samsung device. The final PR CI on the corrected head is also required to be green.
+The owner-device lifecycle/migration exercise passed all requested behavior except the category-assignment count shown by **Manage categories**. The first correction changed the management mapper from persisted overrides to the live classified-app stream, but a signed-debug retest from exact head `f642b570...` still showed only explicit/manual assignments: built-in automatic categories remained at zero, while `Video` showed the previously moved app and custom test categories showed their manual assignments. That first correction is therefore not considered physically validated.
+
+The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. PR #18 remains non-merge-ready until final CI is green and this hardened count path passes the targeted Samsung retest.
 
 ## Final category model
 
@@ -55,15 +57,20 @@ Deletion, reassignment/override clearing, definition removal and order removal a
 
 `OrganizerViewModel` translates presentation intents to those repository contracts. It does not repeat name validation, lifecycle rules or persistence behavior. Adjacent UI reorder actions are translated to the current complete ordered-ID permutation and the repository performs final validation.
 
-The category-management presentation is derived from the same live classified-app/state streams used by the organizer:
+The organizer presentation now owns one shared unfiltered category-assignment count map:
 
-- definitions/order come from `orderedCategories()`;
-- assigned counts use each currently installed launch target's effective `CategorizedApp.category`, so automatic and user-overridden membership are both represented;
-- a retained override for an app that is not currently installed contributes one retained assignment without double-counting current installed targets;
-- hidden installed apps remain represented because hiding is a presentation filter, not removal from repository classification state;
+- definitions/order still come from `orderedCategories()`;
+- the same effective `CategorizedApp` inventory that creates shelf sections also creates `categoryAssignmentCounts` before search or hidden-app filtering;
+- every currently installed launch target contributes to its effective category, regardless of whether that category came from a user override, bundled rule, Android category or unsorted fallback;
+- hidden installed apps therefore remain counted even though they do not appear in ordinary shelf sections;
+- a retained override for an app that is not currently installed contributes one retained assignment;
+- an installed overridden app is counted from effective inventory and is not counted again from persisted override state;
+- category management consumes this shared count map rather than independently re-deriving counts from another live-flow pipeline;
 - the shelf and move picker continue to consume the same app-owned definitions/order;
 - category-management and hidden-app management are mutually exclusive surfaces;
 - Android back/dismiss returns from category management to the organizer shelf.
+
+This shared path is intentional: if the organizer shelf has effective app membership, category management receives counts from the same mapped inventory rather than maintaining a second interpretation of that membership.
 
 ## Classification, search and diagnostics
 
@@ -93,7 +100,7 @@ The integrated presentation maps failures to safe messages for blank/too-long/du
 
 ## Automated acceptance
 
-The permanent PR quality lane must be green on the corrected Agent 83 head. It covers:
+The permanent PR quality lane must be green on the hardened Agent 83 head. It covers:
 
 - debug app assembly;
 - instrumentation-test APK compilation;
@@ -106,7 +113,16 @@ The permanent PR quality lane must be green on the corrected Agent 83 head. It c
 - configuration-cache creation and reuse;
 - forbidden-permission checks.
 
-Repository tests additionally prove stable rename identity, explicit deletion policies, invalid-destination atomicity, exact reorder validation, custom-category search, persistence recreation, schema-v1 migration, classification precedence, custom diagnostic-report representation and effective category-management assignment counts.
+Repository tests additionally prove stable rename identity, explicit deletion policies, invalid-destination atomicity, exact reorder validation, custom-category search, persistence recreation, schema-v1 migration, classification precedence and custom diagnostic-report representation.
+
+The hardened count regression set specifically proves:
+
+- automatic effective category membership contributes to the shared assignment-count map;
+- hidden current apps remain counted;
+- retained uninstalled overrides remain counted;
+- current overridden apps are not double-counted;
+- search filtering does not change the shared assignment counts; and
+- the ViewModel exposes the same effective count to category management that the shelf inventory contains.
 
 ## Physical Samsung migration gate — targeted retest pending
 
@@ -137,18 +153,37 @@ This proves the real-device manual-override path and diagnostic-report source at
 
 The owner subsequently completed the requested migration/category-management lifecycle exercise and reported all other requested behaviors as passing, including preservation through the over-install, custom-category creation/movement/search/rename/reorder, process recreation, both deletion policies, built-in protection, representative launch behavior, back/dismiss behavior and layout sanity.
 
-One acceptance defect was found: opening **Manage categories** showed `0 assigned apps` for built-in categories even though those categories contained automatically classified apps. Newly created test categories showed nonzero counts because their membership came from explicit user overrides. Inspection confirmed that the UI mapper was counting only `OrganizerState.categoryOverrides`, not effective classified membership.
+### Count defect — first finding
 
-The fix changes the management count source to the current effective `CategorizedApp.category` values while still retaining overrides for currently uninstalled apps. A regression test proves an automatically classified built-in category is counted and that current/retained custom assignments are not double-counted.
+Opening **Manage categories** showed `0 assigned apps` for built-in categories even though those categories contained automatically classified apps. Newly created test categories showed nonzero counts because their membership came from explicit user overrides. Inspection found that the initial management mapper counted only `OrganizerState.categoryOverrides`.
 
-### Required targeted retest after the fix
+### Count defect — first correction retest failed
 
-After CI passes, install the corrected signed debug APK over the current test installation without clearing data, open **Manage categories**, and verify:
+The first correction changed that mapper to count `CategorizedApp.category` directly and retained uninstalled overrides separately. Automated CI passed, and Build APK run #14 produced `OneUIOrganizer-debug-f642b57.apk` from exact head `f642b57015002ed563c6496ccf5bf1f8d324b620`.
 
-1. populated built-in categories show nonzero counts consistent with their effective shelf membership;
-2. the custom/test categories still show their expected assignment counts;
-3. the previously exercised user override is still present after the over-install;
-4. no obvious category-management layout or interaction regression is introduced.
+The signed-debug physical retest still failed in the same user-visible way:
+
+- automatic built-in categories remained at `0 assigned apps`;
+- `Video` showed one assignment, consistent with the previously moved app;
+- manually populated custom/test categories showed assignments.
+
+Because the exact corrected artifact was exercised, the first correction is recorded as insufficient rather than as an artifact-selection failure.
+
+### Hardened correction
+
+The follow-up correction removes the independent management count derivation. `OrganizerUiStateMapper` now computes one unfiltered `categoryAssignmentCounts` map from the same effective inventory used to build shelf sections, adds only retained overrides for currently absent apps, and exposes that map in `OrganizerShelfUiState`. `OrganizerViewModel` then supplies that already-mapped count set to category management.
+
+This deliberately ties the count shown in **Manage categories** to the same presentation inventory that proves category membership on the shelf.
+
+### Required targeted retest after the hardened fix
+
+After final CI passes, build a new signed debug APK from the current `integration/category-management` head, install it over the current test installation without clearing data, open **Manage categories**, and verify:
+
+1. populated automatic built-in categories show nonzero counts consistent with their effective shelf membership;
+2. `Video` still includes the previously exercised manual override in its count;
+3. custom/test categories still show their expected assignment counts;
+4. the previously exercised user override remains present after the over-install;
+5. no obvious category-management layout or interaction regression is introduced.
 
 No repetition of the full lifecycle/migration checklist is required unless one of those checks fails.
 
@@ -160,7 +195,7 @@ Category management requires no network or broad package permission. The integra
 
 The Agent 80–83 wave is complete only when:
 
-1. PR #18 final automated CI is green on the corrected head; and
+1. PR #18 final automated CI is green on the hardened head; and
 2. the targeted physical count retest above passes and its generalized result is recorded.
 
 Until both are true, keep PR #18 unmerged and keep the category-management wave marked as pending physical acceptance.
