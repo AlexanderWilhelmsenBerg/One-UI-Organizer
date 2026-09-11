@@ -2,6 +2,7 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.domain
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.PlatformAppCategory
@@ -10,7 +11,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.BundledKnownAppRul
 class DefaultCategoryEngine(
     private val knownAppCategory: (InstalledApp) -> AppCategory? = BundledKnownAppRules::categoryFor
 ) : CategoryEngine {
-    override fun categorize(app: InstalledApp, userOverride: AppCategory?): CategorizedApp {
+    override fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp {
         if (userOverride != null) {
             return CategorizedApp(
                 app = app,

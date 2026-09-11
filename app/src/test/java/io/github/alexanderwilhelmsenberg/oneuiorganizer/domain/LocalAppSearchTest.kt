@@ -3,7 +3,10 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.domain
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import kotlin.test.Test
@@ -72,6 +75,19 @@ class LocalAppSearchTest {
     }
 
     @Test
+    fun customCategoryDisplayNameIsSearchable() {
+        val custom = CustomCategoryDefinition(CategoryId.custom("weekend"), "Weekend Stuff")
+        val apps = listOf(
+            categorizedApp("example.custom", "Mystery", custom),
+            categorizedApp("example.work", "Work App", AppCategory.WORK)
+        )
+
+        val result = LocalAppSearch.filter(apps, "weekend")
+
+        assertEquals(listOf("Mystery"), result.map { categorizedApp -> categorizedApp.app.label })
+    }
+
+    @Test
     fun emulatorCategoryLabelIsSearchable() {
         val apps = listOf(
             categorizedApp("example.dolphin", "Dolphin", AppCategory.EMULATORS),
@@ -120,7 +136,7 @@ class LocalAppSearchTest {
     private fun categorizedApp(
         packageName: String,
         label: String,
-        category: AppCategory,
+        category: CategoryDefinition,
         className: String = "$packageName.MainActivity"
     ): CategorizedApp = CategorizedApp(
         app = InstalledApp(

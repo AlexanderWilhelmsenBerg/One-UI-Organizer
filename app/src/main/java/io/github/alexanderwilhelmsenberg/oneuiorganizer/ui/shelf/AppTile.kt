@@ -37,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfAppUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.displayName
@@ -46,9 +46,9 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OrganizerDimens
 @Composable
 internal fun AppTile(
     app: ShelfAppUiModel,
-    availableCategories: List<AppCategory>,
+    availableCategories: List<CategoryDefinition>,
     onLaunch: (ShelfAppUiModel) -> Unit,
-    onMove: (ShelfAppUiModel, AppCategory) -> Unit,
+    onMove: (ShelfAppUiModel, CategoryDefinition) -> Unit,
     onToggleFavourite: (ShelfAppUiModel) -> Unit,
     onHide: (ShelfAppUiModel) -> Unit,
     modifier: Modifier = Modifier
@@ -227,9 +227,9 @@ internal fun AppIcon(
 @Composable
 private fun MoveCategoryDialog(
     app: ShelfAppUiModel,
-    categories: List<AppCategory>,
+    categories: List<CategoryDefinition>,
     onDismiss: () -> Unit,
-    onMove: (AppCategory) -> Unit
+    onMove: (CategoryDefinition) -> Unit
 ) {
     val classificationLabel = app.classificationSource.displayName()
     val classificationDescription =
@@ -265,14 +265,14 @@ private fun MoveCategoryDialog(
                 )
                 Spacer(modifier = Modifier.size(OrganizerDimens.spacingSmall))
                 categories
-                    .filterNot { it == app.category }
+                    .filterNot { category -> category.id == app.category.id }
                     .forEach { category ->
                         TextButton(
                             onClick = { onMove(category) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(modifier = Modifier.fillMaxWidth()) {
-                                Text(category.displayName())
+                                Text(category.displayName)
                             }
                         }
                     }

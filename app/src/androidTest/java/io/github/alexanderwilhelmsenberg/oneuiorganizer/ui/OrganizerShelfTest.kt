@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategorySectionUiModel
@@ -134,7 +135,7 @@ class OrganizerShelfTest {
                     categories = listOf(CategorySectionUiModel(AppCategory.UNSORTED, listOf(unsorted)))
                 )
             )
-        var moved: Pair<LaunchTargetId, AppCategory>? = null
+        var moved: Pair<LaunchTargetId, CategoryDefinition>? = null
         composeRule.setShelfContent(
             stateProvider = { state },
             onMoveApp = { target, category ->
@@ -172,7 +173,7 @@ class OrganizerShelfTest {
     fun longPressSemanticsExposeOrganizationActionsAndCallbacks() {
         val signal = app("Signal", AppCategory.COMMUNICATION)
         var launched: LaunchTargetId? = null
-        var moved: Pair<LaunchTargetId, AppCategory>? = null
+        var moved: Pair<LaunchTargetId, CategoryDefinition>? = null
         var toggled: LaunchTargetId? = null
         var hidden: LaunchTargetId? = null
         composeRule.setShelfContent(
@@ -390,7 +391,7 @@ private fun ComposeContentTestRule.setShelfContent(
     showHiddenApps: Boolean = false,
     onQueryChange: (String) -> Unit = {},
     onLaunchApp: (LaunchTargetId) -> Unit = {},
-    onMoveApp: (LaunchTargetId, AppCategory) -> Unit = { _, _ -> },
+    onMoveApp: (LaunchTargetId, CategoryDefinition) -> Unit = { _, _ -> },
     onToggleFavourite: (LaunchTargetId) -> Unit = {},
     onHideApp: (LaunchTargetId) -> Unit = {},
     onRestoreApp: (LaunchTargetId) -> Unit = {},

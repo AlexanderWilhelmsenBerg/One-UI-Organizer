@@ -2,9 +2,9 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.OrganizerRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.ClassificationReportFormatter
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AppLauncher
@@ -117,9 +117,9 @@ class OrganizerViewModel(
         return launched
     }
 
-    fun moveApp(target: LaunchTargetId, category: AppCategory) {
+    fun moveApp(target: LaunchTargetId, category: CategoryDefinition) {
         updateOrganizerState {
-            organizerRepository.setCategoryOverride(target.toAppId(), category)
+            organizerRepository.setCategoryOverride(target.toAppId(), category.id)
         }
     }
 

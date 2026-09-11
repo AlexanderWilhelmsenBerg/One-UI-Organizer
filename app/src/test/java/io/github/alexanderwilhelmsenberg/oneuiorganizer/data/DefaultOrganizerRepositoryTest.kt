@@ -4,7 +4,10 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryEngine
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
@@ -20,7 +23,7 @@ import kotlinx.coroutines.runBlocking
 
 class DefaultOrganizerRepositoryTest {
     @Test
-    fun `refresh merges installed apps with persisted category override`() = runBlocking {
+    fun `refresh merges installed apps with persisted built in category override`() = runBlocking {
         val overriddenId = AppId("example.overridden")
         val automaticId = AppId("example.automatic")
         val source =
@@ -32,7 +35,7 @@ class DefaultOrganizerRepositoryTest {
             )
         val store =
             FakeOrganizerStateStore(
-                OrganizerState(categoryOverrides = mapOf(overriddenId to AppCategory.WORK))
+                OrganizerState(categoryOverrides = mapOf(overriddenId to AppCategory.WORK.id))
             )
         val categoryEngine =
             FakeCategoryEngine(
@@ -56,6 +59,31 @@ class DefaultOrganizerRepositoryTest {
     }
 
     @Test
+    fun `custom category override resolves with user override source`() = runBlocking {
+        val appId = AppId("example.custom")
+        val custom = CustomCategoryDefinition(CategoryId.custom("custom-category"), "My Category")
+        val store =
+            FakeOrganizerStateStore(
+                OrganizerState(
+                    categoryOverrides = mapOf(appId to custom.id),
+                    customCategories = listOf(custom)
+                )
+            )
+        val repository =
+            DefaultOrganizerRepository(
+                installedAppSource = FakeInstalledAppSource(mutableListOf(installedApp(appId))),
+                organizerStateStore = store,
+                categoryEngine = FakeCategoryEngine(mutableMapOf(appId to AppCategory.GAMES))
+            )
+
+        repository.refresh()
+
+        val categorized = repository.apps.first().single()
+        assertEquals(custom, categorized.category)
+        assertEquals(ClassificationSource.USER_OVERRIDE, categorized.source)
+    }
+
+    @Test
     fun `repository mutations persist override favourite and hidden state`() = runBlocking {
         val appId = AppId("example.mutable")
         val store = FakeOrganizerStateStore()
@@ -66,12 +94,12 @@ class DefaultOrganizerRepositoryTest {
                 categoryEngine = FakeCategoryEngine()
             )
 
-        repository.setCategoryOverride(appId, AppCategory.PRODUCTIVITY)
+        repository.setCategoryOverride(appId, AppCategory.PRODUCTIVITY.id)
         repository.setFavourite(appId, true)
         repository.setHidden(appId, true)
 
         val persisted = repository.organizerState.first()
-        assertEquals(AppCategory.PRODUCTIVITY, persisted.categoryOverrides[appId])
+        assertEquals(AppCategory.PRODUCTIVITY.id, persisted.categoryOverrides[appId])
         assertTrue(appId in persisted.favouriteAppIds)
         assertTrue(appId in persisted.hiddenAppIds)
 
@@ -91,7 +119,7 @@ class DefaultOrganizerRepositoryTest {
         val source = FakeInstalledAppSource(mutableListOf(installedApp(appId)))
         val retainedState =
             OrganizerState(
-                categoryOverrides = mapOf(appId to AppCategory.READING),
+                categoryOverrides = mapOf(appId to AppCategory.READING.id),
                 favouriteAppIds = setOf(appId),
                 hiddenAppIds = setOf(appId)
             )
@@ -120,7 +148,7 @@ class DefaultOrganizerRepositoryTest {
         val store =
             FakeOrganizerStateStore(
                 OrganizerState(
-                    categoryOverrides = mapOf(appId to AppCategory.SMART_HOME),
+                    categoryOverrides = mapOf(appId to AppCategory.SMART_HOME.id),
                     favouriteAppIds = setOf(appId),
                     hiddenAppIds = setOf(appId)
                 )
@@ -152,7 +180,7 @@ class DefaultOrganizerRepositoryTest {
         val source = FakeInstalledAppSource(mutableListOf(installedApp(appId)))
         val store =
             FakeOrganizerStateStore(
-                OrganizerState(categoryOverrides = mapOf(appId to AppCategory.FINANCE))
+                OrganizerState(categoryOverrides = mapOf(appId to AppCategory.FINANCE.id))
             )
         val categoryEngine =
             FakeCategoryEngine(
@@ -197,7 +225,7 @@ class DefaultOrganizerRepositoryTest {
 
     private class FakeCategoryEngine(val automaticCategories: MutableMap<AppId, AppCategory> = mutableMapOf()) :
         CategoryEngine {
-        override fun categorize(app: InstalledApp, userOverride: AppCategory?): CategorizedApp =
+        override fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp =
             if (userOverride != null) {
                 CategorizedApp(
                     app = app,
