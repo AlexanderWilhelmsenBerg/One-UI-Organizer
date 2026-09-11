@@ -14,7 +14,6 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AppLauncher
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryDeletionChoiceUiModel
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementErrorUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementUiState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementUiStateMapper
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryMoveDirectionUiModel
@@ -43,8 +42,7 @@ class OrganizerViewModel(
     private val error = MutableStateFlow<ShelfErrorUiModel?>(null)
     private val _showHiddenApps = MutableStateFlow(false)
     private val _showCategoryManagement = MutableStateFlow(false)
-    private val categoryValidationError = MutableStateFlow<CategoryManagementErrorUiModel?>(null)
-    private val categoryOperationError = MutableStateFlow<CategoryManagementErrorUiModel?>(null)
+    private val categoryManagementError = MutableStateFlow<String?>(null)
     private var refreshJob: Job? = null
 
     private val organizerState =
@@ -96,12 +94,10 @@ class OrganizerViewModel(
     val categoryManagementUiState =
         combine(
             organizerState,
-            categoryValidationError,
-            categoryOperationError
-        ) { state, validationError, operationError ->
+            categoryManagementError
+        ) { state, operationError ->
             CategoryManagementUiStateMapper.map(
                 organizerState = state,
-                validationError = validationError,
                 operationError = operationError
             )
         }.stateIn(
@@ -186,18 +182,13 @@ class OrganizerViewModel(
 
     fun showCategoryManagement() {
         _showHiddenApps.value = false
-        clearCategoryManagementErrors()
+        clearCategoryManagementError()
         _showCategoryManagement.value = true
     }
 
     fun hideCategoryManagement() {
         _showCategoryManagement.value = false
-        clearCategoryManagementErrors()
-    }
-
-    fun clearCategoryManagementErrors() {
-        categoryValidationError.value = null
-        categoryOperationError.value = null
+        clearCategoryManagementError()
     }
 
     fun createCustomCategory(displayName: String) {
@@ -228,7 +219,7 @@ class OrganizerViewModel(
         val orderedIds = organizerState.value.orderedCategories().map { category -> category.id }.toMutableList()
         val currentIndex = orderedIds.indexOf(categoryId)
         if (currentIndex < 0) {
-            categoryOperationError.value = CategoryManagementErrorUiModel.CategoryUnavailable
+            categoryManagementError.value = CATEGORY_UNAVAILABLE_MESSAGE
             return
         }
 
@@ -265,7 +256,7 @@ class OrganizerViewModel(
 
     private fun <T> updateCategoryManagement(update: suspend () -> CategoryManagementResult<T>) {
         scope.launch {
-            clearCategoryManagementErrors()
+            clearCategoryManagementError()
             val result =
                 try {
                     update()
@@ -275,39 +266,35 @@ class OrganizerViewModel(
                     CategoryManagementResult.Failure(CategoryManagementError.PersistenceFailure)
                 }
 
-            when (result) {
-                is CategoryManagementResult.Success -> clearCategoryManagementErrors()
-                is CategoryManagementResult.Failure -> showCategoryManagementError(result.error)
-            }
+            categoryManagementError.value =
+                when (result) {
+                    is CategoryManagementResult.Success -> null
+                    is CategoryManagementResult.Failure -> result.error.userMessage()
+                }
         }
     }
 
-    private fun showCategoryManagementError(categoryError: CategoryManagementError) {
-        val uiError = categoryError.toUiModel()
-        when (categoryError) {
-            CategoryManagementError.BlankName,
-            is CategoryManagementError.NameTooLong,
-            is CategoryManagementError.DuplicateName -> categoryValidationError.value = uiError
-
-            else -> categoryOperationError.value = uiError
-        }
+    private fun clearCategoryManagementError() {
+        categoryManagementError.value = null
     }
 
-    private fun CategoryManagementError.toUiModel(): CategoryManagementErrorUiModel =
+    private fun CategoryManagementError.userMessage(): String =
         when (this) {
-            CategoryManagementError.BlankName -> CategoryManagementErrorUiModel.NameRequired
+            CategoryManagementError.BlankName -> "Enter a category name."
             is CategoryManagementError.NameTooLong ->
-                CategoryManagementErrorUiModel.NameTooLong(maximumCodePoints)
-            is CategoryManagementError.DuplicateName -> CategoryManagementErrorUiModel.DuplicateName
-            is CategoryManagementError.CategoryNotFound -> CategoryManagementErrorUiModel.CategoryUnavailable
+                "Category names can be at most $maximumCodePoints characters."
+            is CategoryManagementError.DuplicateName -> "A category with that name already exists."
+            is CategoryManagementError.CategoryNotFound -> CATEGORY_UNAVAILABLE_MESSAGE
             is CategoryManagementError.BuiltInCategoryImmutable ->
-                CategoryManagementErrorUiModel.BuiltInCategoryImmutable
+                "Built-in categories cannot be renamed or deleted."
             is CategoryManagementError.InvalidReassignmentDestination ->
-                CategoryManagementErrorUiModel.InvalidReassignmentDestination
-            is CategoryManagementError.InvalidOrder -> CategoryManagementErrorUiModel.InvalidOrder
+                "That reassignment destination is no longer available. Choose another category."
+            is CategoryManagementError.InvalidOrder ->
+                "The category order changed. Try moving the category again."
             CategoryManagementError.PersistenceFailure,
             is CategoryManagementError.InvalidGeneratedCategoryId,
-            is CategoryManagementError.CategoryIdAlreadyExists -> CategoryManagementErrorUiModel.SaveFailed
+            is CategoryManagementError.CategoryIdAlreadyExists ->
+                "Could not save the category change. Try again."
         }
 
     private fun LaunchTargetId.toAppId(): AppId = AppId(packageName)
@@ -317,4 +304,8 @@ class OrganizerViewModel(
         val organizerState: OrganizerState,
         val query: String
     )
+
+    private companion object {
+        const val CATEGORY_UNAVAILABLE_MESSAGE = "That category is no longer available. Try again."
+    }
 }
