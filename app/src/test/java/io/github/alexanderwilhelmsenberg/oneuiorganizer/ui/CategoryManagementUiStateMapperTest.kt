@@ -1,14 +1,8 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementUiStateMapper
 import kotlin.test.Test
@@ -32,7 +26,7 @@ class CategoryManagementUiStateMapperTest {
 
         val result =
             CategoryManagementUiStateMapper.map(
-                apps = emptyList(),
+                categoryAssignmentCounts = emptyMap(),
                 organizerState = state,
                 operationError = null
             )
@@ -44,45 +38,24 @@ class CategoryManagementUiStateMapperTest {
     }
 
     @Test
-    fun `assigned counts use effective categories and retain uninstalled overrides`() {
+    fun `management rows consume shared effective assignment counts`() {
         val custom = CustomCategoryDefinition(CategoryId.custom("family"), "Family")
-        val automaticApp = AppId("example.automatic")
-        val hiddenApp = AppId("example.hidden")
-        val retainedApp = AppId("example.retained")
-        val state =
-            OrganizerState(
-                categoryOverrides =
-                    mapOf(
-                        hiddenApp to custom.id,
-                        retainedApp to custom.id
-                    ),
-                hiddenAppIds = setOf(hiddenApp),
-                customCategories = listOf(custom)
-            )
-        val apps =
-            listOf(
-                categorizedApp(
-                    appId = automaticApp,
-                    category = AppCategory.VIDEO,
-                    source = ClassificationSource.KNOWN_APP_RULE
-                ),
-                categorizedApp(
-                    appId = hiddenApp,
-                    category = custom,
-                    source = ClassificationSource.USER_OVERRIDE
-                )
-            )
+        val state = OrganizerState(customCategories = listOf(custom))
 
         val result =
             CategoryManagementUiStateMapper.map(
-                apps = apps,
+                categoryAssignmentCounts =
+                    mapOf(
+                        AppCategory.VIDEO.id to 7,
+                        custom.id to 2
+                    ),
                 organizerState = state,
                 operationError = null
             )
         val videoItem = result.categories.single { item -> item.category.id == AppCategory.VIDEO.id }
         val customItem = result.categories.single { item -> item.category.id == custom.id }
 
-        assertEquals(1, videoItem.assignedAppCount)
+        assertEquals(7, videoItem.assignedAppCount)
         assertEquals(2, customItem.assignedAppCount)
     }
 
@@ -92,7 +65,7 @@ class CategoryManagementUiStateMapperTest {
 
         val result =
             CategoryManagementUiStateMapper.map(
-                apps = emptyList(),
+                categoryAssignmentCounts = emptyMap(),
                 organizerState = state,
                 operationError = "Could not save the category change. Try again."
             )
@@ -101,19 +74,4 @@ class CategoryManagementUiStateMapperTest {
         assertTrue(result.categories.isNotEmpty())
         assertEquals(state.orderedCategories().map { it.id }, result.categories.map { it.category.id })
     }
-
-    private fun categorizedApp(
-        appId: AppId,
-        category: CategoryDefinition,
-        source: ClassificationSource
-    ): CategorizedApp = CategorizedApp(
-        app =
-            InstalledApp(
-                id = appId,
-                launchTargetId = LaunchTargetId(appId.packageName, "MainActivity"),
-                label = appId.packageName
-            ),
-        category = category,
-        source = source
-    )
 }
