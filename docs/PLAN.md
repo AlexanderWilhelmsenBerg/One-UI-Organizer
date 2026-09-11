@@ -1,56 +1,49 @@
 # Product and Delivery Plan
 
-**Implementation status:** v0.1 integration is implemented and owner-device-tested on Samsung. Final merge/release decisions remain explicit owner actions. Classification-quality tuning is the next post-v0.1 slice; see [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md).
+**Current status:** v0.1 is merged. The post-v0.1 classification-quality implementation is also merged to `main`; Agent 70 is the integration/acceptance gate. Repository-level integration is complete on `integration/classification-quality`, while the fresh same-device Samsung acceptance pass remains an explicit owner-device step.
 
-Execution details and agent ownership are defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Copy/paste coding briefs live under [`agents/`](agents/README.md).
+The integrated classification result and remaining acceptance steps are recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md). Execution ownership and sequencing live in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md).
 
 ## 1. Product definition
 
-**One UI Organizer** is a small Android companion app that provides an automatically categorized app shelf while leaving Samsung One UI Home untouched as the system launcher.
+**One UI Organizer** is a small native Android companion for Samsung One UI. It presents launchable apps in a useful categorized shelf while leaving One UI Home as the system launcher.
 
-The problem it solves is simple: One UI can sort apps alphabetically and lets the user create folders manually, but it does not maintain a useful category system automatically. One UI Organizer provides that organized view without taking ownership of the home screen, widgets, gestures, or Samsung launcher state.
+It is not a launcher replacement and does not write Samsung launcher databases, use Samsung private launcher APIs, or take ownership of widgets, gestures, wallpaper, recents, folders or the home screen.
 
-## 2. Core constraints
+## 2. Product constraints
 
 1. One UI Home remains the default launcher.
-2. The app must not write to Samsung private launcher databases or rely on undocumented Samsung APIs.
-3. The app must not request `QUERY_ALL_PACKAGES` for v0.1.
-4. v0.1 requires no Internet permission, account, telemetry, analytics, advertising, or backend.
-5. Manual user classification always overrides automatic classification.
-6. Scanning must not require a persistent service.
-7. New dependencies must earn their place; the first version remains structurally small.
-8. The primary physical-device target is a current Samsung phone running modern One UI / Android 16, while the planned minimum Android version is API 28.
-9. Toolchains and libraries follow `STABLE_BASELINE.md`: stable releases only and the newest mutually compatible stack.
-10. Parallel agents must follow frozen app-owned contracts and explicit file ownership instead of duplicating models or implementations.
+2. No Samsung private launcher/database manipulation.
+3. `QUERY_ALL_PACKAGES` remains absent.
+4. `INTERNET` remains absent for the current product.
+5. No account, telemetry, analytics, ads or cloud classification.
+6. Manual user classification always overrides automatic classification.
+7. Scanning occurs on open/resume; no unnecessary persistent service.
+8. Android/framework/library types stay behind app-owned boundaries.
+9. Toolchains and dependencies follow [`STABLE_BASELINE.md`](STABLE_BASELINE.md).
+10. Persisted-state changes require explicit migration tests.
+11. Performance work is measurement-driven.
 
-## 3. User experience
+## 3. Current user experience
 
-### Primary flow
+The user opens Organizer from One UI Home, gets a One UI-inspired categorized/searchable shelf, launches the selected exact activity, and dismisses/back-navigates to the existing Samsung home experience.
 
-- User taps the Organizer icon from One UI Home.
-- Organizer opens as a fast One UI-inspired activity/sheet.
-- A search control and categorized app sections are immediately available.
-- User taps an app and the selected launchable activity opens.
-- Back/dismiss returns directly to the existing Samsung home experience.
+Current organization behavior includes:
 
-### Category model
+- category browsing;
+- app-name and category-name search;
+- tap to launch;
+- favourite/unfavourite;
+- hide and restore;
+- manual category override;
+- direct triage affordance for automatic `Unsorted` fallback;
+- classification explanation based on the real `ClassificationSource`;
+- explicit local classification-report sharing for diagnostic review.
 
-v0.1 uses one **primary category** per app plus independent favourite/hidden state. Multi-category tagging is deliberately deferred.
+## 4. Final automatic-classification taxonomy
 
-Classification priority:
+The current one-primary-category taxonomy is:
 
-1. User override.
-2. Bundled known-app rule.
-3. Android-declared category mapping where useful.
-4. `Unsorted` fallback.
-
-Classification is deterministic. The same installed-app metadata, user state, and rule set must produce the same result.
-
-### Planned initial categories
-
-The baseline taxonomy is:
-
-- Favourites (virtual section)
 - Communication
 - Social
 - Work
@@ -64,18 +57,32 @@ The baseline taxonomy is:
 - Video
 - Photos
 - Reading
+- Web Shortcuts
 - Development
 - Tools
+- Action & Adventure
+- RPG
+- Strategy & Simulation
+- Puzzle & Casual
+- Board & Card
 - Games
-- Other / Unsorted
+- Other
+- Unsorted
 
-Categories are intentionally correctable; the UI must make manual correction easy.
+`Games` and `Unsorted` are deliberate safe fallbacks. Zero `Unsorted` is not a product goal.
 
-## 4. Architecture
+Automatic classification precedence is fixed:
 
-Keep v0.1 as a single Android application module unless a concrete implementation constraint proves a split necessary.
+1. user override;
+2. bundled known-app rule;
+3. Android-declared category mapping;
+4. `Unsorted`.
 
-Logical boundaries:
+Inside bundled rules, deterministic selector precedence is exact component > exact package > package prefix. Prefix matching is narrowly reserved for evidence-backed generated namespaces; the shipped Web shortcut rule uses `org.chromium.webapk.` only.
+
+## 5. Architecture
+
+The app remains a small native Kotlin + Jetpack Compose + Material 3 application with app-owned boundaries:
 
 ```text
 Android PackageManager
@@ -84,7 +91,7 @@ Android PackageManager
 InstalledAppSource
         |
         v
-CategoryEngine <--- bundled known-app rules
+CategoryEngine <--- bundled deterministic rule packs
         |
         +---- OrganizerStateStore
         |            |
@@ -95,12 +102,10 @@ CategoryEngine <--- bundled known-app rules
         ViewModel / UI state
                |
                v
-        Jetpack Compose UI
+        Jetpack Compose shelf
 ```
 
-### Shared app-owned contracts
-
-The foundation/scaffold PR freezes the smallest useful shared models/contracts before feature agents start:
+Core app-owned contracts include:
 
 ```text
 AppId
@@ -112,334 +117,145 @@ CategorizedApp
 OrganizerState
 InstalledAppSource
 AppLauncher
-CategoryEngine/AppCategorizer
+CategoryEngine
 OrganizerStateStore
 OrganizerRepository
 ```
 
-Rules:
+Android framework objects, DataStore implementation types and Compose types remain at their respective boundaries.
 
-- Android framework objects do not leak through domain/application contracts.
-- DataStore/serialization implementation types do not leak through repository contracts.
-- Compose types do not leak into data/domain contracts.
-- persisted state starts with explicit schema version 1.
-- no service locator or generic god-manager abstraction.
+## 6. Persistence
 
-### InstalledAppSource
-
-Responsibilities:
-
-- discover launcher-visible activities through supported Android APIs;
-- expose package/component identity, label/icon access, and declared Android category through app-owned models;
-- exclude Organizer itself;
-- handle packages with more than one launcher entry deterministically;
-- rescan when Organizer opens/resumes rather than maintaining a permanent observer in v0.1.
-
-Implementation should prefer an `ACTION_MAIN` + `CATEGORY_LAUNCHER` query declared in manifest package visibility over broad package visibility.
-
-### CategoryEngine
-
-Pure Kotlin logic with no Android UI dependency.
-
-Inputs:
-
-- installed-app metadata;
-- bundled known-app rules;
-- user overrides.
-
-Outputs:
-
-- primary category;
-- classification source/reason.
-
-### OrganizerRepository
-
-Single source of truth combining discovered apps, categorization, and persisted user-owned state.
-
-Persist only what must survive scans/process recreation:
+Organizer state remains explicit schema version 1 and stores only user-owned organization state:
 
 - category overrides;
-- favourite state;
-- hidden state;
-- category metadata/order when those features are later introduced.
+- favourites;
+- hidden apps.
 
-Do not persist app icons or labels as authoritative data.
+The classification taxonomy expansion was additive only: no existing `AppCategory` value was renamed or removed, so no schema migration was required. Agent 70 adds a regression test that reads a literal pre-classification-wave schema-v1 payload and proves override/favourite/hidden state remains readable.
 
-### Persistence
+Future custom-category/category-order work will be persisted-state work and must define durable category identity plus migration tests before UI implementation spreads.
 
-Start with typed DataStore state plus Kotlin serialization rather than Room.
+## 7. Delivery history
 
-The initial state is small and non-relational. Room/KSP remain a future migration path only if the product genuinely develops relational requirements.
+### v0.1 — complete
 
-### UI
+The Agent 00–50 sequence delivered:
 
-Use Jetpack Compose + Material 3 with a small One UI-inspired design layer:
+- warning-free/reproducible Android scaffold and CI;
+- supported launcher discovery and exact launch targeting;
+- pure deterministic categorization/search;
+- DataStore-backed organizer state and repository behavior;
+- Compose shelf/design system;
+- real cross-layer integration and owner Samsung proof of the v0.1 shelf.
 
-- thumb-reachable controls;
-- generous spacing/proportions;
-- rounded surfaces;
-- dynamic colour where appropriate with deterministic fallback;
-- edge-to-edge support;
-- translucent/sheet host where reliable on Samsung devices.
+### Classification foundation — complete
 
-Do not copy Samsung proprietary assets.
+Agent 60 / PR #9 added:
 
-## 5. Technical risks to prove first
+- private same-device evidence reporting;
+- aggregate classification reporting;
+- additive game/Web taxonomy;
+- exact-component/exact-package/package-prefix selector seam;
+- separate general/game/Web rule-pack ownership.
 
-### Risk A — package visibility
+Foundation evidence contained 566 launcher targets, including 225 `Unsorted` and 129 broad `Games` entries.
 
-Prove the intended launcher query returns the practical expected app set on the Samsung device without `QUERY_ALL_PACKAGES`.
+### Classification rule/UI lanes — merged
 
-### Risk B — reliable launching
+- PR #12: general exact-package rule expansion;
+- PR #13: five-bucket game classification with `Games` fallback;
+- PR #10: narrow Chromium WebAPK classification;
+- PR #11: `Unsorted` triage and classification explanation UI.
 
-Prove exact launcher-component selection works, including aliases/multiple launcher activities.
+### Agent 70 — integration / acceptance
 
-### Risk C — companion presentation
+Agent 70 verifies the merged packs compose safely, re-proves precedence and persisted-state behavior, tightens the permanent quality lane so `androidTest` sources compile, updates authoritative documentation and leaves a PR unmerged for owner control.
 
-Prove the companion can open over One UI acceptably on Android 16. Preferred order:
+The deterministic combined projection against the original frozen 566-target Samsung evidence is:
 
-1. sheet/translucent;
-2. dimmed/translucent fallback;
-3. normal edge-to-edge fallback.
+- `Unsorted`: 225 -> 124;
+- broad `Games`: 129 -> 23;
+- Action & Adventure: 12;
+- RPG: 38;
+- Strategy & Simulation: 29;
+- Puzzle & Casual: 23;
+- Board & Card: 4;
+- Web Shortcuts: 1;
+- bundled-rule source: 5 -> 235.
 
-Blur is optional.
+A fresh report from the same physical Samsung device remains required before final owner acceptance because the installed-app population can change over time.
 
-### Risk D — duplicate launcher activities
+## 8. Testing and quality policy
 
-Define deterministic identity and duplicate behavior before package name is treated as unique.
+The permanent cheap repository lane covers:
 
-## 6. Delivery sequence and parallel waves
+- debug assembly;
+- instrumentation-test APK compilation;
+- JVM tests;
+- Android Lint;
+- ktlint;
+- dependency `buildHealth`;
+- warning-mode failure;
+- strict dependency verification;
+- configuration-cache creation/reuse;
+- forbidden-permission checks.
 
-### Milestone 0 — planning baseline — complete
+Instrumentation execution and One UI-specific behavior are verified on an emulator/physical device where needed; compiling an instrumentation APK is not a substitute for executing it.
 
-Delivered on `main`:
+Real Samsung acceptance remains mandatory for product-critical package discovery, launching, presentation, persisted upgrade behavior and classification sampling.
 
-- README;
-- product/delivery plan;
-- acceptance criteria;
-- MoSCoW analysis;
-- technology decisions;
-- verified stable toolchain/library inventory;
-- engineering/testing/benchmark/upgrade policy;
-- parallel coding plan;
-- coding-agent prompts.
+## 9. Remaining classification limitations
 
-### Wave 0 / Milestone 1A — Agent 00 foundation — complete
+The current classifier is deliberately conservative:
 
-Delivered:
+- the frozen evidence still projects 124 `Unsorted` rows;
+- 23 games remain in broad `Games`;
+- standard TWA wrappers are not generically classified;
+- no safe generic Samsung Internet/other-browser shortcut signature has been established;
+- known package identities require maintenance as apps change;
+- the model remains one primary category per app.
 
-- Android/Gradle scaffold;
-- exact stable-compatible toolchain;
-- version catalog;
-- reproducible JDK/toolchain setup;
-- dependency verification;
-- warning-free lint/ktlint/dependency-health/CI lane;
-- minimal Compose smoke app;
-- shared app-owned contracts/models frozen for the parallel lanes.
+These are acceptable limitations, not invitations to introduce cloud/label-guessing classification.
 
-### Wave 1 / Milestone 1B-3 — complete
+## 10. Next development wave — user-owned category management
 
-The four parallel lanes delivered platform discovery/launching, category/search domain behavior, persistence/repository state, and the Compose UI/design system.
+The next coherent product wave should be **custom categories + category reorder + richer category management**.
 
-#### Agent 10 — platform apps / integration spike
+Recommended sequence:
 
-Delivered:
+1. freeze a stable app-owned custom-category identity/order model and persistence migration contract;
+2. implement repository/domain behavior with migration tests;
+3. implement create/rename/delete/reorder and richer management UI;
+4. integrate and run Samsung acceptance.
 
-- Android launcher-app discovery;
-- exact launch target handling;
-- alias/duplicate policy;
-- package visibility behavior;
-- companion host presentation spike;
-- platform/instrumented tests and Samsung test checklist/results.
+Local backup/export/import should follow once the custom-category representation is stable, so the first export format does not immediately churn. Dynamic/pinned shortcuts should follow stable category identity for the same reason.
 
-#### Agent 20 — category/search domain
-
-Delivered:
-
-- deterministic precedence engine;
-- Android category mapping from app-owned metadata;
-- bundled known-app rules;
-- classification source;
-- pure local search normalization/filtering;
-- comprehensive unit tests.
-
-#### Agent 30 — state/repository
-
-Delivered:
-
-- DataStore-backed schema version 1;
-- state serialization/default/corruption policy;
-- category override/favourite/hidden persistence;
-- repository merge behavior;
-- uninstall/stale/reinstall policy;
-- persistence/repository tests.
-
-#### Agent 40 — Compose UI/design system
-
-Delivered:
-
-- One UI-inspired theme/tokens;
-- shelf/category/app-tile/search/loading/empty surfaces;
-- long-press organization UI;
-- hidden-app management components;
-- light/dark/accessibility behavior;
-- UI tests against fake app-owned state.
-
-### Wave 2 / Milestone 4 — Agent 50 integration and hardening — complete
-
-Delivered by the integration work:
-
-- real dependency/composition wiring;
-- app-owned presentation/UI-state integration;
-- complete v0.1 Must behavior;
-- boundary regression repairs;
-- privacy/package audit;
-- full warning-free quality lane;
-- physical Samsung proof that the integrated app launches and category shelf renders.
-
-The merge/release decision remains an explicit owner action; coding agents do not merge it automatically.
-
-### Next post-v0.1 slice — classification quality and taxonomy tuning
-
-Owner testing found the starter categorization useful but coarse, with 225 entries in `Unsorted` and 129 in `Games`, plus some tiny categories and browser-created/PWA-style launcher shortcuts.
-
-This is deliberately a **separate follow-up PR**, not an expansion of the integration PR. The detailed scope lives in [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md).
-
-The next slice should improve classification from real device evidence while preserving deterministic rules, user-override precedence, local-only behavior, and `Unsorted` as the safe fallback. It should evaluate Web Shortcuts, broad game subcategories, rule-pack expansion, and consolidation of low-value tiny categories.
-
-## 7. Merge/conflict rules
-
-Required merge structure:
-
-```text
-00 Foundation
-      |
-      +----------------+----------------+----------------+
-      |                |                |                |
-   10 Platform      20 Domain        30 Data          40 UI
-      |                |                |                |
-      +----------------+----------------+----------------+
-                       |
-                 50 Integration
-```
-
-If a Wave-1 agent needs to change a frozen shared contract:
-
-1. make the smallest compatible change;
-2. call it out prominently in the PR;
-3. pause affected sibling merges;
-4. rebase affected sibling branches after the contract change;
-5. never create duplicated parallel models to avoid coordination.
-
-See `PARALLEL_DEVELOPMENT.md` for exact file ownership and quality gates.
-
-## 8. Testing strategy
-
-### Unit tests
-
-Prioritize pure tests for:
-
-- category precedence;
-- Android category mapping;
-- known rule matching;
-- fallback behavior;
-- search normalization;
-- state schema/default/migrations;
-- persisted override merge behavior;
-- uninstall/reinstall identity edge cases.
-
-### Compose tests
-
-Cover semantic/user behavior for:
-
-- search;
-- category rendering;
-- long-press actions;
-- favourite/hidden UI;
-- empty/loading/unsorted states;
-- accessibility.
-
-### Instrumented/system tests
-
-Cover:
-
-- package discovery;
-- launch targets;
-- launcher aliases;
-- system/package visibility;
-- cross-app launch with UI Automator where reliable;
-- Samsung window/presentation behavior.
-
-### Physical-device acceptance
-
-A Samsung physical-device pass is mandatory for v0.1. Emulator-only acceptance is insufficient.
-
-## 9. Performance strategy
-
-Do not optimize before the integrated flow exists.
-
-Measure real journeys using the stable tooling in `STABLE_BASELINE.md` when performance work is justified:
-
-- cold/warm start;
-- initial/resume scan;
-- search latency;
-- category scrolling/frame timing;
-- Organizer -> external app launch.
-
-Macrobenchmark is preferred for end-to-end journeys; Microbenchmark only for isolated hot code. Do not add benchmark tooling merely to satisfy a checklist when no measured issue exists.
-
-## 10. Post-v0.1 roadmap
-
-### Immediate next slice
-
-- evidence-driven classification-quality tuning from real Samsung launcher data;
-- expand deterministic bundled known-app rules;
-- identify browser/PWA launcher entries as `Web Shortcuts` only when supported metadata gives a reliable signature;
-- evaluate a small broad game taxonomy rather than one 129-app bucket;
-- review/consolidate categories with only one or two apps;
-- add local diagnostic/export support only if it materially helps rule tuning, with no telemetry/networking.
-
-See [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md) for the detailed acceptance direction.
-
-### Other Should candidates
-
-- custom categories;
-- reorder categories;
-- shortcuts/pinned category shortcuts;
-- export/import organizer rules;
-- richer `Unsorted` management;
-- more complete One UI-inspired polish;
-- performance/baseline profiles when the stable toolchain supports them cleanly and measurements justify them.
-
-### Could candidates
-
-- Glance widget;
-- multiple category tags;
-- work-profile support;
-- opt-in local usage-based suggestions;
-- fuzzy search;
-- editable/importable rule packs;
-- large-screen/foldable adaptation.
+Presentation polish can proceed later or in a low-conflict UI lane. Performance tooling remains deferred unless measured Samsung behavior demonstrates a real regression.
 
 ## 11. Explicit non-goals
 
-Do not broaden v0.1 into:
+Do not expand the current product into:
 
-- native One UI folder/page/database manipulation;
-- default-launcher replacement;
-- cloud/AI classification;
-- analytics/ads/accounts;
+- Samsung launcher database/folder manipulation;
+- default HOME replacement;
 - `QUERY_ALL_PACKAGES` for convenience;
+- cloud/AI classification;
+- accounts, analytics or advertising;
 - permanent monitoring service;
+- speculative networking/infrastructure;
 - cross-platform implementation.
 
-## 12. Definition of done for v0.1
+## 12. Definition of done for the classification-quality wave
 
-v0.1 is done only when:
+The wave is accepted only when:
 
-- all Must-have items in `MOSCOW.md` are complete;
-- all criteria in `ACCEPTANCE_CRITERIA.md` pass or an explicit exception is approved;
-- the build/toolchain/library baseline remains compliant and warning-free;
-- physical Samsung acceptance passes;
-- no `INTERNET` or `QUERY_ALL_PACKAGES` is present;
-- the owner explicitly approves release/merge decisions.
+- Agent 70 repository CI is green;
+- signed debug APK is installed over the existing owner-device app without clearing data;
+- manual overrides, favourites and hidden state survive;
+- new taxonomy/search/move/explanation/triage behavior is sampled on the Samsung device;
+- app launching, dismiss/back and rescan still work;
+- a fresh same-device classification report is reviewed privately;
+- sanitized current aggregate counts and false-positive findings are recorded;
+- `INTERNET` and `QUERY_ALL_PACKAGES` remain absent;
+- the owner explicitly decides whether to merge the Agent 70 PR.
