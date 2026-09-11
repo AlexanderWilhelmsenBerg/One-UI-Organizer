@@ -1,6 +1,6 @@
 # Product and Delivery Plan
 
-**Implementation status:** v0.1 integration is complete on the integration branch and is in final merge verification. Classification-quality tuning is explicitly deferred to the next post-v0.1 PR; see [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md).
+**Implementation status:** v0.1 integration is implemented and owner-device-tested on Samsung. Final merge/release decisions remain explicit owner actions. Classification-quality tuning is the next post-v0.1 slice; see [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md).
 
 Execution details and agent ownership are defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Copy/paste coding briefs live under [`agents/`](agents/README.md).
 
@@ -285,9 +285,9 @@ Delivered:
 - light/dark/accessibility behavior;
 - UI tests against fake app-owned state.
 
-### Wave 2 / Milestone 4 — Agent 50 integration and hardening — merge verification
+### Wave 2 / Milestone 4 — Agent 50 integration and hardening — complete
 
-Delivered in the integration PR:
+Delivered by the integration work:
 
 - real dependency/composition wiring;
 - app-owned presentation/UI-state integration;
@@ -297,7 +297,7 @@ Delivered in the integration PR:
 - full warning-free quality lane;
 - physical Samsung proof that the integrated app launches and category shelf renders.
 
-The integration PR remains owner-controlled and must not merge automatically.
+The merge/release decision remains an explicit owner action; coding agents do not merge it automatically.
 
 ### Next post-v0.1 slice — classification quality and taxonomy tuning
 
