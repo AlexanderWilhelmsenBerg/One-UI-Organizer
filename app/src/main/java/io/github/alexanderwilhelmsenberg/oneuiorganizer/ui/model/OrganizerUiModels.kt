@@ -3,6 +3,7 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model
 import androidx.compose.ui.graphics.ImageBitmap
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 
@@ -41,6 +42,7 @@ data class OrganizerShelfUiState(
     val categories: List<CategorySectionUiModel> = emptyList(),
     val hiddenApps: List<ShelfAppUiModel> = emptyList(),
     val availableCategories: List<CategoryDefinition> = emptyList(),
+    val categoryAssignmentCounts: Map<CategoryId, Int> = emptyMap(),
     val error: ShelfErrorUiModel? = null,
     val currentAppCount: Int = 0
 ) {

@@ -1,6 +1,7 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer
 
 import android.app.Application
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.CategoryManagementRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.DataStoreOrganizerStateStore
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.DefaultOrganizerRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.OrganizerRepository
@@ -16,10 +17,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-/** Process-scoped composition root for the small v0.1 dependency graph. */
+/** Process-scoped composition root for the small application dependency graph. */
 class OneUiOrganizerApplication : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var organizerRepository: OrganizerRepository
+    private lateinit var categoryManagementRepository: CategoryManagementRepository
     private lateinit var appLauncher: AppLauncher
 
     lateinit var uiPlatformCapabilities: UiPlatformCapabilities
@@ -34,19 +36,22 @@ class OneUiOrganizerApplication : Application() {
                 file = File(filesDir, ORGANIZER_STATE_FILE_NAME),
                 scope = applicationScope
             )
-
-        organizerRepository =
+        val defaultOrganizerRepository =
             DefaultOrganizerRepository(
                 installedAppSource = installedAppSource,
                 organizerStateStore = organizerStateStore,
                 categoryEngine = DefaultCategoryEngine()
             )
+
+        organizerRepository = defaultOrganizerRepository
+        categoryManagementRepository = defaultOrganizerRepository
         appLauncher = AndroidAppLauncher(this)
         uiPlatformCapabilities = AndroidUiPlatformCapabilities.current()
     }
 
     fun createOrganizerViewModel(scope: CoroutineScope): OrganizerViewModel = OrganizerViewModel(
         organizerRepository = organizerRepository,
+        categoryManagementRepository = categoryManagementRepository,
         appLauncher = appLauncher,
         scope = scope
     )

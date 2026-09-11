@@ -12,6 +12,15 @@ object OrganizerUiStateMapper {
         isLoading: Boolean,
         error: ShelfErrorUiModel?
     ): OrganizerShelfUiState {
+        val currentAppIds = apps.mapTo(mutableSetOf()) { categorizedApp -> categorizedApp.app.id }
+        val categoryAssignmentCounts =
+            apps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount().toMutableMap()
+        organizerState.categoryOverrides.forEach { (appId, categoryId) ->
+            if (appId !in currentAppIds) {
+                categoryAssignmentCounts[categoryId] = (categoryAssignmentCounts[categoryId] ?: 0) + 1
+            }
+        }
+
         val hiddenApps =
             LocalAppSearch
                 .filter(
@@ -52,6 +61,7 @@ object OrganizerUiStateMapper {
             categories = categories,
             hiddenApps = hiddenApps,
             availableCategories = orderedCategories,
+            categoryAssignmentCounts = categoryAssignmentCounts.toMap(),
             error = error,
             currentAppCount = apps.size
         )

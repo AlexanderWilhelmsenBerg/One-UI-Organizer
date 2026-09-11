@@ -102,6 +102,47 @@ class OrganizerUiStateMapperTest {
     }
 
     @Test
+    fun `category assignment counts use effective inventory and retained overrides`() {
+        val automatic =
+            categorizedApp(
+                "example.video",
+                "Video",
+                AppCategory.VIDEO,
+                source = ClassificationSource.KNOWN_APP_RULE
+            )
+        val currentOverride =
+            categorizedApp(
+                "example.current",
+                "Current",
+                AppCategory.TOOLS,
+                source = ClassificationSource.USER_OVERRIDE
+            )
+        val retainedAppId = AppId("example.retained")
+        val state =
+            OrganizerState(
+                categoryOverrides =
+                    mapOf(
+                        currentOverride.app.id to AppCategory.TOOLS.id,
+                        retainedAppId to AppCategory.WORK.id
+                    ),
+                hiddenAppIds = setOf(automatic.app.id)
+            )
+
+        val result =
+            OrganizerUiStateMapper.map(
+                apps = listOf(automatic, currentOverride),
+                organizerState = state,
+                query = "does-not-match-anything",
+                isLoading = false,
+                error = null
+            )
+
+        assertEquals(1, result.categoryAssignmentCounts[AppCategory.VIDEO.id])
+        assertEquals(1, result.categoryAssignmentCounts[AppCategory.TOOLS.id])
+        assertEquals(1, result.categoryAssignmentCounts[AppCategory.WORK.id])
+    }
+
+    @Test
     fun `package scoped favourite applies to every exact launcher target`() {
         val packageName = "example.multi"
         val first = categorizedApp(packageName, "First", AppCategory.TOOLS, "$packageName.First")

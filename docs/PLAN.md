@@ -1,6 +1,6 @@
 # Product and Delivery Plan
 
-**Current status:** v0.1 and the classification-quality wave through Agent 70 / PR #14 are merged to `main`. The classification result is accepted and recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md). The next product wave is user-owned category management. Agent 80 is the shared identity/persistence foundation; Agents 81 and 82 must consume that contract rather than invent parallel category representations.
+**Current status:** v0.1 and the classification-quality wave through Agent 70 / PR #14 are merged to `main`. Agents 80–82 of the user-owned category-management wave are also merged as PRs #15–#17. Agent 83 integrates those foundations in PR #18. The implementation/automated gate belongs to PR #18; the wave remains **pending physical Samsung upgrade/migration acceptance** and must not be marked complete or merged until that pass is recorded. See [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md).
 
 Execution ownership and sequencing live in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md).
 
@@ -24,7 +24,7 @@ It is not a launcher replacement and does not write Samsung launcher databases, 
 10. Performance work is measurement-driven.
 11. Network access is permitted only for an explicit supported product feature with documented privacy/cache behavior; no speculative networking stack.
 
-The current category-management foundation still requests neither `INTERNET` nor `QUERY_ALL_PACKAGES` and adds no dependency/toolchain change.
+The category-management wave requests neither `INTERNET` nor `QUERY_ALL_PACKAGES` and adds no dependency/toolchain change.
 
 ## 3. Current user experience
 
@@ -40,9 +40,12 @@ Current organization behavior includes:
 - manual category override;
 - direct triage affordance for automatic `Unsorted` fallback;
 - classification explanation based on the real `ClassificationSource`;
-- explicit local classification-report sharing for diagnostic review.
+- explicit local classification-report sharing for diagnostic review;
+- create/rename/delete custom categories;
+- reorder built-in and custom categories;
+- explicit delete-and-reassign or delete-and-return-to-automatic behavior.
 
-Custom-category lifecycle UI is not part of the shipped baseline yet.
+The custom-category lifecycle is integrated in Agent 83 / PR #18 but remains pending the mandatory physical Samsung migration acceptance before it is treated as shipped/merge-ready.
 
 ## 4. Automatic-classification taxonomy
 
@@ -83,7 +86,7 @@ Automatic classification precedence remains exactly:
 3. Android-declared category mapping;
 4. `Unsorted`.
 
-Automatic rule packs continue to produce the built-in `AppCategory` taxonomy only. User overrides may resolve to either a built-in or user-created category without changing `ClassificationSource.USER_OVERRIDE` semantics.
+Automatic rule packs produce built-in `AppCategory` results only. User overrides may resolve to either a built-in or user-created category without changing `ClassificationSource.USER_OVERRIDE` semantics.
 
 ## 5. Architecture
 
@@ -101,14 +104,20 @@ CategoryEngine <--- bundled deterministic rule packs
         +---- OrganizerStateStore
         |            |
         v            v
-       OrganizerRepository
-               |
-               v
-        ViewModel / UI state
-               |
-               v
-        Jetpack Compose shelf
+       DefaultOrganizerRepository
+        |                    |
+        v                    v
+OrganizerRepository   CategoryManagementRepository
+        \                    /
+         \                  /
+          v                v
+          ViewModel / UI state
+                  |
+                  v
+          Jetpack Compose shelf
 ```
+
+`DefaultOrganizerRepository` is one state owner exposed through separate app-owned read/organizer and category-lifecycle contracts. Agent 83 does not create a second category repository or duplicate lifecycle validation in the ViewModel.
 
 Android framework objects, DataStore implementation types and Compose types remain at their respective boundaries.
 
@@ -140,13 +149,13 @@ Every built-in `AppCategory` has an explicit stable ID such as `builtin:work`. P
 
 ### Custom identity
 
-User-created categories use `custom:<opaque-id>` identities. The opaque portion is generated once when the category is created by the later category-domain lane and remains unchanged across rename, process death and serialization. Display name is metadata, never the persisted key.
+User-created categories use `custom:<opaque-id>` identities. The opaque portion is generated once when the category is created and remains unchanged across rename, process death, serialization and reorder. Display name is metadata, never the persisted key.
 
 ### Schema-v1 migration
 
 Literal schema-v1 payloads remain supported. On read:
 
-- each persisted v1 `AppCategory` enum value is mapped deterministically to that built-in category's explicit ID;
+- each persisted v1 `AppCategory` enum value maps deterministically to that built-in category's explicit ID;
 - favourites survive unchanged;
 - hidden-app state survives unchanged;
 - custom-category definitions start empty;
@@ -159,7 +168,7 @@ The next write always uses schema v2. Supported v1 state is not treated as corru
 
 `Favourites` remains a virtual section and never participates in persisted category order.
 
-Effective order normalization is deterministic:
+Effective persisted-order normalization is deterministic:
 
 1. preserve the first occurrence of each known persisted ID in persisted order;
 2. drop stale/unknown order IDs;
@@ -167,7 +176,7 @@ Effective order normalization is deterministic:
 4. append missing built-in IDs in the frozen built-in default order;
 5. append missing defined custom-category IDs in definition order.
 
-This handles future built-ins, incomplete state and stale order entries without crashing. Reorder mutation/UI is owned by later lanes; Agent 80 freezes only the representation and semantics.
+Lifecycle reorder requests are intentionally stricter: the repository accepts only an exact permutation of every current normal built-in/custom category ID and then persists that requested order.
 
 ## 7. Delivery history
 
@@ -185,71 +194,66 @@ The accepted final Samsung report includes 123 `Unsorted`, 15 `Emulators`, 10 br
 
 ## 8. Current development wave — user-owned category management
 
-Recommended merge shape:
+Merge shape:
 
 ```text
-80 Category identity / persistence foundation
+80 Category identity / persistence foundation  (#15 merged)
                  |
         +--------+--------+
         |                 |
 81 Domain/repository   82 Compose management UI
+   (#16 merged)           (#17 merged)
         |                 |
         +--------+--------+
                  |
         83 Integration / acceptance
+             (PR #18)
+                 |
+      physical Samsung migration gate
 ```
 
-### Agent 80 — current foundation
+### Agent 80 — merged
 
-Owns:
+PR #15 froze durable built-in/custom identity, shared category definitions, schema-v2 migration, custom-definition/order persistence and cross-layer representation.
 
-- stable built-in/custom identity contract;
-- shared category definition contract;
-- schema-v2 migration from literal v1 payloads;
-- category-order representation/normalization;
-- cross-layer compatibility needed for custom categories to be representable;
-- regression tests and authoritative documentation.
+### Agent 81 — merged
 
-Does **not** own full create/rename/delete/reorder workflows or a management screen.
+PR #16 added repository-owned creation, stable-ID rename, explicit deletion policies, exact reorder validation, app-owned failures, atomic state mutation and regression tests.
 
-### Agent 81 — domain/repository lifecycle
+### Agent 82 — merged
 
-Owns later behavior for:
-
-- custom-category creation and ID generation;
-- rename;
-- deletion with explicit reassignment/fallback policy;
-- reorder mutation operations;
-- repository/domain tests.
-
-### Agent 82 — Compose management UI
-
-Owns later presentation for:
-
-- create/rename/delete/reorder controls;
-- dedicated category-management surface;
-- accessible Compose behavior/tests;
-- no persistence/classification duplication in UI.
+PR #17 added the Compose category-management surface, create/rename/delete/reorder interactions, accessibility semantics and UI tests without persistence duplication.
 
 ### Agent 83 — integration/acceptance
 
-Owns cross-layer wiring, migration/device acceptance and genuine integration repair after 81/82 merge.
+PR #18 wires the real composition root, repository, ViewModel, shelf/picker and management surface. Management presentation is derived from persisted `OrganizerState`; assigned counts include retained hidden/uninstalled overrides; repository failures are mapped to safe presentation messages; Android back/dismiss returns to the shelf.
 
-Local backup/export/import follows stable custom-category lifecycle semantics. Dynamic/pinned shortcuts follow the same stable identity contract. Neither belongs in Agent 80.
+Agent 83 must leave the PR unmerged until both the final automated lane and the physical Samsung upgrade/migration gate in [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md) pass.
 
-## 9. Search and diagnostic reporting
+## 9. Recommended next development wave
 
-Search uses the resolved category display name, so built-in names remain searchable and a future custom category is searchable without a second category-name table.
+After Agent 83 acceptance, the strongest next work is:
 
-The local classification report preserves the existing built-in report labels/format. If an effective category is custom, the report includes its stable identity and display name while retaining the original classification source.
+1. **local backup/export/import** — versioned local portability of organizer-owned state, preserving stable custom IDs/order;
+2. **dynamic/pinned category shortcuts** — Android shortcuts that consume stable category IDs without redefining them.
 
-## 10. Metadata enrichment direction
+These two lanes can run in parallel from the accepted category-management baseline because they consume the same stable identity but own different product behavior. Integrate them only after both individual lanes are green.
+
+Optional F-Droid metadata enrichment and presentation polish remain independent later candidates. Performance work stays measurement-driven and should start only if a regression is observed.
+
+## 10. Search and diagnostic reporting
+
+Search uses the resolved category display name, so built-in and custom category names are searchable without a second category-name table.
+
+The local classification report preserves the existing built-in report labels/format. If an effective category is custom, the report includes its stable identity and display name while retaining the independent `ClassificationSource`, including `USER_OVERRIDE`.
+
+## 11. Metadata enrichment direction
 
 Optional Internet-backed metadata enrichment remains approved in principle but not implemented. Any future provider must be supported/documented, local-first and best-effort, preserve existing precedence, cache locally with bounded policy, add `INTERNET` only with the supported implementation, and avoid unofficial brittle Play Store scraping.
 
 F-Droid remains a plausible documented source for its subset of packages. Metadata enrichment is separate from category identity/lifecycle work.
 
-## 11. Testing and quality policy
+## 12. Testing and quality policy
 
 The permanent repository lane covers:
 
@@ -264,11 +268,11 @@ The permanent repository lane covers:
 - configuration-cache creation/reuse;
 - forbidden-permission checks.
 
-Persisted-state evolution additionally requires literal old-schema migration fixtures. Category identity/order tests must cover stable built-in mapping, rename-stable custom identity, serialization round-trip, deterministic duplicate/stale order behavior and preservation of existing user state.
+Persisted-state evolution additionally requires literal old-schema migration fixtures. Category-management tests cover stable built-in mapping, rename-stable custom identity, serialization/process recreation, explicit deletion policies, deterministic order validation, failure atomicity, classification precedence, search and diagnostic reporting.
 
 Real Samsung acceptance remains mandatory for product-critical package discovery, launching, presentation, persisted upgrade behavior and integrated category-management behavior.
 
-## 12. Remaining accepted limitations
+## 13. Remaining accepted limitations
 
 - the classifier remains deliberately conservative;
 - 123 entries in the accepted classification report remain `Unsorted`;
@@ -277,9 +281,11 @@ Real Samsung acceptance remains mandatory for product-critical package discovery
 - no generic Samsung Internet/other-browser shortcut signature is established;
 - optional external metadata enrichment is not implemented;
 - the model remains one primary category per app;
-- custom-category lifecycle UI/domain operations are not complete until Agents 81/82/83 land.
+- local backup/import/export is not implemented;
+- dynamic/pinned category shortcuts are not implemented;
+- the Agent 80–83 category-management wave remains pending until the physical Samsung migration pass is recorded.
 
-## 13. Explicit non-goals
+## 14. Explicit non-goals
 
 Do not expand the current product into:
 

@@ -41,6 +41,21 @@ class DefaultCategoryEngineTest {
     }
 
     @Test
+    fun customUserOverrideBeatsAndroidCategoryAndPreservesIdentity() {
+        val app = installedApp(
+            packageName = "example.social-custom",
+            platformCategory = PlatformAppCategory.SOCIAL
+        )
+        val custom = CustomCategoryDefinition(CategoryId.custom("people"), "People")
+
+        val result = DefaultCategoryEngine(knownAppCategory = { null }).categorize(app, custom)
+
+        assertEquals(custom, result.category)
+        assertEquals(custom.id, result.category.id)
+        assertEquals(ClassificationSource.USER_OVERRIDE, result.source)
+    }
+
+    @Test
     fun userOverrideBeatsAndroidCategory() {
         val app = installedApp(
             packageName = "example.social",

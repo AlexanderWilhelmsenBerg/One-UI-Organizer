@@ -3,11 +3,13 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.OrganizerViewModel
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.management.CategoryManagement
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.shelf.OrganizerSheetHost
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.shelf.OrganizerShelf
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OneUiOrganizerTheme
@@ -32,26 +34,44 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by organizerViewModel.uiState.collectAsState()
             val showHiddenApps by organizerViewModel.showHiddenApps.collectAsState()
+            val showCategoryManagement by organizerViewModel.showCategoryManagement.collectAsState()
+            val categoryManagementState by organizerViewModel.categoryManagementUiState.collectAsState()
+
+            BackHandler(enabled = showCategoryManagement) {
+                organizerViewModel.hideCategoryManagement()
+            }
 
             OneUiOrganizerTheme(supportsDynamicColor = supportsDynamicColor) {
                 OrganizerSheetHost {
-                    OrganizerShelf(
-                        state = state,
-                        showHiddenApps = showHiddenApps,
-                        onQueryChange = organizerViewModel::updateQuery,
-                        onLaunchApp = { target ->
-                            if (organizerViewModel.launch(target)) {
-                                finish()
-                            }
-                        },
-                        onMoveApp = organizerViewModel::moveApp,
-                        onToggleFavourite = organizerViewModel::toggleFavourite,
-                        onHideApp = organizerViewModel::hideApp,
-                        onRestoreApp = organizerViewModel::restoreApp,
-                        onClassificationReportRequested = ::shareClassificationReport,
-                        onHiddenAppsRequested = organizerViewModel::showHiddenApps,
-                        onHiddenAppsDismissed = organizerViewModel::hideHiddenApps
-                    )
+                    if (showCategoryManagement) {
+                        CategoryManagement(
+                            state = categoryManagementState,
+                            onCreateCategory = organizerViewModel::createCustomCategory,
+                            onRenameCategory = organizerViewModel::renameCustomCategory,
+                            onDeleteCategory = organizerViewModel::deleteCustomCategory,
+                            onMoveCategory = organizerViewModel::moveCategory,
+                            onDismiss = organizerViewModel::hideCategoryManagement
+                        )
+                    } else {
+                        OrganizerShelf(
+                            state = state,
+                            showHiddenApps = showHiddenApps,
+                            onQueryChange = organizerViewModel::updateQuery,
+                            onLaunchApp = { target ->
+                                if (organizerViewModel.launch(target)) {
+                                    finish()
+                                }
+                            },
+                            onMoveApp = organizerViewModel::moveApp,
+                            onToggleFavourite = organizerViewModel::toggleFavourite,
+                            onHideApp = organizerViewModel::hideApp,
+                            onRestoreApp = organizerViewModel::restoreApp,
+                            onClassificationReportRequested = ::shareClassificationReport,
+                            onHiddenAppsRequested = organizerViewModel::showHiddenApps,
+                            onHiddenAppsDismissed = organizerViewModel::hideHiddenApps,
+                            onCategoryManagementRequested = organizerViewModel::showCategoryManagement
+                        )
+                    }
                 }
             }
         }
