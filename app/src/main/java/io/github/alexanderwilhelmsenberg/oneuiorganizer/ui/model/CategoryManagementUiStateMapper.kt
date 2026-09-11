@@ -1,10 +1,22 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model
 
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 
 object CategoryManagementUiStateMapper {
-    fun map(organizerState: OrganizerState, operationError: String?): CategoryManagementUiState {
-        val assignedCounts = organizerState.categoryOverrides.values.groupingBy { categoryId -> categoryId }.eachCount()
+    fun map(
+        apps: List<CategorizedApp>,
+        organizerState: OrganizerState,
+        operationError: String?
+    ): CategoryManagementUiState {
+        val currentAppIds = apps.mapTo(mutableSetOf()) { categorizedApp -> categorizedApp.app.id }
+        val assignedCounts = apps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount().toMutableMap()
+
+        organizerState.categoryOverrides.forEach { (appId, categoryId) ->
+            if (appId !in currentAppIds) {
+                assignedCounts[categoryId] = (assignedCounts[categoryId] ?: 0) + 1
+            }
+        }
 
         return CategoryManagementUiState(
             categories =
