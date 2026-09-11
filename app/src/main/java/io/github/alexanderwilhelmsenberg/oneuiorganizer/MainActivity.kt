@@ -50,8 +50,7 @@ class MainActivity : ComponentActivity() {
                             onRenameCategory = organizerViewModel::renameCustomCategory,
                             onDeleteCategory = organizerViewModel::deleteCustomCategory,
                             onMoveCategory = organizerViewModel::moveCategory,
-                            onDismiss = organizerViewModel::hideCategoryManagement,
-                            onClearError = organizerViewModel::clearCategoryManagementErrors
+                            onDismiss = organizerViewModel::hideCategoryManagement
                         )
                     } else {
                         OrganizerShelf(
