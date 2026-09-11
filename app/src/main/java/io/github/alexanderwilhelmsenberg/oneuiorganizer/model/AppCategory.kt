@@ -1,9 +1,6 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.model
 
-enum class AppCategory(
-    override val id: CategoryId,
-    override val displayName: String
-) : CategoryDefinition {
+enum class AppCategory(override val id: CategoryId, override val displayName: String) : CategoryDefinition {
     COMMUNICATION(CategoryId("builtin:communication"), "Communication"),
     SOCIAL(CategoryId("builtin:social"), "Social"),
     WORK(CategoryId("builtin:work"), "Work"),
