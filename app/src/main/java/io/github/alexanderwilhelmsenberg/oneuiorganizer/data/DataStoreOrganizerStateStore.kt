@@ -7,6 +7,8 @@ import androidx.datastore.core.Serializer
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import java.io.File
 import java.io.InputStream
@@ -21,8 +23,9 @@ import kotlinx.serialization.json.JsonPrimitive
 /**
  * DataStore-backed organizer state.
  *
- * Callers must create at most one active instance for a given file. Corrupt or unsupported persisted data is
- * replaced with an empty schema-v1 state so the organizer remains usable; this recovery resets only organizer
+ * Schema v2 writes durable category IDs, custom-category definitions and category order. Literal schema-v1 payloads
+ * are migrated on read without losing built-in overrides, favourites or hidden state. Corrupt or unsupported data is
+ * replaced with an empty current-schema state so the organizer remains usable; this recovery resets only organizer
  * preferences, never Android-installed-app data.
  */
 class DataStoreOrganizerStateStore private constructor(private val dataStore: DataStore<OrganizerState>) :
@@ -31,7 +34,9 @@ class DataStoreOrganizerStateStore private constructor(private val dataStore: Da
 
     override suspend fun update(transform: (OrganizerState) -> OrganizerState): OrganizerState =
         dataStore.updateData { current ->
-            transform(current).copy(schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION)
+            transform(current)
+                .copy(schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION)
+                .normalized()
         }
 
     companion object {
@@ -71,20 +76,38 @@ internal object OrganizerStateJsonCodec {
             "Only organizer-state schema ${OrganizerState.CURRENT_SCHEMA_VERSION} can be written."
         }
 
+        val normalizedState = state.normalized()
         val overrides =
-            state.categoryOverrides.entries
-                .sortedBy { it.key.packageName }
-                .associate { (appId, category) ->
-                    appId.packageName to JsonPrimitive(category.name)
+            normalizedState.categoryOverrides.entries
+                .sortedBy { entry -> entry.key.packageName }
+                .associate { (appId, categoryId) ->
+                    appId.packageName to JsonPrimitive(categoryId.value)
                 }
+        val customCategories =
+            JsonArray(
+                normalizedState.customCategories.map { category ->
+                    JsonObject(
+                        linkedMapOf(
+                            CATEGORY_ID to JsonPrimitive(category.id.value),
+                            CATEGORY_NAME to JsonPrimitive(category.displayName)
+                        )
+                    )
+                }
+            )
+        val categoryOrder =
+            JsonArray(
+                normalizedState.categoryOrder.map { categoryId -> JsonPrimitive(categoryId.value) }
+            )
 
         val root =
             JsonObject(
                 linkedMapOf(
-                    SCHEMA_VERSION to JsonPrimitive(state.schemaVersion),
+                    SCHEMA_VERSION to JsonPrimitive(normalizedState.schemaVersion),
                     CATEGORY_OVERRIDES to JsonObject(overrides),
-                    FAVOURITE_APP_IDS to JsonArray(state.favouriteAppIds.toJsonAppIdList()),
-                    HIDDEN_APP_IDS to JsonArray(state.hiddenAppIds.toJsonAppIdList())
+                    FAVOURITE_APP_IDS to JsonArray(normalizedState.favouriteAppIds.toJsonAppIdList()),
+                    HIDDEN_APP_IDS to JsonArray(normalizedState.hiddenAppIds.toJsonAppIdList()),
+                    CUSTOM_CATEGORIES to customCategories,
+                    CATEGORY_ORDER to categoryOrder
                 )
             )
         return root.toString()
@@ -99,19 +122,35 @@ internal object OrganizerStateJsonCodec {
         require(!schemaPrimitive.isString) { "Organizer-state schema version must be numeric." }
         val schemaVersion = schemaPrimitive.content.toIntOrNull()
             ?: throw IllegalArgumentException("Organizer-state schema version must be an integer.")
-        require(schemaVersion == OrganizerState.CURRENT_SCHEMA_VERSION) {
-            "Unsupported organizer-state schema version: $schemaVersion."
-        }
 
-        return OrganizerState(
-            schemaVersion = schemaVersion,
-            categoryOverrides = root.decodeOverrides(),
-            favouriteAppIds = root.decodeAppIdSet(FAVOURITE_APP_IDS),
-            hiddenAppIds = root.decodeAppIdSet(HIDDEN_APP_IDS)
-        )
+        return when (schemaVersion) {
+            1 -> root.decodeSchemaV1()
+            OrganizerState.CURRENT_SCHEMA_VERSION -> root.decodeCurrentSchema()
+            else -> throw IllegalArgumentException("Unsupported organizer-state schema version: $schemaVersion.")
+        }
     }
 
-    private fun JsonObject.decodeOverrides(): Map<AppId, AppCategory> {
+    private fun JsonObject.decodeSchemaV1(): OrganizerState =
+        OrganizerState(
+            schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION,
+            categoryOverrides = decodeSchemaV1Overrides(),
+            favouriteAppIds = decodeAppIdSet(FAVOURITE_APP_IDS),
+            hiddenAppIds = decodeAppIdSet(HIDDEN_APP_IDS),
+            customCategories = emptyList(),
+            categoryOrder = OrganizerState.defaultBuiltInCategoryOrder()
+        )
+
+    private fun JsonObject.decodeCurrentSchema(): OrganizerState =
+        OrganizerState(
+            schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION,
+            categoryOverrides = decodeCategoryIdOverrides(),
+            favouriteAppIds = decodeAppIdSet(FAVOURITE_APP_IDS),
+            hiddenAppIds = decodeAppIdSet(HIDDEN_APP_IDS),
+            customCategories = decodeCustomCategories(),
+            categoryOrder = decodeCategoryOrder()
+        ).normalized()
+
+    private fun JsonObject.decodeSchemaV1Overrides(): Map<AppId, CategoryId> {
         val overrides = this[CATEGORY_OVERRIDES] ?: return emptyMap()
         val objectValue = overrides as? JsonObject
             ?: throw IllegalArgumentException("$CATEGORY_OVERRIDES must be a JSON object.")
@@ -121,7 +160,47 @@ internal object OrganizerStateJsonCodec {
             val categoryPrimitive = categoryElement as? JsonPrimitive
                 ?: throw IllegalArgumentException("Category override must be a string.")
             require(categoryPrimitive.isString) { "Category override must be a string." }
-            AppId(packageName) to AppCategory.valueOf(categoryPrimitive.content)
+            AppId(packageName) to AppCategory.valueOf(categoryPrimitive.content).id
+        }
+    }
+
+    private fun JsonObject.decodeCategoryIdOverrides(): Map<AppId, CategoryId> {
+        val overrides = this[CATEGORY_OVERRIDES] ?: return emptyMap()
+        val objectValue = overrides as? JsonObject
+            ?: throw IllegalArgumentException("$CATEGORY_OVERRIDES must be a JSON object.")
+
+        return objectValue.entries.associate { (packageName, categoryElement) ->
+            require(packageName.isNotBlank()) { "Organizer-state package names must not be blank." }
+            val categoryPrimitive = categoryElement as? JsonPrimitive
+                ?: throw IllegalArgumentException("Category override must be a string.")
+            require(categoryPrimitive.isString) { "Category override must be a string." }
+            AppId(packageName) to CategoryId(categoryPrimitive.content)
+        }
+    }
+
+    private fun JsonObject.decodeCustomCategories(): List<CustomCategoryDefinition> {
+        val categories = this[CUSTOM_CATEGORIES] ?: return emptyList()
+        val array = categories as? JsonArray
+            ?: throw IllegalArgumentException("$CUSTOM_CATEGORIES must be a JSON array.")
+
+        return array.map { element ->
+            val categoryObject = element as? JsonObject
+                ?: throw IllegalArgumentException("$CUSTOM_CATEGORIES entries must be JSON objects.")
+            val id = CategoryId(categoryObject.requiredString(CATEGORY_ID))
+            val name = categoryObject.requiredString(CATEGORY_NAME)
+            CustomCategoryDefinition(id = id, displayName = name)
+        }
+    }
+
+    private fun JsonObject.decodeCategoryOrder(): List<CategoryId> {
+        val order = this[CATEGORY_ORDER] ?: return OrganizerState.defaultBuiltInCategoryOrder()
+        val array = order as? JsonArray
+            ?: throw IllegalArgumentException("$CATEGORY_ORDER must be a JSON array.")
+        return array.map { element ->
+            val idPrimitive = element as? JsonPrimitive
+                ?: throw IllegalArgumentException("$CATEGORY_ORDER entries must be strings.")
+            require(idPrimitive.isString) { "$CATEGORY_ORDER entries must be strings." }
+            CategoryId(idPrimitive.content)
         }
     }
 
@@ -137,6 +216,12 @@ internal object OrganizerStateJsonCodec {
         }
     }
 
+    private fun JsonObject.requiredString(key: String): String {
+        val primitive = requiredPrimitive(key)
+        require(primitive.isString) { "$key must be a string." }
+        return primitive.content
+    }
+
     private fun JsonObject.requiredPrimitive(key: String): JsonPrimitive =
         this[key] as? JsonPrimitive ?: throw IllegalArgumentException("Missing or invalid $key.")
 
@@ -150,4 +235,8 @@ internal object OrganizerStateJsonCodec {
     private const val CATEGORY_OVERRIDES = "categoryOverrides"
     private const val FAVOURITE_APP_IDS = "favouriteAppIds"
     private const val HIDDEN_APP_IDS = "hiddenAppIds"
+    private const val CUSTOM_CATEGORIES = "customCategories"
+    private const val CATEGORY_ORDER = "categoryOrder"
+    private const val CATEGORY_ID = "id"
+    private const val CATEGORY_NAME = "name"
 }
