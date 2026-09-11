@@ -130,25 +130,23 @@ internal object OrganizerStateJsonCodec {
         }
     }
 
-    private fun JsonObject.decodeSchemaV1(): OrganizerState =
-        OrganizerState(
-            schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION,
-            categoryOverrides = decodeSchemaV1Overrides(),
-            favouriteAppIds = decodeAppIdSet(FAVOURITE_APP_IDS),
-            hiddenAppIds = decodeAppIdSet(HIDDEN_APP_IDS),
-            customCategories = emptyList(),
-            categoryOrder = OrganizerState.defaultBuiltInCategoryOrder()
-        )
+    private fun JsonObject.decodeSchemaV1(): OrganizerState = OrganizerState(
+        schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION,
+        categoryOverrides = decodeSchemaV1Overrides(),
+        favouriteAppIds = decodeAppIdSet(FAVOURITE_APP_IDS),
+        hiddenAppIds = decodeAppIdSet(HIDDEN_APP_IDS),
+        customCategories = emptyList(),
+        categoryOrder = OrganizerState.defaultBuiltInCategoryOrder()
+    )
 
-    private fun JsonObject.decodeCurrentSchema(): OrganizerState =
-        OrganizerState(
-            schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION,
-            categoryOverrides = decodeCategoryIdOverrides(),
-            favouriteAppIds = decodeAppIdSet(FAVOURITE_APP_IDS),
-            hiddenAppIds = decodeAppIdSet(HIDDEN_APP_IDS),
-            customCategories = decodeCustomCategories(),
-            categoryOrder = decodeCategoryOrder()
-        ).normalized()
+    private fun JsonObject.decodeCurrentSchema(): OrganizerState = OrganizerState(
+        schemaVersion = OrganizerState.CURRENT_SCHEMA_VERSION,
+        categoryOverrides = decodeCategoryIdOverrides(),
+        favouriteAppIds = decodeAppIdSet(FAVOURITE_APP_IDS),
+        hiddenAppIds = decodeAppIdSet(HIDDEN_APP_IDS),
+        customCategories = decodeCustomCategories(),
+        categoryOrder = decodeCategoryOrder()
+    ).normalized()
 
     private fun JsonObject.decodeSchemaV1Overrides(): Map<AppId, CategoryId> {
         val overrides = this[CATEGORY_OVERRIDES] ?: return emptyMap()
