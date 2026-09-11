@@ -1,8 +1,8 @@
 # Classification Quality Roadmap and Result
 
-This document records the post-v0.1 classification-quality wave from evidence through merged implementation. The wave is no longer future planning: the foundation, general rules, game rules, WebAPK rule and triage/explanation UI are merged. Agent 70 owns final integration/acceptance.
+This document records the post-v0.1 classification-quality wave from evidence through integration acceptance. The foundation, general rules, game rules, WebAPK rule and triage/explanation UI are merged. Agent 70 owns final integration and acceptance on `integration/classification-quality`.
 
-See [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md) for the integrated acceptance record and remaining Samsung-device steps.
+See [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md) for the detailed acceptance record.
 
 ## 1. Original owner-device evidence
 
@@ -18,23 +18,21 @@ Sanitized baseline aggregates were:
 - `USER_OVERRIDE`: 0;
 - `UNSORTED_FALLBACK`: 225.
 
-The evidence showed that several small/empty organizer categories were under-populated because deterministic package rules were sparse, not because the categories were inherently useless. Existing persisted category values were therefore retained.
-
-The evidence also established a generated Chromium WebAPK package under the stable `org.chromium.webapk.` namespace. TWA-style wrappers were present without one equally safe universal identity rule.
+The evidence showed that deterministic package rules were sparse and established one generated Chromium WebAPK under the stable `org.chromium.webapk.` namespace. TWA-style wrappers were present without an equally safe universal identity rule.
 
 ## 2. Foundation decision — merged in PR #9
 
-Agent 60 established the shared classification foundation:
+Agent 60 established:
 
 - explicit local classification reporting;
 - deterministic aggregate category/source counts;
+- additive Web/game taxonomy;
+- exact-component, exact-package and narrowly scoped package-prefix selectors;
 - separate general/game/Web rule packs;
-- additive taxonomy expansion;
-- deterministic selector/index infrastructure;
-- tests preserving outer classification precedence;
-- privacy rule that raw device inventory never enters the repository.
+- tests preserving classification precedence;
+- privacy rules keeping raw device inventory out of the repository.
 
-## 3. Final taxonomy decision
+## 3. Final taxonomy
 
 The classification wave added:
 
@@ -45,21 +43,11 @@ The classification wave added:
 - `GAME_PUZZLE_CASUAL` — Puzzle & Casual;
 - `GAME_BOARD_CARD` — Board & Card.
 
-`GAMES` remains the broad safe fallback.
+`GAMES` remains the broad safe fallback. `UNSORTED` remains a normal fallback. Existing enum values were not renamed or removed.
 
-`Sports & Racing` was not added because the reviewed inventory did not justify another permanent bucket. `Other Games` was not added because `Games` already fills that role. Strategy and Simulation remain deliberately combined.
+## 4. Rule architecture
 
-Existing zero/low-count categories were retained. No existing enum value was renamed or removed.
-
-## 4. Rule architecture — frozen and retained
-
-Known-app rules are pure Kotlin and Android-framework-free.
-
-Supported selectors are:
-
-- exact launch component;
-- exact package;
-- package namespace prefix for narrowly evidence-backed generated identities.
+Known-app rules remain pure Kotlin and Android-framework-free.
 
 Selector precedence inside the bundled-rule tier is:
 
@@ -74,9 +62,7 @@ Outer classification precedence is:
 3. Android-declared category;
 4. `Unsorted`.
 
-Duplicate selectors fail fast. Overlapping package prefixes fail fast. Prefixes require a trailing `.` package-segment boundary. Every bundled selector reports `ClassificationSource.KNOWN_APP_RULE`.
-
-No generic rule DSL, display-label guessing, URL parsing or probabilistic classifier was introduced.
+Duplicate selectors and overlapping prefixes fail fast. Prefixes require a package-segment boundary. No label guessing, URL inference, cloud classification or generic rule DSL was introduced.
 
 ## 5. General-rule lane — merged in PR #12
 
@@ -84,25 +70,25 @@ The general lane expanded stable exact-package rules across communication, socia
 
 Against the frozen evidence, the general lane alone reduced `Unsorted` from 225 to 125, a 100-target improvement without touching game/Web ownership.
 
-All general production selectors are exact package identities.
+## 6. Game lane — merged in PR #13, corrected by Agent 70
 
-## 6. Game lane — merged in PR #13
+PR #13 initially added 106 narrow exact-package game rules. The first fresh Samsung acceptance report exposed one false positive: an `Eden Optimized` emulator variant used package identity `com.miHoYo.Yuanshen` while launching an `org.yuzu.yuzu_emu` activity. The package rule incorrectly forced it into RPG.
 
-The game pack adds 106 high-confidence exact-package rules across the five frozen buckets.
+Agent 70 removed that ambiguous exact-package rule and added a regression. The final game pack contains 105 narrow rules.
 
-Against the same frozen game population:
+Final expected same-device game distribution:
 
-| Game category | Before | After game lane |
+| Game category | Before | Final expected |
 | --- | ---: | ---: |
 | Action & Adventure | 0 | 12 |
-| RPG | 0 | 38 |
+| RPG | 0 | 37 |
 | Strategy & Simulation | 0 | 29 |
 | Puzzle & Casual | 0 | 23 |
 | Board & Card | 0 | 4 |
-| Games fallback | 129 | 23 |
+| Games fallback | 129 | 24 |
 | **Total** | **129** | **129** |
 
-Ambiguous/mixed titles and gaming utilities remain in `Games`. The lane does not mechanically force every game into a genre.
+This correction follows the acceptance principle: an emulator or ambiguous gaming utility remains in broad `Games` rather than being forced into a genre.
 
 ## 7. Web/PWA lane — merged in PR #10
 
@@ -112,30 +98,26 @@ The production Web shortcut rule is intentionally narrow:
 org.chromium.webapk.* -> Web Shortcuts
 ```
 
-The implemented selector is the segment-bounded prefix `org.chromium.webapk.`.
+The implemented selector is the segment-bounded prefix `org.chromium.webapk.`. It does not classify based on labels, URLs, activity-name fragments, browser names or Samsung launcher internals. Standard TWAs remain outside generic automatic classification.
 
-It does not classify based on labels, URLs, activity-name fragments, browser names or Samsung launcher internals. Standard TWAs remain out of scope because their package identities are developer-controlled. No generic Samsung Internet/other-browser shortcut signature was established.
-
-Against the frozen evidence, exactly one previously `Unsorted` target moves into `Web Shortcuts`.
+Exactly one reviewed target moves into `Web Shortcuts`.
 
 ## 8. Triage/explanation lane — merged in PR #11
 
-The UI now carries the real `ClassificationSource` into presentation state and explains classification as:
+The UI carries the real `ClassificationSource` into presentation state and explains classification as:
 
 - `Your category`;
 - `Known app rule`;
 - `Android category`;
 - `Needs sorting`.
 
-Automatic `UNSORTED_FALLBACK` entries receive a direct `Sort` affordance. A deliberate user override to `Unsorted` remains distinguishable and does not masquerade as automatic fallback.
+Automatic `UNSORTED_FALLBACK` entries receive a direct `Sort` affordance. Deliberate user overrides remain distinguishable.
 
-The existing move/favourite/hide/restore behavior remains available through the normal organization flow.
+## 9. Final integrated expected result
 
-## 9. Integrated frozen-evidence projection
+After the Agent 70 false-positive correction, the expected aggregate result against the same 566-target population is:
 
-Because the general lane excluded game/Web rows, the game lane only subdivides the original 129-game population, and the WebAPK lane affects one previously `Unsorted` row, their sanitized effects can be combined deterministically against the original frozen 566-target evidence set.
-
-| Category | Integrated projection |
+| Category | Final expected |
 | --- | ---: |
 | Communication | 6 |
 | Social | 27 |
@@ -154,23 +136,25 @@ Because the general lane excluded game/Web rows, the game lane only subdivides t
 | Development | 3 |
 | Tools | 17 |
 | Action & Adventure | 12 |
-| RPG | 38 |
+| RPG | 37 |
 | Strategy & Simulation | 29 |
 | Puzzle & Casual | 23 |
 | Board & Card | 4 |
-| Games fallback | 23 |
+| Games fallback | 24 |
 | Other | 0 |
 | Unsorted | **124** |
 | **Total** | **566** |
 
-Classification-source projection:
+Final expected source counts:
 
 - `USER_OVERRIDE`: 0;
-- `KNOWN_APP_RULE`: 235;
-- `ANDROID_DECLARED_CATEGORY`: 207;
+- `KNOWN_APP_RULE`: 234;
+- `ANDROID_DECLARED_CATEGORY`: 208;
 - `UNSORTED_FALLBACK`: 124.
 
-This is a projection against the **same frozen report**, not a fresh current-device capture. Agent 70 acceptance still requires generating a new report from the same Samsung device and recording only sanitized aggregates/generalized findings.
+`Unsorted` remains improved from 225 to 124. The game correction changes only one entry from narrow RPG back to broad `Games` and from known-rule source back to Android-declared source.
+
+A second fresh report from the corrected build is required before these final figures are called device-confirmed.
 
 ## 10. Migration decision
 
@@ -181,26 +165,26 @@ The taxonomy expansion is additive only:
 - organizer-state schema remains version 1;
 - no data migration is required.
 
-Agent 70 adds a regression test that decodes a literal pre-wave schema-v1 payload and verifies an existing category override, favourite and hidden state remain intact.
+Agent 70 includes a regression test that decodes a literal pre-wave schema-v1 payload and verifies category override, favourite and hidden state remain intact.
 
-The physical upgrade check must still install over existing owner-device data without clearing it.
+The supplied Samsung report contains `USER_OVERRIDE = 0` and does not expose favourites/hidden state, so strict physical persisted-state proof remains a separate acceptance item if required literally.
 
-## 11. Integration quality decision
+## 11. Integration quality
 
-The merged rule packs construct one `KnownAppRuleSet`, so duplicate selectors or overlapping prefixes fail at the shared composition boundary rather than depending on list order.
+Agent 70 re-proves:
 
-Agent 70 adds representative cross-pack integration tests and re-proves:
-
+- all rule packs compose through one `KnownAppRuleSet`;
 - user override wins;
 - bundled rules beat Android category;
 - unmatched Android games retain `Games` fallback;
-- unmatched/undefined apps retain `Unsorted` fallback.
+- unmatched/undefined apps retain `Unsorted` fallback;
+- the ambiguous Eden/Yuzu evidence remains broad `Games`.
 
-The permanent CI lane is also extended to compile the `androidTest` APK. This catches broken Compose/instrumentation test sources but does not pretend to execute device tests in headless CI.
+The permanent CI lane is extended to compile the `androidTest` APK. This catches broken Compose/instrumentation test sources without pretending to execute device tests in headless CI.
 
 ## 12. Acceptance principle
 
-The goal is not `Unsorted = 0`.
+The goal is not `Unsorted = 0` or `Games = 0`.
 
 The successful result is:
 
@@ -211,24 +195,24 @@ The successful result is:
 - understandable classification source;
 - easy manual correction for the remainder.
 
-The frozen-evidence result meets that direction: `Unsorted` projects from 225 to 124 and broad `Games` from 129 to 23 without broad inference.
+The Eden correction is a concrete example of preferring a safe broad fallback over an aggressive narrow match.
 
 ## 13. Remaining limitations
 
-- A substantial `Unsorted` fallback remains intentionally.
-- 23 game entries remain broad `Games` in the frozen evidence.
+- 124 entries remain `Unsorted`.
+- 24 game entries remain broad `Games` after the false-positive correction.
 - Standard TWA and non-Chromium browser shortcuts lack a universal safe rule.
-- Exact known-app identities need maintenance as package names/products change.
+- Exact package identities require maintenance and can be ambiguous for modified/repacked software.
 - Automatic classification remains one primary category per app.
 
 These limitations should not be solved by weakening determinism or adding network/cloud classification.
 
 ## 14. After Agent 70
 
-The recommended next coherent product wave is user-owned category management:
+The recommended next coherent wave is user-owned category management:
 
 - custom categories with stable app-owned identifiers;
 - persisted category order;
 - richer manual/category management UI.
 
-That wave should start with the persistence/domain contract and migration tests. Local backup/export/import should follow once custom-category identity/order are stable. Pinned/dynamic shortcuts should also follow stable category identity. Performance work remains measurement-driven.
+That wave should start with the persistence/domain contract and migration tests. Local backup/export/import and pinned/dynamic shortcuts should follow stable category identity. Performance work remains measurement-driven.
