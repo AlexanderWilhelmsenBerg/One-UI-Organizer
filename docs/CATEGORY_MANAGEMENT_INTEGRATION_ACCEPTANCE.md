@@ -8,7 +8,7 @@ Agents 80, 81 and 82 are merged to `main` as PRs #15, #16 and #17. Agent 83 inte
 
 The owner-device lifecycle/migration exercise passed all requested behavior except the category-assignment count shown by **Manage categories**. The first correction changed the management mapper from persisted overrides to the live classified-app stream, but a signed-debug retest from exact head `f642b570...` still showed only explicit/manual assignments: built-in automatic categories remained at zero, while `Video` showed the previously moved app and custom test categories showed their manual assignments. That first correction is therefore not considered physically validated.
 
-The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. Automated code acceptance is green on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253; the documentation-only acceptance-record commit is subject to the same final CI gate. PR #18 remains non-merge-ready until this hardened count path passes the targeted Samsung retest.
+The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. Automated code acceptance is green on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253; later acceptance-record-only commits remain subject to the same final CI gate. PR #18 remains non-merge-ready until this hardened count path passes the targeted Samsung retest.
 
 ## Final category model
 
@@ -100,7 +100,7 @@ The integrated presentation maps failures to safe messages for blank/too-long/du
 
 ## Automated acceptance
 
-The permanent PR quality lane passed on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253. Any later documentation-only acceptance-record commit must also retain a green final CI result before merge readiness.
+The permanent PR quality lane passed on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253. Any later acceptance-record-only commit must also retain a green final CI result before merge readiness.
 
 It covers:
 
