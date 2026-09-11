@@ -93,7 +93,14 @@ class DataStoreOrganizerStateStoreTest {
         val directory = Files.createTempDirectory("organizer-state-pre-classification-wave")
         val file = directory.resolve("organizer-state.json").toFile()
         file.writeText(
-            """{"schemaVersion":1,"categoryOverrides":{"example.override":"WORK"},"favouriteAppIds":["example.favourite"],"hiddenAppIds":["example.hidden"]}"""
+            """
+            {
+              "schemaVersion": 1,
+              "categoryOverrides": {"example.override": "WORK"},
+              "favouriteAppIds": ["example.favourite"],
+              "hiddenAppIds": ["example.hidden"]
+            }
+            """.trimIndent()
         )
 
         val job = SupervisorJob()
