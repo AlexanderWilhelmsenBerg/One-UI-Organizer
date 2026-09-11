@@ -87,6 +87,18 @@ Implementation sequencing is defined separately in [`PARALLEL_DEVELOPMENT.md`](P
 
 ## Should have — high-value follow-up, but v0.1 remains useful without it
 
+### Classification quality and taxonomy tuning
+
+- Tune bundled known-app rules from real device evidence to reduce large `Unsorted` buckets without forcing uncertain matches.
+- Add a `Web Shortcuts` category only when browser/PWA launcher entries expose a deterministic, maintainable signature through supported metadata.
+- Evaluate a small set of broad game subcategories when deterministic classification is practical instead of keeping one very large `Games` bucket.
+- Review categories with only one or two apps and consolidate overlapping taxonomy where that improves browsing.
+- Keep any diagnostic/export helper local-only and explicit; do not add telemetry, analytics, networking, or background collection for rule tuning.
+- Preserve user overrides as authoritative when automatic rules or taxonomy change.
+- Treat category rename/removal as persisted-state work requiring explicit migration review/tests.
+
+See [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md) for the detailed next-PR scope.
+
 ### Custom categories
 
 - Create, rename, and delete user categories.
