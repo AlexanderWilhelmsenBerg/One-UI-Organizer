@@ -2,12 +2,14 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model
 
 import androidx.compose.ui.graphics.ImageBitmap
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 
 data class ShelfAppUiModel(
     val launchTargetId: LaunchTargetId,
     val label: String,
     val category: AppCategory,
+    val classificationSource: ClassificationSource,
     val icon: ImageBitmap? = null,
     val isFavourite: Boolean = false
 ) {
@@ -83,4 +85,11 @@ fun AppCategory.displayName(): String = when (this) {
     AppCategory.GAMES -> "Games"
     AppCategory.OTHER -> "Other"
     AppCategory.UNSORTED -> "Unsorted"
+}
+
+fun ClassificationSource.displayName(): String = when (this) {
+    ClassificationSource.USER_OVERRIDE -> "Your category"
+    ClassificationSource.KNOWN_APP_RULE -> "Known app rule"
+    ClassificationSource.ANDROID_DECLARED_CATEGORY -> "Android category"
+    ClassificationSource.UNSORTED_FALLBACK -> "Needs sorting"
 }

@@ -1,6 +1,7 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategorySectionUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerShelfUiState
@@ -65,10 +66,19 @@ class OrganizerUiStateTest {
         assertEquals("Unsorted", AppCategory.UNSORTED.displayName())
     }
 
+    @Test
+    fun `classification explanation labels are presentation only`() {
+        assertEquals("Your category", ClassificationSource.USER_OVERRIDE.displayName())
+        assertEquals("Known app rule", ClassificationSource.KNOWN_APP_RULE.displayName())
+        assertEquals("Android category", ClassificationSource.ANDROID_DECLARED_CATEGORY.displayName())
+        assertEquals("Needs sorting", ClassificationSource.UNSORTED_FALLBACK.displayName())
+    }
+
     private fun app(launchTargetId: LaunchTargetId = LaunchTargetId("com.example", "com.example.Main")) =
         ShelfAppUiModel(
             launchTargetId = launchTargetId,
             label = "Example",
-            category = AppCategory.TOOLS
+            category = AppCategory.TOOLS,
+            classificationSource = ClassificationSource.ANDROID_DECLARED_CATEGORY
         )
 }

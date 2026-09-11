@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategorySectionUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerShelfUiState
@@ -84,8 +85,93 @@ class OrganizerShelfTest {
     }
 
     @Test
+    fun classificationExplanationUsesSourceForEveryClassificationPath() {
+        var state by mutableStateOf(OrganizerShelfUiState())
+        composeRule.setShelfContent(stateProvider = { state })
+        val cases =
+            listOf(
+                ClassificationSource.USER_OVERRIDE to "Your category",
+                ClassificationSource.KNOWN_APP_RULE to "Known app rule",
+                ClassificationSource.ANDROID_DECLARED_CATEGORY to "Android category",
+                ClassificationSource.UNSORTED_FALLBACK to "Needs sorting"
+            )
+
+        cases.forEach { (source, expectedLabel) ->
+            val category =
+                if (source == ClassificationSource.UNSORTED_FALLBACK) {
+                    AppCategory.UNSORTED
+                } else {
+                    AppCategory.TOOLS
+                }
+            val sourceApp = app("Source app", category, classificationSource = source)
+            composeRule.runOnIdle {
+                state =
+                    OrganizerShelfUiState(
+                        categories = listOf(CategorySectionUiModel(category, listOf(sourceApp)))
+                    )
+            }
+            composeRule.waitForIdle()
+
+            composeRule.onNodeWithContentDescription("Open Source app")
+                .performSemanticsAction(SemanticsActions.OnLongClick)
+            composeRule.onNodeWithContentDescription("Classification: $expectedLabel").assertExists()
+            composeRule.onNodeWithText("Move category").performClick()
+            composeRule.onNodeWithText("Cancel").performClick()
+        }
+    }
+
+    @Test
+    fun unsortedCorrectionIsDirectAndBecomesUserOverrideAfterMove() {
+        val unsorted =
+            app(
+                "Mystery",
+                AppCategory.UNSORTED,
+                classificationSource = ClassificationSource.UNSORTED_FALLBACK
+            )
+        var state by
+            mutableStateOf(
+                OrganizerShelfUiState(
+                    categories = listOf(CategorySectionUiModel(AppCategory.UNSORTED, listOf(unsorted)))
+                )
+            )
+        var moved: Pair<LaunchTargetId, AppCategory>? = null
+        composeRule.setShelfContent(
+            stateProvider = { state },
+            onMoveApp = { target, category ->
+                moved = target to category
+                val corrected =
+                    unsorted.copy(
+                        category = category,
+                        classificationSource = ClassificationSource.USER_OVERRIDE
+                    )
+                state =
+                    OrganizerShelfUiState(
+                        categories = listOf(CategorySectionUiModel(category, listOf(corrected)))
+                    )
+            }
+        )
+
+        composeRule.onNodeWithContentDescription("Sort Mystery into a category")
+            .assertHasClickAction()
+            .performClick()
+        composeRule.onNodeWithText("Sort Mystery").assertExists()
+        composeRule.onNodeWithContentDescription("Classification: Needs sorting").assertExists()
+        composeRule.onNodeWithText("Tools").performClick()
+        composeRule.runOnIdle {
+            assertEquals(unsorted.launchTargetId to AppCategory.TOOLS, moved)
+        }
+
+        composeRule.onNodeWithContentDescription("Sort Mystery into a category").assertDoesNotExist()
+        composeRule.onNodeWithText("Tools").assertExists()
+        composeRule.onNodeWithContentDescription("Open Mystery")
+            .performSemanticsAction(SemanticsActions.OnLongClick)
+        composeRule.onNodeWithContentDescription("Classification: Your category").assertExists()
+    }
+
+    @Test
     fun longPressSemanticsExposeOrganizationActionsAndCallbacks() {
         val signal = app("Signal", AppCategory.COMMUNICATION)
+        var launched: LaunchTargetId? = null
         var moved: Pair<LaunchTargetId, AppCategory>? = null
         var toggled: LaunchTargetId? = null
         var hidden: LaunchTargetId? = null
@@ -97,6 +183,7 @@ class OrganizerShelfTest {
                             CategorySectionUiModel(AppCategory.COMMUNICATION, listOf(signal))
                         )
                 ),
+            onLaunchApp = { launched = it },
             onMoveApp = { target, category -> moved = target to category },
             onToggleFavourite = { toggled = it },
             onHideApp = { hidden = it }
@@ -104,6 +191,12 @@ class OrganizerShelfTest {
 
         composeRule.onNodeWithContentDescription("Open Signal")
             .assertHasClickAction()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals(signal.launchTargetId, launched)
+        }
+
+        composeRule.onNodeWithContentDescription("Open Signal")
             .performSemanticsAction(SemanticsActions.OnLongClick)
         composeRule.onNodeWithText("Add to favourites").assertExists()
         composeRule.onNodeWithText("Move category").assertExists()
@@ -274,12 +367,18 @@ class OrganizerShelfTest {
         composeRule.onNodeWithContentDescription("Open Signal").assertHasClickAction()
     }
 
-    private fun app(label: String, category: AppCategory, isFavourite: Boolean = false): ShelfAppUiModel {
+    private fun app(
+        label: String,
+        category: AppCategory,
+        isFavourite: Boolean = false,
+        classificationSource: ClassificationSource = ClassificationSource.ANDROID_DECLARED_CATEGORY
+    ): ShelfAppUiModel {
         val slug = label.lowercase().replace(" ", "")
         return ShelfAppUiModel(
             launchTargetId = LaunchTargetId("com.example.$slug", "com.example.$slug.Main"),
             label = label,
             category = category,
+            classificationSource = classificationSource,
             isFavourite = isFavourite
         )
     }
