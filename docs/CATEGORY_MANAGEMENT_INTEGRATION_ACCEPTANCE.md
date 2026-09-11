@@ -8,7 +8,7 @@ Agents 80, 81 and 82 are merged to `main` as PRs #15, #16 and #17. Agent 83 inte
 
 The owner-device lifecycle/migration exercise passed all requested behavior except the category-assignment count shown by **Manage categories**. The first correction changed the management mapper from persisted overrides to the live classified-app stream, but a signed-debug retest from exact head `f642b570...` still showed only explicit/manual assignments: built-in automatic categories remained at zero, while `Video` showed the previously moved app and custom test categories showed their manual assignments. That first correction is therefore not considered physically validated.
 
-The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. PR #18 remains non-merge-ready until final CI is green and this hardened count path passes the targeted Samsung retest.
+The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. Automated acceptance is green on hardened head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253. PR #18 remains non-merge-ready until this hardened count path passes the targeted Samsung retest.
 
 ## Final category model
 
@@ -100,7 +100,9 @@ The integrated presentation maps failures to safe messages for blank/too-long/du
 
 ## Automated acceptance
 
-The permanent PR quality lane must be green on the hardened Agent 83 head. It covers:
+The permanent PR quality lane is green on hardened head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253.
+
+It passed:
 
 - debug app assembly;
 - instrumentation-test APK compilation;
@@ -177,7 +179,7 @@ This deliberately ties the count shown in **Manage categories** to the same pres
 
 ### Required targeted retest after the hardened fix
 
-After final CI passes, build a new signed debug APK from the current `integration/category-management` head, install it over the current test installation without clearing data, open **Manage categories**, and verify:
+Build a new signed debug APK from current head `7af810328fb89a91fffd2762b8e5fdf4cc105364`, install it over the current test installation without clearing data, open **Manage categories**, and verify:
 
 1. populated automatic built-in categories show nonzero counts consistent with their effective shelf membership;
 2. `Video` still includes the previously exercised manual override in its count;
@@ -189,7 +191,7 @@ No repetition of the full lifecycle/migration checklist is required unless one o
 
 ## Permission/privacy gate
 
-Category management requires no network or broad package permission. The integrated manifest must continue to omit both `android.permission.INTERNET` and `android.permission.QUERY_ALL_PACKAGES` and must not add analytics, telemetry, accounts or background services.
+Category management requires no network or broad package permission. The integrated manifest continues to omit both `android.permission.INTERNET` and `android.permission.QUERY_ALL_PACKAGES` and does not add analytics, telemetry, accounts or background services.
 
 ## Completion rule
 
