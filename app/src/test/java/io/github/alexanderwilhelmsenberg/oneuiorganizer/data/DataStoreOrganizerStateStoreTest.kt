@@ -2,6 +2,8 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.data
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import java.nio.file.Files
 import kotlin.test.Test
@@ -19,67 +21,38 @@ import kotlinx.coroutines.runBlocking
 
 class DataStoreOrganizerStateStoreTest {
     @Test
-    fun `empty store starts at schema version one`() = runBlocking {
+    fun `empty store starts at current schema`() = runBlocking {
         withStore { store ->
             assertEquals(OrganizerState(), store.state.first())
+            assertEquals(2, store.state.first().schemaVersion)
         }
     }
 
     @Test
-    fun `category override persists across store recreation`() = runBlocking {
+    fun `category override persists by durable identity across store recreation`() = runBlocking {
         val appId = AppId("example.override")
         withRecreatedStore(
             update = { store ->
                 store.update { state ->
-                    state.copy(categoryOverrides = mapOf(appId to AppCategory.WORK))
+                    state.copy(categoryOverrides = mapOf(appId to AppCategory.WORK.id))
                 }
             },
             verify = { state ->
-                assertEquals(AppCategory.WORK, state.categoryOverrides[appId])
+                assertEquals(AppCategory.WORK.id, state.categoryOverrides[appId])
             }
         )
     }
 
     @Test
-    fun `favourite persists across store recreation`() = runBlocking {
-        val appId = AppId("example.favourite")
-        withRecreatedStore(
-            update = { store ->
-                store.update { state ->
-                    state.copy(favouriteAppIds = setOf(appId))
-                }
-            },
-            verify = { state ->
-                assertTrue(appId in state.favouriteAppIds)
-            }
-        )
-    }
-
-    @Test
-    fun `hidden state persists across store recreation`() = runBlocking {
-        val appId = AppId("example.hidden")
-        withRecreatedStore(
-            update = { store ->
-                store.update { state ->
-                    state.copy(hiddenAppIds = setOf(appId))
-                }
-            },
-            verify = { state ->
-                assertTrue(appId in state.hiddenAppIds)
-            }
-        )
-    }
-
-    @Test
-    fun `all schema v1 state round trips across store recreation`() = runBlocking {
-        val overrideId = AppId("example.override")
-        val favouriteId = AppId("example.favourite")
-        val hiddenId = AppId("example.hidden")
+    fun `custom categories and order round trip`() = runBlocking {
+        val custom = CustomCategoryDefinition(CategoryId.custom("reading-list"), "Reading List")
+        val order = listOf(custom.id, AppCategory.WORK.id) +
+            OrganizerState.defaultBuiltInCategoryOrder().filterNot { id -> id == AppCategory.WORK.id }
         val expected =
             OrganizerState(
-                categoryOverrides = mapOf(overrideId to AppCategory.PRODUCTIVITY),
-                favouriteAppIds = setOf(favouriteId),
-                hiddenAppIds = setOf(hiddenId)
+                categoryOverrides = mapOf(AppId("example.custom") to custom.id),
+                customCategories = listOf(custom),
+                categoryOrder = order
             )
 
         withRecreatedStore(
@@ -89,14 +62,37 @@ class DataStoreOrganizerStateStoreTest {
     }
 
     @Test
-    fun `pre classification wave schema v1 state survives additive taxonomy`() = runBlocking {
-        val directory = Files.createTempDirectory("organizer-state-pre-classification-wave")
+    fun `favourite and hidden state persist across store recreation`() = runBlocking {
+        val favouriteId = AppId("example.favourite")
+        val hiddenId = AppId("example.hidden")
+        withRecreatedStore(
+            update = { store ->
+                store.update { state ->
+                    state.copy(
+                        favouriteAppIds = setOf(favouriteId),
+                        hiddenAppIds = setOf(hiddenId)
+                    )
+                }
+            },
+            verify = { state ->
+                assertTrue(favouriteId in state.favouriteAppIds)
+                assertTrue(hiddenId in state.hiddenAppIds)
+            }
+        )
+    }
+
+    @Test
+    fun `literal schema v1 payload migrates without user state loss`() = runBlocking {
+        val directory = Files.createTempDirectory("organizer-state-v1-migration")
         val file = directory.resolve("organizer-state.json").toFile()
         file.writeText(
             """
             {
               "schemaVersion": 1,
-              "categoryOverrides": {"example.override": "WORK"},
+              "categoryOverrides": {
+                "example.work": "WORK",
+                "example.reading": "READING"
+              },
               "favouriteAppIds": ["example.favourite"],
               "hiddenAppIds": ["example.hidden"]
             }
@@ -107,12 +103,64 @@ class DataStoreOrganizerStateStoreTest {
         val scope = CoroutineScope(Dispatchers.IO + job)
         try {
             val store = DataStoreOrganizerStateStore.create(file = file, scope = scope)
-            val state = store.state.first()
+            val migrated = store.state.first()
 
-            assertEquals(AppCategory.WORK, state.categoryOverrides[AppId("example.override")])
-            assertTrue(AppId("example.favourite") in state.favouriteAppIds)
-            assertTrue(AppId("example.hidden") in state.hiddenAppIds)
-            assertEquals(OrganizerState.CURRENT_SCHEMA_VERSION, state.schemaVersion)
+            assertEquals(OrganizerState.CURRENT_SCHEMA_VERSION, migrated.schemaVersion)
+            assertEquals(AppCategory.WORK.id, migrated.categoryOverrides[AppId("example.work")])
+            assertEquals(AppCategory.READING.id, migrated.categoryOverrides[AppId("example.reading")])
+            assertTrue(AppId("example.favourite") in migrated.favouriteAppIds)
+            assertTrue(AppId("example.hidden") in migrated.hiddenAppIds)
+            assertTrue(migrated.customCategories.isEmpty())
+            assertEquals(OrganizerState.defaultBuiltInCategoryOrder(), migrated.categoryOrder)
+
+            store.update { state -> state }
+            val rewritten = file.readText()
+            assertTrue(rewritten.contains("\"schemaVersion\":2"))
+            assertTrue(rewritten.contains("\"example.work\":\"builtin:work\""))
+            assertTrue(rewritten.contains("\"customCategories\":[]"))
+            assertTrue(rewritten.contains("\"categoryOrder\""))
+        } finally {
+            job.cancelAndJoin()
+            directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `schema v2 duplicate and stale order ids normalize deterministically`() = runBlocking {
+        val directory = Files.createTempDirectory("organizer-state-order-normalization")
+        val file = directory.resolve("organizer-state.json").toFile()
+        file.writeText(
+            """
+            {
+              "schemaVersion": 2,
+              "categoryOverrides": {},
+              "favouriteAppIds": [],
+              "hiddenAppIds": [],
+              "customCategories": [{"id":"custom:alpha","name":"Alpha"}],
+              "categoryOrder": [
+                "custom:alpha",
+                "builtin:work",
+                "custom:alpha",
+                "custom:stale",
+                "builtin:work"
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val job = SupervisorJob()
+        val scope = CoroutineScope(Dispatchers.IO + job)
+        try {
+            val state = DataStoreOrganizerStateStore.create(file = file, scope = scope).state.first()
+            val expectedPrefix = listOf(CategoryId.custom("alpha"), AppCategory.WORK.id)
+
+            assertEquals(expectedPrefix, state.categoryOrder.take(expectedPrefix.size))
+            assertEquals(state.categoryOrder.distinct(), state.categoryOrder)
+            assertFalse(CategoryId.custom("stale") in state.categoryOrder)
+            assertEquals(
+                OrganizerState.defaultBuiltInCategoryOrder().toSet() + CategoryId.custom("alpha"),
+                state.categoryOrder.toSet()
+            )
         } finally {
             job.cancelAndJoin()
             directory.toFile().deleteRecursively()
