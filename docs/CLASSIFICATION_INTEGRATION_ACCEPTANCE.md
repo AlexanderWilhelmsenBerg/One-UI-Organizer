@@ -81,7 +81,7 @@ The emulator pack also classifies the evidence-backed emulator packages for DraS
 
 The final owner-device report from the emulator-category build contained the same 566 launch targets and matched the predicted aggregate result exactly. Manual review confirmed all 15 `Emulators` rows are emulator software/components, including the corrected Eden/Yuzu launcher and Citra.
 
-The 10 remaining broad `Games` rows are intentionally not forced into emulator or genre buckets. They include gaming frontends/streaming/compatibility software such as Xbox Game Pass, Moonlight/Artemis, Better xCloud, Winlator, GameHub and ES-DE, alongside a small number of game entries that remain safely broad.
+The 10 remaining broad `Games` rows are intentionally not forced into emulator or genre buckets. They include MonsterFactory, Magic Timer, Xbox Game Pass, Moonlight, Artemis, Prado, Better xCloud, Winlator, GameHub and ES-DE. Several are clearly frontends, streaming or compatibility software; the remainder lack enough evidence for a narrower permanent game bucket and therefore stay safely broad.
 
 ## Final device-confirmed same-device aggregate result
 
