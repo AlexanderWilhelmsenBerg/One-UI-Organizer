@@ -8,7 +8,7 @@ Agents 80, 81 and 82 are merged to `main` as PRs #15, #16 and #17. Agent 83 inte
 
 The owner-device lifecycle/migration exercise passed all requested behavior except the category-assignment count shown by **Manage categories**. The first correction changed the management mapper from persisted overrides to the live classified-app stream, but a signed-debug retest from exact head `f642b570...` still showed only explicit/manual assignments: built-in automatic categories remained at zero, while `Video` showed the previously moved app and custom test categories showed their manual assignments. That first correction is therefore not considered physically validated.
 
-The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. Automated acceptance is green on hardened head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253. PR #18 remains non-merge-ready until this hardened count path passes the targeted Samsung retest.
+The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. Automated code acceptance is green on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253; the documentation-only acceptance-record commit is subject to the same final CI gate. PR #18 remains non-merge-ready until this hardened count path passes the targeted Samsung retest.
 
 ## Final category model
 
@@ -100,9 +100,9 @@ The integrated presentation maps failures to safe messages for blank/too-long/du
 
 ## Automated acceptance
 
-The permanent PR quality lane is green on hardened head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253.
+The permanent PR quality lane passed on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253. Any later documentation-only acceptance-record commit must also retain a green final CI result before merge readiness.
 
-It passed:
+It covers:
 
 - debug app assembly;
 - instrumentation-test APK compilation;
@@ -179,7 +179,7 @@ This deliberately ties the count shown in **Manage categories** to the same pres
 
 ### Required targeted retest after the hardened fix
 
-Build a new signed debug APK from current head `7af810328fb89a91fffd2762b8e5fdf4cc105364`, install it over the current test installation without clearing data, open **Manage categories**, and verify:
+Build a new signed debug APK from the current `integration/category-management` head, install it over the current test installation without clearing data, open **Manage categories**, and verify:
 
 1. populated automatic built-in categories show nonzero counts consistent with their effective shelf membership;
 2. `Video` still includes the previously exercised manual override in its count;
@@ -197,7 +197,7 @@ Category management requires no network or broad package permission. The integra
 
 The Agent 80–83 wave is complete only when:
 
-1. PR #18 final automated CI is green on the hardened head; and
+1. PR #18 final automated CI is green on the current head; and
 2. the targeted physical count retest above passes and its generalized result is recorded.
 
 Until both are true, keep PR #18 unmerged and keep the category-management wave marked as pending physical acceptance.
