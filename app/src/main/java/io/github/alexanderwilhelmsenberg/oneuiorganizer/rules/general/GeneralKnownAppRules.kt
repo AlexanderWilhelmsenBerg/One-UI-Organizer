@@ -184,18 +184,14 @@ object GeneralKnownAppRules {
             )
         }
 
-    private fun MutableList<KnownAppRule>.addPackageRules(
-        category: AppCategory,
-        vararg packageNames: String
-    ) {
+    private fun MutableList<KnownAppRule>.addPackageRules(category: AppCategory, vararg packageNames: String) {
         packageNames.forEach { packageName ->
             add(packageRule(packageName, category))
         }
     }
 
-    private fun packageRule(packageName: String, category: AppCategory): KnownAppRule =
-        KnownAppRule(
-            selector = KnownAppSelector.ExactPackage(AppId(packageName)),
-            category = category
-        )
+    private fun packageRule(packageName: String, category: AppCategory): KnownAppRule = KnownAppRule(
+        selector = KnownAppSelector.ExactPackage(AppId(packageName)),
+        category = category
+    )
 }
