@@ -34,7 +34,8 @@ Requirements:
 - `Unsorted` remains usable and launchable;
 - `Games` remains a valid broad fallback;
 - rule-pack changes never erase user corrections;
-- no label guessing, cloud classifier or runtime network lookup.
+- no label guessing, cloud classifier or runtime network lookup;
+- ambiguous modified/repacked identities prefer a broad fallback over a narrow false positive.
 
 ### Manual correction and organization
 
@@ -78,7 +79,7 @@ Requirements:
 
 ## Completed post-v0.1 Should work
 
-### Classification quality and taxonomy tuning — implemented
+### Classification quality and taxonomy tuning — implemented, Agent 70 correction pending final device recheck
 
 The classification wave delivered:
 
@@ -90,17 +91,21 @@ The classification wave delivered:
 - local explicit classification-report sharing for diagnostic review;
 - no taxonomy rename/removal and therefore no organizer-state schema migration.
 
-Against the same frozen 566-target evidence set, the combined projection changes:
+The first fresh Samsung report matched the original aggregate projection, then row-level review exposed one false positive: an Eden/Yuzu-family emulator variant reused a package that had been treated as an RPG identity. Agent 70 removed that ambiguous rule and added regression coverage.
+
+Final expected result on the same 566-target population is:
 
 - `Unsorted`: 225 -> 124;
-- `Games`: 129 -> 23;
-- bundled known-rule source: 5 -> 235.
+- `Games`: 129 -> 24;
+- RPG: 37;
+- bundled known-rule source: 5 -> 234;
+- Android-declared source: 336 -> 208.
 
-A fresh same-device capture is still part of Agent 70 physical acceptance; these numbers are the deterministic projection against the original evidence rather than a fabricated new device run.
+A second fresh same-device capture from the corrected build is required before those final figures are device-confirmed.
 
 ### Better `Unsorted` management / rule explanation — implemented baseline
 
-The app now distinguishes automatic fallback from deliberate user overrides and gives automatic `Unsorted` entries a direct correction affordance. Explanation labels cover user override, bundled rule, Android category and fallback.
+The app distinguishes automatic fallback from deliberate user overrides and gives automatic `Unsorted` entries a direct correction affordance. Explanation labels cover user override, bundled rule, Android category and fallback.
 
 A larger dedicated/bulk management surface remains a follow-up opportunity rather than unfinished baseline work.
 
@@ -229,9 +234,10 @@ Shortcuts should follow stable category identity so persisted/pinned destination
 When new work appears:
 
 1. correctness/state-preservation/privacy regressions are blockers;
-2. user-owned organization comes before more aggressive automatic guessing;
-3. persisted-state work defines migration contracts before UI spreads the representation;
-4. backup and shortcuts follow stable category identity;
-5. performance work follows measurements;
-6. launcher replacement, cloud services, unsupported Samsung internals and speculative infrastructure remain out of scope;
-7. coding agents leave merge decisions to the owner unless explicitly instructed otherwise.
+2. low false-positive risk outranks maximizing narrow classification counts;
+3. user-owned organization comes before more aggressive automatic guessing;
+4. persisted-state work defines migration contracts before UI spreads the representation;
+5. backup and shortcuts follow stable category identity;
+6. performance work follows measurements;
+7. launcher replacement, cloud services, unsupported Samsung internals and speculative infrastructure remain out of scope;
+8. coding agents leave merge decisions to the owner unless explicitly instructed otherwise.
