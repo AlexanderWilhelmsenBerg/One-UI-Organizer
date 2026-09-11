@@ -11,27 +11,9 @@ data class CategoryManagementItemUiModel(val category: CategoryDefinition, val a
 
 data class CategoryManagementUiState(
     val categories: List<CategoryManagementItemUiModel> = emptyList(),
-    val validationError: CategoryManagementErrorUiModel? = null,
-    val operationError: CategoryManagementErrorUiModel? = null
+    val validationError: String? = null,
+    val operationError: String? = null
 )
-
-sealed interface CategoryManagementErrorUiModel {
-    data object NameRequired : CategoryManagementErrorUiModel
-
-    data class NameTooLong(val maximumCodePoints: Int) : CategoryManagementErrorUiModel
-
-    data object DuplicateName : CategoryManagementErrorUiModel
-
-    data object CategoryUnavailable : CategoryManagementErrorUiModel
-
-    data object BuiltInCategoryImmutable : CategoryManagementErrorUiModel
-
-    data object InvalidReassignmentDestination : CategoryManagementErrorUiModel
-
-    data object InvalidOrder : CategoryManagementErrorUiModel
-
-    data object SaveFailed : CategoryManagementErrorUiModel
-}
 
 sealed interface CategoryDeletionChoiceUiModel {
     data object AutomaticClassification : CategoryDeletionChoiceUiModel
