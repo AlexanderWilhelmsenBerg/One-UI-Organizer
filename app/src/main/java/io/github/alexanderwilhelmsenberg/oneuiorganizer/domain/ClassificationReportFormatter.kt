@@ -52,9 +52,8 @@ object ClassificationReportFormatter {
         }
     }
 
-    private fun sanitizeField(value: String): String =
-        value
-            .replace('\t', ' ')
-            .replace('\r', ' ')
-            .replace('\n', ' ')
+    private fun sanitizeField(value: String): String = value
+        .replace('\t', ' ')
+        .replace('\r', ' ')
+        .replace('\n', ' ')
 }

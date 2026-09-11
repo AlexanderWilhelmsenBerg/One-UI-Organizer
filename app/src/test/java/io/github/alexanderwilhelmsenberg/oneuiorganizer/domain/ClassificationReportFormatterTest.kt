@@ -109,16 +109,15 @@ class ClassificationReportFormatterTest {
         platformCategory: PlatformAppCategory,
         category: AppCategory,
         source: ClassificationSource
-    ): CategorizedApp =
-        CategorizedApp(
-            app =
-                InstalledApp(
-                    id = AppId(packageName),
-                    launchTargetId = LaunchTargetId(packageName, className),
-                    label = label,
-                    platformCategory = platformCategory
-                ),
-            category = category,
-            source = source
-        )
+    ): CategorizedApp = CategorizedApp(
+        app =
+            InstalledApp(
+                id = AppId(packageName),
+                launchTargetId = LaunchTargetId(packageName, className),
+                label = label,
+                platformCategory = platformCategory
+            ),
+        category = category,
+        source = source
+    )
 }

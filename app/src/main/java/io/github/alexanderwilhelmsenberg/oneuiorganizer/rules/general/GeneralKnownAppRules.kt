@@ -16,9 +16,8 @@ object GeneralKnownAppRules {
             packageRule("com.google.android.apps.walletnfcrel", AppCategory.FINANCE)
         )
 
-    private fun packageRule(packageName: String, category: AppCategory): KnownAppRule =
-        KnownAppRule(
-            selector = KnownAppSelector.ExactPackage(AppId(packageName)),
-            category = category
-        )
+    private fun packageRule(packageName: String, category: AppCategory): KnownAppRule = KnownAppRule(
+        selector = KnownAppSelector.ExactPackage(AppId(packageName)),
+        category = category
+    )
 }

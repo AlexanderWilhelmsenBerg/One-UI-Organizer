@@ -114,10 +114,7 @@ class BundledKnownAppRulesTest {
         assertNull(BundledKnownAppRules.categoryFor(installedApp("example.unknown")))
     }
 
-    private fun installedApp(
-        packageName: String,
-        className: String = "$packageName.MainActivity"
-    ): InstalledApp =
+    private fun installedApp(packageName: String, className: String = "$packageName.MainActivity"): InstalledApp =
         InstalledApp(
             id = AppId(packageName),
             launchTargetId = LaunchTargetId(packageName, className),
