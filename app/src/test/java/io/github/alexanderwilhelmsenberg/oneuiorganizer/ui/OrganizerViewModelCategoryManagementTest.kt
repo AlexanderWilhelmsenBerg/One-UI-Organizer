@@ -174,10 +174,8 @@ class OrganizerViewModelCategoryManagementTest {
     )
 }
 
-private class FakeOrganizerRepository(
-    initialState: OrganizerState,
-    initialApps: List<CategorizedApp>
-) : OrganizerRepository {
+private class FakeOrganizerRepository(initialState: OrganizerState, initialApps: List<CategorizedApp>) :
+    OrganizerRepository {
     override val apps: Flow<List<CategorizedApp>> = MutableStateFlow(initialApps)
     override val organizerState: Flow<OrganizerState> = MutableStateFlow(initialState)
 
