@@ -93,10 +93,12 @@ class OrganizerViewModel(
 
     val categoryManagementUiState =
         combine(
+            categorizedApps,
             organizerState,
             categoryManagementError
-        ) { state, operationError ->
+        ) { apps, state, operationError ->
             CategoryManagementUiStateMapper.map(
+                apps = apps,
                 organizerState = state,
                 operationError = operationError
             )
