@@ -2,7 +2,7 @@
 
 **Integration lane:** Agent 70 / `integration/classification-quality`
 
-This document records the integrated result of the post-v0.1 classification-quality wave. It is the handoff from classification tuning to the next product slice.
+This document records the integrated result of the post-v0.1 classification-quality wave and the Samsung acceptance evidence supplied by the owner.
 
 The raw Samsung launcher inventory remains private diagnostic input and is not committed.
 
@@ -68,15 +68,13 @@ The outer classification precedence remains:
 
 Duplicate selectors and overlapping package prefixes fail fast. The integrated regression lane exercises representative rules from the general, game and Web shortcut packs together and re-proves the outer precedence contract.
 
-## Same-evidence before/after aggregate result
+## Same-device before/after result
 
-The foundation evidence contained 566 launcher targets on the primary Samsung device.
+The original classification evidence contained 566 launcher targets on the primary Samsung device. After the integrated build was installed and exercised successfully, the owner generated a fresh classification report on the same device.
 
-The table below is the deterministic integrated projection against that **same frozen 566-target evidence set**, combining the independently reviewed general, game and WebAPK lanes. The three lanes own disjoint evidence groups: general rules excluded game/Web rows, the game lane only subdivides the existing 129-game population, and the WebAPK lane moves one previously `Unsorted` row.
+The fresh report exactly matches the deterministic integrated projection at the aggregate level. Only sanitized aggregate counts are recorded here.
 
-A fresh post-merge report on the physical Samsung device is still required to confirm the current installed-app population. Do not interpret this projection as a new device capture.
-
-| Category | Before | Integrated projection |
+| Category | Before | Fresh Samsung result |
 | --- | ---: | ---: |
 | Communication | 0 | 6 |
 | Social | 24 | 27 |
@@ -104,11 +102,11 @@ A fresh post-merge report on the physical Samsung device is still required to co
 | Unsorted | **225** | **124** |
 | **Total** | **566** | **566** |
 
-The integrated projection reduces `Unsorted` by 101 targets (44.9%) while retaining uncertain entries there, and narrows 106 of the 129 broad game entries while retaining 23 in `Games`.
+The integrated result reduces `Unsorted` by 101 targets (44.9%) while retaining uncertain entries there, and narrows 106 of the 129 broad game entries while retaining 23 in `Games`.
 
-Classification-source counts project to:
+Fresh classification-source counts are:
 
-| Classification source | Before | Integrated projection |
+| Classification source | Before | Fresh Samsung result |
 | --- | ---: | ---: |
 | User override | 0 | 0 |
 | Bundled known-app rule | 5 | 235 |
@@ -124,6 +122,8 @@ The largest useful changes are the general exact-package pack (100 previously `U
 
 Ordinary Chrome/Samsung Internet packages, arbitrary TWA wrappers, labels that look like websites, URLs and launcher class-name heuristics are not used for classification. No deterministic Samsung Internet or general TWA signature was established in the reviewed evidence, so those remain on the normal classification path.
 
+The fresh Samsung report contains exactly one `Web Shortcuts` entry, matching the expected narrow rule behavior.
+
 ## Game decision
 
 The five permanent narrow game buckets are:
@@ -136,13 +136,15 @@ The five permanent narrow game buckets are:
 
 `Sports & Racing` was not added because the evidence did not justify a permanent bucket. `Other Games` was not added because `Games` already serves that safe fallback role.
 
+The fresh Samsung report matches the projected game distribution exactly: 12 Action & Adventure, 38 RPG, 29 Strategy & Simulation, 23 Puzzle & Casual, 4 Board & Card and 23 broad `Games` fallback entries.
+
 ## Persisted-state / migration decision
 
 The taxonomy change is additive. No existing `AppCategory` enum value was renamed or removed and organizer state remains schema version 1.
 
-The integration lane adds a regression test that reads a literal pre-classification-wave schema-v1 payload and verifies that an existing manual category override, favourite and hidden state all survive unchanged. This is the repository-level migration proof for the additive taxonomy.
+The integration lane includes a regression test that reads a literal pre-classification-wave schema-v1 payload and verifies that an existing manual category override, favourite and hidden state all survive unchanged. This is the repository-level migration proof for the additive taxonomy.
 
-Physical upgrade acceptance still requires installing the new signed debug APK over an existing owner-device installation without clearing app data and checking the same three user-owned state types in the app.
+The owner reports that the updated application works correctly on the primary Samsung device. The supplied fresh classification report has `USER_OVERRIDE = 0`, however, and the report format does not expose favourite or hidden state. Therefore this report cannot independently prove the strict physical persisted-state test for those three user-owned state types. No migration failure has been observed, but that narrow acceptance item remains unproven by device evidence unless separately exercised.
 
 ## UI explanation / manual correction
 
@@ -154,6 +156,8 @@ The UI carries the actual app-owned `ClassificationSource` from categorized stat
 - `Needs sorting`
 
 Only automatic `Unsorted` fallback receives the direct triage `Sort` affordance. A deliberate user override to `Unsorted` remains distinguishable from automatic fallback and still uses the ordinary move action.
+
+The owner reports the integrated application working on the primary Samsung device after installation of the classification-quality build.
 
 ## Quality lane
 
@@ -172,37 +176,38 @@ The permanent CI lane covers:
 
 The classification integration lane deliberately adds `assembleDebugAndroidTest` because the triage Compose tests existed under `androidTest` but were not previously compiled by CI. This proves those tests stay buildable. It does **not** claim that device/emulator instrumentation execution occurred in CI.
 
-No benchmark/profile infrastructure is added. No measured regression has justified it in this wave.
+Final repository CI is green. No benchmark/profile infrastructure is added because no measured regression justified it.
+
+## Samsung acceptance
+
+The owner installed and exercised the integrated application on the primary Samsung device and reports that the application works. A fresh classification report was then generated from the running build.
+
+Confirmed from the fresh report:
+
+- target count remains 566;
+- every category aggregate matches the integration projection exactly;
+- every classification-source aggregate matches the integration projection exactly;
+- `Unsorted` is 124 rather than the original 225;
+- broad `Games` is 23 rather than the original 129;
+- all five new game buckets contain the expected counts;
+- `Web Shortcuts` contains exactly one entry;
+- no raw launcher inventory has been committed.
+
+No classification integration discrepancy was found between the frozen evidence calculation and the fresh device result.
+
+The only remaining strict acceptance caveat is the persisted-user-state device test described above: the fresh report contains no user override and cannot report favourites or hidden state.
 
 ## Manual false-positive review
 
 The integration review sampled exact-package identities across general categories and all five game buckets, plus the WebAPK boundary. The rule architecture contains no selector collision and no integration-level false positive was identified from the reviewed repository evidence.
 
-A fresh device report must still be sampled manually before owner acceptance because installed versions/packages can differ from the frozen evidence set.
-
-## Samsung acceptance still required
-
-Agent-side repository work cannot substitute for the physical Samsung pass. Before this integration PR is accepted, use the current signed debug APK on the same primary device and verify:
-
-- install as an update without clearing app data;
-- existing manual category overrides, favourites and hidden state survive;
-- shelf opens and renders the expanded taxonomy;
-- search finds the new category names;
-- move/category picker includes the full frozen taxonomy;
-- explanation text matches representative `ClassificationSource` cases;
-- automatic `Unsorted` rows expose the direct sort action;
-- launch still opens representative apps correctly;
-- dismiss/back returns correctly;
-- rescan works;
-- no obvious scrolling/layout regression appears with the additional game sections;
-- share a fresh classification report and record sanitized category/source counts only;
-- manually inspect a representative sample of newly classified general apps, game buckets and the Web shortcut for false positives.
+The fresh device aggregates exactly matching the projection provide additional confidence that no unexpected rule-composition behavior occurred. `Unsorted` and broad `Games` intentionally remain available rather than forcing uncertain entries into narrow categories.
 
 ## Remaining classification limitations
 
 Classification is intentionally conservative:
 
-- 124 rows remain `Unsorted` in the frozen-evidence projection;
+- 124 rows remain `Unsorted`;
 - 23 games remain in broad `Games`;
 - standard TWA wrappers and Samsung Internet/other browser-created shortcuts are not generically classified;
 - known-app rules require maintenance as package identities change;
@@ -219,4 +224,4 @@ The next coherent wave should be **user-owned category management**:
 
 This should begin with a small persistence/domain foundation because custom category identity and ordering are persisted-state changes and must have explicit migration tests.
 
-Local backup/export/import should follow once that representation and migration contract are stable; otherwise the export format would be versioned around a moving schema. Dynamic/pinned shortcuts should follow stable category identity so shortcuts target durable categories. Presentation polish can proceed afterward or in a low-conflict UI lane. Performance tooling remains measurement-driven and should not be added unless the Samsung acceptance pass exposes a real regression.
+Local backup/export/import should follow once that representation and migration contract are stable; otherwise the export format would be versioned around a moving schema. Dynamic/pinned shortcuts should follow stable category identity so shortcuts target durable categories. Presentation polish can proceed afterward or in a low-conflict UI lane. Performance tooling remains measurement-driven and should not be added unless measurements expose a real regression.
