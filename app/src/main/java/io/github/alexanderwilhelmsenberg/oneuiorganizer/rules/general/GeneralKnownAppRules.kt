@@ -7,17 +7,195 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.KnownAppSelector
 
 object GeneralKnownAppRules {
     val entries: List<KnownAppRule> =
-        listOf(
-            packageRule("io.homeassistant.companion.android", AppCategory.SMART_HOME),
-            packageRule("com.termux", AppCategory.DEVELOPMENT),
-            packageRule("com.github.android", AppCategory.DEVELOPMENT),
-            packageRule("com.microsoft.teams", AppCategory.WORK),
-            packageRule("com.amazon.mShop.android.shopping", AppCategory.SHOPPING),
-            packageRule("com.google.android.apps.walletnfcrel", AppCategory.FINANCE)
-        )
+        buildList {
+            addPackageRules(
+                AppCategory.COMMUNICATION,
+                "com.famly.famly",
+                "com.samsung.android.app.contacts",
+                "com.samsung.android.dialer",
+                "com.samsung.android.messaging",
+                "com.spond.spond",
+                "parent.vigilo.no.parentapplication"
+            )
+            addPackageRules(
+                AppCategory.SOCIAL,
+                "com.laurencedawson.reddit_sync",
+                "com.reddit.frontpage",
+                "org.cygnusx1.continuum"
+            )
+            addPackageRules(
+                AppCategory.WORK,
+                "com.microsoft.teams",
+                "com.Slack"
+            )
+            addPackageRules(
+                AppCategory.PRODUCTIVITY,
+                "com.samsung.android.app.reminder",
+                "com.samsung.android.calendar"
+            )
+            addPackageRules(
+                AppCategory.SMART_HOME,
+                "com.aircoookie.WLED",
+                "com.airthings.app.android",
+                "com.ants360.yicamera.international",
+                "com.assaabloy.yale",
+                "com.google.android.apps.chromecast.app",
+                "com.philips.lighting.hue2",
+                "com.roborock.smart",
+                "com.samsung.android.oneconnect",
+                "com.tibber.android",
+                "de.miele.infocontrol",
+                "io.homeassistant.companion.android",
+                "no.easee.apps.easee.users"
+            )
+            addPackageRules(
+                AppCategory.HOMELAB,
+                "com.frigateviewer",
+                "com.github.gotify",
+                "com.jgeek00.adguard_home_manager",
+                "com.opnsensemanager.app",
+                "com.proxmox.app.pve_flutter_frontend",
+                "com.ubnt.easyunifi"
+            )
+            addPackageRules(
+                AppCategory.FINANCE,
+                "atws.app",
+                "com.banknorwegian",
+                "com.danskebank.mobilebank3.no",
+                "com.google.android.apps.walletnfcrel",
+                "com.handelsbanken.mobile.android.nopriv",
+                "com.nordnet",
+                "com.paypal.android.p2pmobile",
+                "com.transferwise.android",
+                "no.apps.dnbnor",
+                "no.dnb.vipps",
+                "no.nordea.mobilebank",
+                "no.sparebank1.mobilbank",
+                "no.vipps.bankid"
+            )
+            addPackageRules(
+                AppCategory.SHOPPING,
+                "com.alibaba.aliexpresshd",
+                "com.amazon.mShop.android.shopping",
+                "com.app.tgtg",
+                "com.ebay.mobile",
+                "com.einnovation.temu",
+                "com.ingka.ikea.app",
+                "com.samsung.ecomm.global.gbr",
+                "com.shopify.arrive",
+                "com.tise.tise",
+                "no.coop.members",
+                "no.finn.android",
+                "no.norgesgruppen.apps.kiwipluss.production",
+                "no.norgesgruppen.apps.spar",
+                "no.norgesgruppen.apps.trumf.trumf",
+                "no.rema.bella",
+                "se.prisjakt.pricespy"
+            )
+            addPackageRules(
+                AppCategory.TRAVEL_NAVIGATION,
+                "cgeo.geocaching",
+                "com.airbnb.android",
+                "com.europark.mobilparkering",
+                "com.google.android.apps.maps",
+                "com.google.android.apps.mapslite",
+                "com.groundspeak.geocaching.intro",
+                "com.lufthansa.android.lufthansa",
+                "com.norwegian.travelassistant",
+                "com.ryde_android",
+                "com.tripadvisor.tripadvisor",
+                "com.tripit",
+                "ctrip.english",
+                "dk.bnr.taxifix",
+                "io.voiapp.voi",
+                "net.easypark.android",
+                "no.kolumbus.kolumbusbillett",
+                "se.sas.android"
+            )
+            addPackageRules(
+                AppCategory.MUSIC_AUDIO,
+                "com.sec.android.app.voicenote",
+                "com.zarz.spotiflac"
+            )
+            addPackageRules(
+                AppCategory.VIDEO,
+                "app.morphe.android.youtube",
+                "app.revanced.android.youtube",
+                "com.apple.atve.androidtv.appletv",
+                "com.michaldrabik.showly2",
+                "com.michaldrabik.showly_oss",
+                "com.mxtech.videoplayer.pro",
+                "com.netflix.mediaclient",
+                "com.plexapp.android",
+                "com.skyshowtime.skyshowtime.google",
+                "com.stremio.one",
+                "com.viaplay.android",
+                "com.wbd.stream",
+                "no.nrk.tv",
+                "no.tv2.sumo",
+                "org.schabi.newpipe",
+                "tv.trakt.trakt"
+            )
+            addPackageRules(
+                AppCategory.PHOTOS,
+                "com.samsung.android.imageenhancer",
+                "com.sec.android.app.camera",
+                "com.sec.android.gallery3d"
+            )
+            addPackageRules(
+                AppCategory.READING,
+                "app.mihon",
+                "com.audible.application",
+                "com.bookbites.library",
+                "com.contentsfirst.tappytoon",
+                "com.gtl.nextory",
+                "com.kobobooks.android",
+                "com.overdrive.mobile.android.libby",
+                "grit.storytel.app",
+                "io.elevenlabs.readerapp",
+                "jp.co.shueisha.mangaplus",
+                "no.ebok.android"
+            )
+            addPackageRules(
+                AppCategory.DEVELOPMENT,
+                "com.github.android",
+                "com.termux",
+                "com.termux.x11"
+            )
+            addPackageRules(
+                AppCategory.TOOLS,
+                "com.android.settings",
+                "com.looker.droidify",
+                "com.samsung.android.goodlock",
+                "com.samsung.android.pentastic",
+                "com.samsung.android.sidegesturepad",
+                "com.samsung.android.soundassistant",
+                "com.samsung.knox.securefolder",
+                "com.samsung.systemui.notilus",
+                "com.zacharee1.systemuituner",
+                "dev.imranr.obtainium.fdroid",
+                "dev.zwander.installwithoptions",
+                "ginlemon.iconpackstudio",
+                "io.github.muntashirakon.AppManager",
+                "moe.shizuku.privileged.api",
+                "org.adaway",
+                "org.fdroid.fdroid",
+                "yuh.yuh.finelock"
+            )
+        }
 
-    private fun packageRule(packageName: String, category: AppCategory): KnownAppRule = KnownAppRule(
-        selector = KnownAppSelector.ExactPackage(AppId(packageName)),
-        category = category
-    )
+    private fun MutableList<KnownAppRule>.addPackageRules(
+        category: AppCategory,
+        vararg packageNames: String
+    ) {
+        packageNames.forEach { packageName ->
+            add(packageRule(packageName, category))
+        }
+    }
+
+    private fun packageRule(packageName: String, category: AppCategory): KnownAppRule =
+        KnownAppRule(
+            selector = KnownAppSelector.ExactPackage(AppId(packageName)),
+            category = category
+        )
 }
