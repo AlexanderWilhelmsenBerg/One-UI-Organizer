@@ -113,12 +113,18 @@ class DataStoreOrganizerStateStoreTest {
             assertTrue(migrated.customCategories.isEmpty())
             assertEquals(OrganizerState.defaultBuiltInCategoryOrder(), migrated.categoryOrder)
 
-            store.update { state -> state }
+            val postMigrationFavourite = AppId("example.after-migration")
+            store.update { state ->
+                state.copy(favouriteAppIds = state.favouriteAppIds + postMigrationFavourite)
+            }
             val rewritten = file.readText()
             assertTrue(rewritten.contains("\"schemaVersion\":2"))
             assertTrue(rewritten.contains("\"example.work\":\"builtin:work\""))
             assertTrue(rewritten.contains("\"customCategories\":[]"))
             assertTrue(rewritten.contains("\"categoryOrder\""))
+            assertTrue(postMigrationFavourite in store.state.first().favouriteAppIds)
+            assertTrue(AppId("example.favourite") in store.state.first().favouriteAppIds)
+            assertTrue(AppId("example.hidden") in store.state.first().hiddenAppIds)
         } finally {
             job.cancelAndJoin()
             directory.toFile().deleteRecursively()
