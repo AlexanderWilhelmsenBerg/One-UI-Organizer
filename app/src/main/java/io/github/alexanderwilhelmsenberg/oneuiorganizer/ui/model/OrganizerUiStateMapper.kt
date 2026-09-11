@@ -60,6 +60,7 @@ object OrganizerUiStateMapper {
         launchTargetId = app.launchTargetId,
         label = app.label,
         category = category,
+        classificationSource = source,
         isFavourite = app.id in organizerState.favouriteAppIds
     )
 }

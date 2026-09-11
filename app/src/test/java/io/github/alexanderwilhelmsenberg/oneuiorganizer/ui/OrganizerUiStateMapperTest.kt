@@ -53,6 +53,55 @@ class OrganizerUiStateMapperTest {
     }
 
     @Test
+    fun `classification sources are preserved for explanation UI`() {
+        val apps =
+            listOf(
+                categorizedApp(
+                    "example.override",
+                    "Override",
+                    AppCategory.TOOLS,
+                    source = ClassificationSource.USER_OVERRIDE
+                ),
+                categorizedApp(
+                    "example.rule",
+                    "Rule",
+                    AppCategory.DEVELOPMENT,
+                    source = ClassificationSource.KNOWN_APP_RULE
+                ),
+                categorizedApp(
+                    "example.android",
+                    "Android",
+                    AppCategory.GAMES,
+                    source = ClassificationSource.ANDROID_DECLARED_CATEGORY
+                ),
+                categorizedApp(
+                    "example.unsorted",
+                    "Unsorted",
+                    AppCategory.UNSORTED,
+                    source = ClassificationSource.UNSORTED_FALLBACK
+                )
+            )
+
+        val result =
+            OrganizerUiStateMapper.map(
+                apps = apps,
+                organizerState = OrganizerState(),
+                query = "",
+                isLoading = false,
+                error = null
+            )
+        val sourceByLabel =
+            result.categories
+                .flatMap { section -> section.apps }
+                .associate { app -> app.label to app.classificationSource }
+
+        assertEquals(ClassificationSource.USER_OVERRIDE, sourceByLabel["Override"])
+        assertEquals(ClassificationSource.KNOWN_APP_RULE, sourceByLabel["Rule"])
+        assertEquals(ClassificationSource.ANDROID_DECLARED_CATEGORY, sourceByLabel["Android"])
+        assertEquals(ClassificationSource.UNSORTED_FALLBACK, sourceByLabel["Unsorted"])
+    }
+
+    @Test
     fun `package scoped favourite applies to every exact launcher target`() {
         val packageName = "example.multi"
         val first = categorizedApp(packageName, "First", AppCategory.TOOLS, "$packageName.First")
@@ -92,7 +141,8 @@ class OrganizerUiStateMapperTest {
         packageName: String,
         label: String,
         category: AppCategory,
-        className: String = "$packageName.MainActivity"
+        className: String = "$packageName.MainActivity",
+        source: ClassificationSource = ClassificationSource.UNSORTED_FALLBACK
     ): CategorizedApp = CategorizedApp(
         app =
             InstalledApp(
@@ -101,6 +151,6 @@ class OrganizerUiStateMapperTest {
                 label = label
             ),
         category = category,
-        source = ClassificationSource.UNSORTED_FALLBACK
+        source = source
     )
 }

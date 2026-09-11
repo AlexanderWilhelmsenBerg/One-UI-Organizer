@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfAppUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.displayName
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OrganizerDimens
@@ -56,40 +57,74 @@ internal fun AppTile(
     var moveDialogVisible by rememberSaveable(app.stableKey) { mutableStateOf(false) }
     val openLabel = stringResource(R.string.open_app, app.label)
     val organizeLabel = stringResource(R.string.organize_app, app.label)
+    val classificationLabel = app.classificationSource.displayName()
+    val classificationDescription =
+        stringResource(R.string.classification_reason_content_description, classificationLabel)
 
     Box(modifier = modifier.width(OrganizerDimens.appTileWidth)) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = OrganizerDimens.appTileMinHeight)
-                    .combinedClickable(
-                        onClickLabel = openLabel,
-                        onLongClickLabel = organizeLabel,
-                        onClick = { onLaunch(app) },
-                        onLongClick = { actionMenuVisible = true }
-                    )
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = openLabel
-                    }
-                    .padding(vertical = OrganizerDimens.spacingSmall),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            AppIcon(app = app)
-            Spacer(modifier = Modifier.size(OrganizerDimens.spacingSmall))
-            Text(
-                text = app.label,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = OrganizerDimens.appTileMinHeight)
+                        .combinedClickable(
+                            onClickLabel = openLabel,
+                            onLongClickLabel = organizeLabel,
+                            onClick = { onLaunch(app) },
+                            onLongClick = { actionMenuVisible = true }
+                        )
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = openLabel
+                        }
+                        .padding(vertical = OrganizerDimens.spacingSmall),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AppIcon(app = app)
+                Spacer(modifier = Modifier.size(OrganizerDimens.spacingSmall))
+                Text(
+                    text = app.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            if (app.classificationSource == ClassificationSource.UNSORTED_FALLBACK) {
+                val sortDescription = stringResource(R.string.sort_app_content_description, app.label)
+                TextButton(
+                    onClick = { moveDialogVisible = true },
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription = sortDescription
+                        }
+                ) {
+                    Text(stringResource(R.string.sort_app))
+                }
+            }
         }
 
         DropdownMenu(
             expanded = actionMenuVisible,
             onDismissRequest = { actionMenuVisible = false }
         ) {
+            Text(
+                text = classificationLabel,
+                modifier =
+                    Modifier
+                        .padding(
+                            horizontal = OrganizerDimens.spacingMedium,
+                            vertical = OrganizerDimens.spacingSmall
+                        ).semantics {
+                            contentDescription = classificationDescription
+                        },
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             DropdownMenuItem(
                 text = {
                     Text(
@@ -196,9 +231,22 @@ private fun MoveCategoryDialog(
     onDismiss: () -> Unit,
     onMove: (AppCategory) -> Unit
 ) {
+    val classificationLabel = app.classificationSource.displayName()
+    val classificationDescription =
+        stringResource(R.string.classification_reason_content_description, classificationLabel)
+    val title =
+        stringResource(
+            if (app.classificationSource == ClassificationSource.UNSORTED_FALLBACK) {
+                R.string.sort_app_title
+            } else {
+                R.string.move_app_title
+            },
+            app.label
+        )
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.move_app_title, app.label)) },
+        title = { Text(title) },
         text = {
             Column(
                 modifier =
@@ -206,6 +254,16 @@ private fun MoveCategoryDialog(
                         .heightIn(max = OrganizerDimens.moveDialogMaxHeight)
                         .verticalScroll(rememberScrollState())
             ) {
+                Text(
+                    text = classificationLabel,
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription = classificationDescription
+                        },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.size(OrganizerDimens.spacingSmall))
                 categories
                     .filterNot { it == app.category }
                     .forEach { category ->
