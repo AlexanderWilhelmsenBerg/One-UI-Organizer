@@ -1,6 +1,6 @@
 # GitHub Actions and Android release signing
 
-This document describes the repository's GitHub Actions workflows, APK artifact behavior, and the release-signing setup used by One UI Organizer.
+This document describes the repository's GitHub Actions workflows, APK artifact behavior, and the distribution-signing setup used by One UI Organizer.
 
 Exact Android/Kotlin/Gradle/toolchain versions remain authoritative in [STABLE_BASELINE.md](STABLE_BASELINE.md). This document does not duplicate that version inventory.
 
@@ -38,11 +38,15 @@ Input:
 
 Both jobs use the repository Gradle wrapper, strict dependency verification, the committed Gradle daemon JVM criteria, and the same API 37.0 provisioning strategy as permanent CI.
 
-The jobs are deliberately separate so the debug job never references the release environment or release-signing secrets.
+The jobs remain separate because they produce different Android build types, but both manual artifact jobs intentionally use the same long-lived distribution key from the GitHub `release` environment. This lets a manually downloaded debug APK update a previously installed release APK, or vice versa, without a signing-certificate mismatch.
+
+Ordinary local debug builds are not changed by this policy. When signing environment variables are absent, Android's normal local debug signing remains in effect.
 
 #### Debug
 
-Runs `:app:assembleDebug` and uses Android's normal debug signing. The generated APK is signature-checked with `apksigner`, renamed to:
+Runs `:app:assembleDebug` with the GitHub `release` environment signing credentials. The workflow reconstructs the keystore only in runner-temporary storage, passes the temporary path/password to Gradle, disables persistent Gradle Action caching for that job, and verifies the generated APK with `apksigner`.
+
+The resulting APK remains a debuggable Android debug build; only its signing certificate is shared with release builds. It is renamed to:
 
 ```text
 OneUIOrganizer-debug-<short-sha>.apk
@@ -52,9 +56,11 @@ and uploaded with `actions/upload-artifact` direct single-file mode (`archive: f
 
 The job summary reports the variant, full commit SHA, filename, byte/IEC size, SHA-256 digest, signature information from the verification step, and the artifact URL returned by the upload action.
 
+Because this job uses the long-lived project signing key, it is manual-only and attached to the protected `release` environment rather than running on pull requests.
+
 #### Release
 
-The release job is attached to the protected GitHub environment named `release`. It reconstructs the signing keystore only in the ephemeral runner's temporary directory, exposes only that temporary path plus the password to Gradle, builds `:app:assembleRelease`, and verifies the produced APK with `apksigner verify --verbose --print-certs`.
+The release job is also attached to the protected GitHub environment named `release`. It reconstructs the signing keystore only in the ephemeral runner's temporary directory, exposes only that temporary path plus the password to Gradle, builds `:app:assembleRelease`, and verifies the produced APK with `apksigner verify --verbose --print-certs`.
 
 The final file is renamed to:
 
@@ -64,7 +70,7 @@ OneUIOrganizer-release-<short-sha>.apk
 
 and uploaded in the same direct single-file mode.
 
-The release job is expected to fail early when its required environment secrets are absent.
+Both debug and release artifact jobs are expected to fail early when their required environment secrets are absent.
 
 ## Artifact retention and distribution model
 
@@ -76,9 +82,9 @@ There are three different GitHub binary-delivery concepts:
 2. `actions/upload-artifact` v7 supports direct upload of exactly one file with `archive: false`. In that mode the file is not zipped, the `name` input is ignored, and the uploaded file's own filename becomes the artifact name. This is what Build APK uses.
 3. GitHub Release assets are durable files attached to a release/tag. Formal releases should eventually attach the signed APK and its `.sha256` file as Release assets instead of relying on expiring workflow artifacts.
 
-## Release-signing design
+## Distribution-signing design
 
-The release key is project infrastructure, not source code.
+The distribution key is project infrastructure, not source code.
 
 The repository uses the constant alias:
 
@@ -86,14 +92,16 @@ The repository uses the constant alias:
 oneui-organizer-upload
 ```
 
-Release signing is enabled in `app/build.gradle.kts` only when both of these environment values are present:
+Distribution signing is enabled in `app/build.gradle.kts` only when both of these environment values are present:
 
 ```text
 ANDROID_KEYSTORE_PATH
 ANDROID_KEYSTORE_PASSWORD
 ```
 
-If they are absent, debug/test/lint/verification tasks remain usable without release credentials. The GitHub release job supplies `ANDROID_KEYSTORE_PATH` only after reconstructing the secret keystore into runner-temporary storage.
+When both are present, the same signing configuration is assigned to the Android `debug` and `release` build types. This is used by the manual GitHub Build APK workflow so both downloadable variants have one stable application-signing identity.
+
+If those environment values are absent, local debug/test/lint/verification tasks remain usable without signing credentials and local debug builds continue using Android's normal debug key. The GitHub Build APK jobs supply `ANDROID_KEYSTORE_PATH` only after reconstructing the secret keystore into runner-temporary storage.
 
 The long-lived private keystore must never be committed. `.gitignore` already excludes `*.jks`, `*.keystore`, and `keystore.properties`, but the preferred policy is stronger: keep the original keystore outside the repository checkout entirely.
 
@@ -157,7 +165,7 @@ Do not move or copy the JKS into the One UI Organizer checkout.
 
 ## Configure the GitHub `release` environment and secrets from PowerShell
 
-GitHub environment secrets are preferred because only the release-signing job references the `release` environment. Repository-level secrets would be available to a broader set of workflows/jobs and should be a fallback only when environments are not suitable.
+GitHub environment secrets are preferred because only the manually invoked signed-artifact jobs reference the `release` environment. Permanent pull-request/main CI does not receive the signing material. Repository-level secrets would be available to a broader set of workflows/jobs and should be a fallback only when environments are not suitable.
 
 Verify GitHub CLI first:
 
@@ -214,17 +222,19 @@ Never paste the keystore Base64 text, private key, or passwords into an issue, p
 
 Once the workflow exists on the repository's default branch, a developer can run it from the Actions UI or GitHub CLI.
 
-Debug:
+Signed debug:
 
 ```powershell
 gh workflow run build-apk.yml --repo AlexanderWilhelmsenBerg/One-UI-Organizer --ref main -f variant=debug
 ```
 
-Release after the `release` environment secrets are configured:
+Signed release:
 
 ```powershell
 gh workflow run build-apk.yml --repo AlexanderWilhelmsenBerg/One-UI-Organizer --ref main -f variant=release
 ```
+
+Both variants require the `release` environment secrets and use the same long-lived certificate. After the first transition installation, switching between these GitHub-hosted debug and release APKs does not require uninstalling solely because of signing identity. Android's normal version-code/install compatibility rules still apply.
 
 Workflow-dispatch events require the workflow file to exist on the default branch. During PR development, a temporary branch-only push trigger may be used solely to prove the workflow on GitHub Actions; that trigger must be removed before the PR is declared ready.
 
@@ -249,8 +259,8 @@ Do not automate Play Store publishing until explicitly requested.
 
 Keep these responsibilities separate:
 
-- **CI** — keep and improve the existing PR/main quality gate; do not duplicate it.
-- **Build APK** — manual debug/release convenience builds; direct short-lived APK artifacts; release secrets only in the release job/environment.
+- **CI** — keep and improve the existing PR/main quality gate; do not duplicate it and do not expose distribution-signing secrets to it.
+- **Build APK** — manual signed debug/release convenience builds; direct short-lived APK artifacts; signing secrets only in the manual jobs through the `release` environment.
 - **GitHub Release** — add when version/tag/release policy is ready; durable signed assets and checksum.
 - **Instrumentation/device CI** — add only when meaningful emulator/managed-device tests exist. Samsung-specific acceptance remains physical-device/manual.
 - **Dependency freshness** — a scheduled/manual advisory `dependencyUpdates` workflow can be added when the project wants automatic update reporting; it must not auto-apply upgrades or bypass compatibility review.

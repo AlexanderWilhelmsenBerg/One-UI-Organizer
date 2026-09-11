@@ -7,9 +7,9 @@ plugins {
     alias(libs.plugins.dependency.analysis)
 }
 
-val releaseSigningKeyAlias = "oneui-organizer-upload"
-val releaseKeystorePathProvider = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
-val releaseKeystorePasswordProvider = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
+val distributionSigningKeyAlias = "oneui-organizer-upload"
+val signingKeystorePathProvider = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
+val signingKeystorePasswordProvider = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
 
 android {
     namespace = "io.github.alexanderwilhelmsenberg.oneuiorganizer"
@@ -25,24 +25,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    val releaseCredentials =
-        releaseKeystorePathProvider.orNull?.takeIf(String::isNotBlank)?.let { keystorePath ->
-            releaseKeystorePasswordProvider.orNull?.takeIf(String::isNotBlank)?.let { password ->
+    val signingCredentials =
+        signingKeystorePathProvider.orNull?.takeIf(String::isNotBlank)?.let { keystorePath ->
+            signingKeystorePasswordProvider.orNull?.takeIf(String::isNotBlank)?.let { password ->
                 keystorePath to password
             }
         }
 
-    // Release signing is opt-in. Missing credentials must not break debug, test, lint, or local verification tasks.
-    releaseCredentials?.let { (keystorePath, password) ->
-        val releaseSigning =
-            signingConfigs.create("release") {
+    // Distribution signing is opt-in. Without credentials, local debug/test/lint tasks use the normal debug setup.
+    signingCredentials?.let { (keystorePath, password) ->
+        val distributionSigning =
+            signingConfigs.create("distribution") {
                 storeFile = file(keystorePath)
                 storePassword = password
-                keyAlias = releaseSigningKeyAlias
+                keyAlias = distributionSigningKeyAlias
                 keyPassword = password
             }
+        buildTypes.getByName("debug") {
+            signingConfig = distributionSigning
+        }
         buildTypes.getByName("release") {
-            signingConfig = releaseSigning
+            signingConfig = distributionSigning
         }
     }
 
