@@ -2,13 +2,11 @@
 
 **Integration lane:** Agent 70 / `integration/classification-quality`
 
-This document records the integrated result of the post-v0.1 classification-quality wave and the Samsung acceptance evidence supplied by the owner.
-
-The raw Samsung launcher inventory remains private diagnostic input and is not committed.
+This document records the integrated post-v0.1 classification-quality result and owner-device acceptance evidence. Raw Samsung launcher rows remain private diagnostic input and are not committed.
 
 ## Integrated inputs
 
-The integration starts from `main` after these classification PRs were merged:
+The integration starts from `main` after:
 
 - PR #9 — classification foundation and private evidence report;
 - PR #12 — general known-app rules;
@@ -16,9 +14,11 @@ The integration starts from `main` after these classification PRs were merged:
 - PR #10 — Chromium WebAPK classification;
 - PR #11 — `Unsorted` triage and classification explanations.
 
+Agent 70 also owns integration corrections discovered during owner-device review.
+
 ## Final taxonomy
 
-The organizer taxonomy after the classification wave is:
+The organizer taxonomy is:
 
 - Communication
 - Social
@@ -36,6 +36,7 @@ The organizer taxonomy after the classification wave is:
 - Web Shortcuts
 - Development
 - Tools
+- Emulators
 - Action & Adventure
 - RPG
 - Strategy & Simulation
@@ -45,19 +46,19 @@ The organizer taxonomy after the classification wave is:
 - Other
 - Unsorted
 
-`Games` remains the safe broad fallback. `Unsorted` remains a normal, usable fallback rather than a classification failure.
+`Emulators` describes software whose primary role is running software for another platform or game system. Gaming frontends, streaming clients and controller utilities are not automatically folded into it.
+
+`Games` remains the safe broad fallback for games and gaming software that does not have a justified narrower organizer category. `Unsorted` remains a normal usable fallback.
 
 ## Rule architecture and precedence
 
 Bundled rules remain local, pure Kotlin and deterministic.
 
-Inside the bundled-rule tier the selector precedence is:
+Inside the bundled-rule tier selector precedence is:
 
 1. exact launch component;
 2. exact package;
 3. package prefix.
-
-The only package-prefix rule currently shipped is the evidence-backed, segment-bounded Chromium WebAPK namespace `org.chromium.webapk.`.
 
 The outer classification precedence remains:
 
@@ -66,29 +67,21 @@ The outer classification precedence remains:
 3. Android-declared category;
 4. `Unsorted`.
 
-Duplicate selectors and overlapping package prefixes fail fast. The integrated regression lane exercises representative rules from the general, game and Web shortcut packs together and re-proves the outer precedence contract.
+Duplicate selectors and overlapping package prefixes fail fast. The only package-prefix rule currently shipped is the evidence-backed Chromium WebAPK namespace `org.chromium.webapk.`.
 
-## Samsung report and integration correction
+The emulator pack is separate from game-genre rules. It contains 14 exact-package rules plus one exact-component rule for the observed Eden/Yuzu launcher identity.
 
-The original classification evidence contained 566 launcher targets on the primary Samsung device. After the first integrated build was installed and exercised successfully, the owner generated a fresh classification report on the same device.
+## Samsung report and integration corrections
 
-The aggregate result matched the original integration projection exactly:
+The original evidence contained 566 launcher targets. The first integrated Samsung report matched the then-projected aggregates but row-level review found a real false positive: `Eden Optimized` reused package identity `com.miHoYo.Yuanshen` while launching an `org.yuzu.yuzu_emu` activity. A package-only RPG rule therefore misclassified an emulator variant.
 
-- `Unsorted`: 124;
-- broad `Games`: 23;
-- RPG: 38;
-- bundled known-app source: 235;
-- Android-declared source: 207.
+Agent 70 first removed the ambiguous package RPG rule. Owner review then approved a first-class `Emulators` category. The final implementation uses an exact component selector for the observed Eden/Yuzu launcher, so the emulator variant can be classified without treating every installation sharing the package name as an emulator.
 
-Manual inspection of the raw private report then found one genuine false positive that aggregate counts could not reveal. A launcher entry labeled `Eden Optimized` used package identity `com.miHoYo.Yuanshen` but launched through an `org.yuzu.yuzu_emu` activity. The exact-package game rule therefore forced an emulator variant into RPG.
-
-Agent 70 removed `com.miHoYo.Yuanshen` from the RPG rule pack and added a regression proving that this evidence remains in broad `Games` through the Android `GAME` fallback.
-
-The correction deliberately favors false-positive avoidance over trying to distinguish an official game installation from emulator variants sharing that package identity.
+The emulator pack also classifies the evidence-backed emulator packages for DraStic, Flycast, DuckStation, RetroArch, Cemu, Azahar, RPCSX, Citra, citron, Dolphin, PPSSPP, ScummVM, Sudachi and NetherSX2.
 
 ## Final expected same-device aggregate result
 
-After the false-positive correction, the final expected result on the same 566-target population is:
+On the same 566-target population the current branch should produce:
 
 | Category | Before | Final expected |
 | --- | ---: | ---: |
@@ -108,43 +101,34 @@ After the false-positive correction, the final expected result on the same 566-t
 | Web Shortcuts | 0 | 1 |
 | Development | 2 | 3 |
 | Tools | 0 | 17 |
+| Emulators | 0 | **15** |
 | Action & Adventure | 0 | 12 |
-| RPG | 0 | 37 |
+| RPG | 0 | **37** |
 | Strategy & Simulation | 0 | 29 |
 | Puzzle & Casual | 0 | 23 |
 | Board & Card | 0 | 4 |
-| Games fallback | 129 | 24 |
+| Games fallback | 129 | **10** |
 | Other | 0 | 0 |
-| Unsorted | **225** | **124** |
+| Unsorted | **225** | **123** |
 | **Total** | **566** | **566** |
 
-The integrated result still reduces `Unsorted` by 101 targets (44.9%). The final narrow game pack moves 105 of 129 broad game entries while deliberately retaining 24 in `Games`.
-
-Final expected classification-source counts are:
+Expected classification-source counts are:
 
 | Classification source | Before | Final expected |
 | --- | ---: | ---: |
 | User override | 0 | 0 |
-| Bundled known-app rule | 5 | 234 |
-| Android-declared category | 336 | 208 |
-| Unsorted fallback | 225 | 124 |
+| Bundled known-app rule | 5 | **249** |
+| Android-declared category | 336 | **194** |
+| Unsorted fallback | 225 | **123** |
 | **Total** | **566** | **566** |
 
-The largest useful changes remain the general exact-package pack (100 previously `Unsorted` entries classified), the game pack (105 broad games narrowed after the false-positive correction), and the deliberately narrow WebAPK rule (one confirmed Web shortcut without broad browser/TWA guessing).
+Compared with the first fresh integrated report, the emulator pack moves 13 broad Android `Games` entries, the Eden/Yuzu component, and one previously `Unsorted` Citra entry into `Emulators`.
 
-A second fresh Samsung report from the corrected build is required before these final expected figures are called device-confirmed.
-
-## Web/PWA decision
-
-`Web Shortcuts` is implemented only for generated Chromium WebAPK package identities under `org.chromium.webapk.`.
-
-Ordinary Chrome/Samsung Internet packages, arbitrary TWA wrappers, labels that look like websites, URLs and launcher class-name heuristics are not used for classification. No deterministic Samsung Internet or general TWA signature was established in the reviewed evidence, so those remain on the normal classification path.
-
-The first fresh Samsung report contained exactly one `Web Shortcuts` entry, matching the expected narrow rule behavior.
+A fresh Samsung report from the current emulator-category build is required before these figures are called device-confirmed.
 
 ## Game decision
 
-The five permanent narrow game buckets are:
+The permanent narrow game genres remain:
 
 - Action & Adventure
 - RPG
@@ -152,88 +136,82 @@ The five permanent narrow game buckets are:
 - Puzzle & Casual
 - Board & Card
 
-`Sports & Racing` was not added because the evidence did not justify a permanent bucket. `Other Games` was not added because `Games` already serves that safe fallback role.
+`Sports & Racing` is not added because the evidence does not justify it. `Other Games` is unnecessary because `Games` is the broad fallback.
 
-The final corrected expected game distribution is 12 Action & Adventure, 37 RPG, 29 Strategy & Simulation, 23 Puzzle & Casual, 4 Board & Card and 24 broad `Games` fallback entries.
+Emulators are now deliberately outside the genre taxonomy. Gaming frontends and streaming tools remain in their existing category/fallback unless separately justified.
+
+## Web/PWA decision
+
+`Web Shortcuts` remains limited to generated Chromium WebAPK package identities under `org.chromium.webapk.`. Ordinary browsers, arbitrary TWA wrappers, labels, URLs and class-name guessing are not used for generic Web classification.
 
 ## Persisted-state / migration decision
 
-The taxonomy change is additive. No existing `AppCategory` enum value was renamed or removed and organizer state remains schema version 1.
+The taxonomy changes are additive. No existing `AppCategory` value is renamed or removed and organizer state remains schema version 1.
 
-The integration lane includes a regression test that reads a literal pre-classification-wave schema-v1 payload and verifies that an existing manual category override, favourite and hidden state all survive unchanged. This is the repository-level migration proof for the additive taxonomy.
+The integration lane includes a regression that reads a literal pre-wave schema-v1 payload and verifies an existing manual category override, favourite and hidden state survive unchanged.
 
-The owner reports that the updated application works correctly on the primary Samsung device. The supplied fresh classification report has `USER_OVERRIDE = 0`, however, and the report format does not expose favourite or hidden state. Therefore that report cannot independently prove the strict physical persisted-state test for those three user-owned state types. No migration failure has been observed, but that narrow acceptance item remains unproven by device evidence unless separately exercised.
+The supplied device report has `USER_OVERRIDE = 0` and does not expose favourite or hidden state, so strict physical proof for those state types remains a separate acceptance item if required literally.
 
-## UI explanation / manual correction
+## Optional network metadata enrichment decision
 
-The UI carries the actual app-owned `ClassificationSource` from categorized state into presentation state. It displays:
+The owner has approved Internet access in principle for useful category/tag metadata. This PR does **not** add `INTERNET`, a networking dependency or runtime metadata lookup yet.
 
-- `Your category`
-- `Known app rule`
-- `Android category`
-- `Needs sorting`
+The reason is architectural rather than policy resistance: Google Play's documented Developer APIs manage a developer's own apps and do not provide a general supported API for querying arbitrary installed-package categories/tags. Unofficial Play scraping is therefore not accepted as a production dependency.
 
-Only automatic `Unsorted` fallback receives the direct triage `Sort` affordance. A deliberate user override to `Unsorted` remains distinguishable from automatic fallback and still uses the ordinary move action.
+F-Droid publishes documented repository indexes and package metadata with categories, so it is a viable future provider for the subset of installed apps present there. A future metadata-enrichment slice should:
 
-The owner reports the integrated application working on the primary Samsung device after installation of the classification-quality build.
+- define an app-owned metadata/provider contract;
+- keep provider/network types at an adapter boundary;
+- cache metadata locally and never block the normal package scan on network availability;
+- map provider-specific categories/tags into the organizer taxonomy explicitly;
+- add a distinct classification source if external metadata can decide category;
+- preserve user override precedence;
+- disclose network behavior and add `INTERNET` only in the same change that implements a supported provider;
+- keep bundled deterministic rules as the high-confidence local tier.
+
+The current build therefore remains offline by implementation, while the product scope now permits a future supported metadata provider.
 
 ## Quality lane
 
-The permanent CI lane covers:
+The permanent CI lane covers debug assembly, instrumentation-test APK compilation, JVM tests, Android Lint, ktlint, dependency `buildHealth`, warning-mode failure, strict dependency verification, configuration-cache creation/reuse and forbidden-permission checks.
 
-- debug assembly;
-- instrumentation-test APK compilation;
-- JVM tests;
-- Android Lint;
-- ktlint;
-- dependency `buildHealth`;
-- Gradle warning-mode failure;
-- strict dependency verification;
-- configuration-cache creation and reuse;
-- forbidden `INTERNET` / `QUERY_ALL_PACKAGES` permission checks.
-
-The classification integration lane deliberately adds `assembleDebugAndroidTest` because the triage Compose tests existed under `androidTest` but were not previously compiled by CI. This proves those tests stay buildable. It does **not** claim that device/emulator instrumentation execution occurred in CI.
-
-No benchmark/profile infrastructure is added because no measured regression justified it.
+`assembleDebugAndroidTest` remains a compile gate, not a claim of device/emulator instrumentation execution.
 
 ## Samsung acceptance status
 
 Confirmed from the first fresh device pass:
 
-- the app installs and runs on the primary Samsung device;
+- the integrated application installs and runs on the primary Samsung device;
 - target count remains 566;
-- `Unsorted` improved from 225 to 124;
-- the five game buckets and Web shortcut rule rendered in the real report;
-- the report mechanism works on the integrated build;
-- manual review found one real false positive and led to a conservative correction;
-- no raw launcher inventory has been committed.
+- report generation works;
+- the classification wave materially reduces `Unsorted`;
+- row-level review found and enabled correction of a real false positive;
+- no raw launcher inventory is committed.
 
 Still required before final owner acceptance:
 
-- install/run the corrected build;
-- generate a second fresh report and confirm RPG = 37, broad `Games` = 24, `KNOWN_APP_RULE` = 234 and `ANDROID_DECLARED_CATEGORY` = 208 while total and `Unsorted` remain unchanged;
-- if strict physical persisted-state acceptance is required, separately prove manual override/favourite/hidden survival because the report format cannot do that.
+- install/run the current emulator-category build;
+- generate a fresh report and confirm the expected aggregate counts above;
+- sample representative emulator entries, including Eden/Yuzu and Citra;
+- if strict physical persisted-state acceptance is required, separately prove manual override/favourite/hidden survival.
 
-## Remaining classification limitations
+## Remaining limitations
 
-Classification is intentionally conservative:
-
-- 124 rows remain `Unsorted`;
-- 24 games remain in broad `Games` after the false-positive correction;
-- standard TWA wrappers and Samsung Internet/other browser-created shortcuts are not generically classified;
-- known-app rules require maintenance as package identities change;
-- exact package identity can be ambiguous for modified/repacked software, as demonstrated by the Eden emulator case;
-- one primary category per app remains the product model;
-- no cloud, network, label-guessing or probabilistic classifier is introduced.
+- 123 entries are expected to remain `Unsorted`.
+- 10 entries are expected to remain broad `Games`.
+- gaming frontends/streaming clients are not automatically treated as emulators.
+- standard TWA and non-Chromium browser shortcuts lack a universal safe rule.
+- known-app rules require maintenance as package identities change.
+- external metadata enrichment is approved in scope but not yet implemented.
+- one primary category per app remains the current product model.
 
 ## Recommended next development wave
 
-The next coherent wave should be **user-owned category management**:
+The next coherent product wave remains **user-owned category management**:
 
-1. custom categories with stable app-owned category identifiers;
-2. category reorder with persisted order;
-3. richer category-management UI, including efficient bulk/manual organization where it earns its complexity.
+1. stable custom-category identifiers;
+2. persisted category order;
+3. create/rename/delete/reorder behavior;
+4. richer category-management UI and Samsung migration acceptance.
 
-This should begin with a small persistence/domain foundation because custom category identity and ordering are persisted-state changes and must have explicit migration tests.
-
-Local backup/export/import should follow once that representation and migration contract are stable. Dynamic/pinned shortcuts should follow stable category identity. Presentation polish can proceed afterward or in a low-conflict UI lane. Performance tooling remains measurement-driven and should not be added unless measurements expose a real regression.
+A small optional metadata-enrichment investigation can run as a separate low-conflict architecture lane, but it should not destabilize the custom-category persistence foundation. Local backup/export/import and dynamic/pinned shortcuts should follow stable category identity.
