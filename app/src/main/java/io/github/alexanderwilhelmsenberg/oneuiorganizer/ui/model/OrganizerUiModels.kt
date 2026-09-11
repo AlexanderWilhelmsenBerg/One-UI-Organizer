@@ -77,6 +77,7 @@ fun AppCategory.displayName(): String = when (this) {
     AppCategory.WEB_SHORTCUTS -> "Web Shortcuts"
     AppCategory.DEVELOPMENT -> "Development"
     AppCategory.TOOLS -> "Tools"
+    AppCategory.EMULATORS -> "Emulators"
     AppCategory.GAME_ACTION_ADVENTURE -> "Action & Adventure"
     AppCategory.GAME_RPG -> "RPG"
     AppCategory.GAME_STRATEGY_SIMULATION -> "Strategy & Simulation"
