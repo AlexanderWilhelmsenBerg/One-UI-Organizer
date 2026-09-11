@@ -111,10 +111,9 @@ class WebShortcutKnownAppRulesTest {
         packageName: String,
         className: String = "$packageName.MainActivity",
         label: String = "Example"
-    ): InstalledApp =
-        InstalledApp(
-            id = AppId(packageName),
-            launchTargetId = LaunchTargetId(packageName, className),
-            label = label
-        )
+    ): InstalledApp = InstalledApp(
+        id = AppId(packageName),
+        launchTargetId = LaunchTargetId(packageName, className),
+        label = label
+    )
 }
