@@ -1,9 +1,9 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.model
 
 enum class AppCategory(
-    val id: CategoryId,
-    val displayName: String
-) {
+    override val id: CategoryId,
+    override val displayName: String
+) : CategoryDefinition {
     COMMUNICATION(CategoryId("builtin:communication"), "Communication"),
     SOCIAL(CategoryId("builtin:social"), "Social"),
     WORK(CategoryId("builtin:work"), "Work"),
@@ -29,6 +29,8 @@ enum class AppCategory(
     GAMES(CategoryId("builtin:games"), "Games"),
     OTHER(CategoryId("builtin:other"), "Other"),
     UNSORTED(CategoryId("builtin:unsorted"), "Unsorted");
+
+    override val kind: CategoryKind = CategoryKind.BUILT_IN
 
     companion object {
         fun fromId(id: CategoryId): AppCategory? = entries.firstOrNull { category -> category.id == id }
