@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 class SchemaV1CategoryMigrationTest {
     @Test
     fun `literal schema v1 names map to every stable built in identity`() {
-        val migrated = OrganizerStateJsonCodec.decode(SCHEMA_V1_ALL_CATEGORIES)
+        val migrated = OrganizerStateJsonCodec.decode(schemaV1AllCategories)
 
         val expected =
             mapOf(
@@ -43,7 +43,7 @@ class SchemaV1CategoryMigrationTest {
     }
 
     private companion object {
-        val SCHEMA_V1_ALL_CATEGORIES =
+        val schemaV1AllCategories =
             """
             {
               "schemaVersion": 1,
