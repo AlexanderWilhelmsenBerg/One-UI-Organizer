@@ -6,6 +6,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategorySection
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerShelfUiState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfAppUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfContentMode
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfErrorUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.displayName
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,6 +39,13 @@ class OrganizerUiStateTest {
         val state = OrganizerShelfUiState()
 
         assertEquals(ShelfContentMode.EMPTY, state.contentMode)
+    }
+
+    @Test
+    fun `empty shelf with error reports error mode`() {
+        val state = OrganizerShelfUiState(error = ShelfErrorUiModel.SCAN_FAILED)
+
+        assertEquals(ShelfContentMode.ERROR, state.contentMode)
     }
 
     @Test

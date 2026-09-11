@@ -1,11 +1,8 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -43,6 +40,7 @@ private val OrganizerDarkColorScheme =
 fun OneUiOrganizerTheme(
     themeMode: OrganizerThemeMode = OrganizerThemeMode.SYSTEM,
     dynamicColor: Boolean = true,
+    supportsDynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val darkTheme =
@@ -52,16 +50,14 @@ fun OneUiOrganizerTheme(
             OrganizerThemeMode.DARK -> true
         }
     val context = LocalContext.current
-    val colorScheme =
-        when {
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
-
-            darkTheme -> OrganizerDarkColorScheme
-
-            else -> OrganizerLightColorScheme
+    val dynamicColorScheme =
+        if (dynamicColor && supportsDynamicColor) {
+            AndroidDynamicColorScheme.create(context, darkTheme)
+        } else {
+            null
         }
+    val colorScheme =
+        dynamicColorScheme ?: if (darkTheme) OrganizerDarkColorScheme else OrganizerLightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -17,9 +17,16 @@ data class ShelfAppUiModel(
 
 data class CategorySectionUiModel(val category: AppCategory, val apps: List<ShelfAppUiModel>)
 
+enum class ShelfErrorUiModel {
+    SCAN_FAILED,
+    LAUNCH_FAILED,
+    STATE_UPDATE_FAILED
+}
+
 enum class ShelfContentMode {
     LOADING,
     CONTENT,
+    ERROR,
     NO_RESULTS,
     EMPTY
 }
@@ -30,16 +37,22 @@ data class OrganizerShelfUiState(
     val favourites: List<ShelfAppUiModel> = emptyList(),
     val categories: List<CategorySectionUiModel> = emptyList(),
     val hiddenApps: List<ShelfAppUiModel> = emptyList(),
-    val availableCategories: List<AppCategory> = AppCategory.entries
+    val availableCategories: List<AppCategory> = AppCategory.entries,
+    val error: ShelfErrorUiModel? = null,
+    val currentAppCount: Int = 0
 ) {
     val hasVisibleApps: Boolean
         get() = favourites.isNotEmpty() || categories.any { it.apps.isNotEmpty() }
+
+    val hasAnyCurrentApps: Boolean
+        get() = currentAppCount > 0
 
     val contentMode: ShelfContentMode
         get() =
             when {
                 isLoading -> ShelfContentMode.LOADING
                 hasVisibleApps -> ShelfContentMode.CONTENT
+                error != null -> ShelfContentMode.ERROR
                 query.isNotBlank() -> ShelfContentMode.NO_RESULTS
                 else -> ShelfContentMode.EMPTY
             }

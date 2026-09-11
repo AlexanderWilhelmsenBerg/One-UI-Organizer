@@ -24,7 +24,7 @@ object LocalAppSearch {
             .toList()
     }
 
-    private fun normalize(value: String): String = value.trim().lowercase()
+    private fun normalize(value: String): String = value.trim().uppercase().lowercase()
 }
 
 fun AppCategory.searchLabel(): String = when (this) {

@@ -37,6 +37,12 @@
     <string name="empty_shelf_title">No apps to show</string>
     <string name="empty_shelf_body">Apps will appear here when organizer state is available.</string>
     <string name="unsorted_empty_body">Everything is sorted.</string>
+    <string name="scan_error_title">Couldn’t refresh apps</string>
+    <string name="scan_error_body">The launcher scan failed. Reopen Organizer or return to it to try again.</string>
+    <string name="launch_error_title">Couldn’t open app</string>
+    <string name="launch_error_body">That launch target is no longer available. Organizer will rescan when it resumes.</string>
+    <string name="state_error_title">Couldn’t save change</string>
+    <string name="state_error_body">Your organizer change was not saved. Try the action again.</string>
 
     <string name="open_app">Open %1$s</string>
     <string name="organize_app">Organize %1$s</string>

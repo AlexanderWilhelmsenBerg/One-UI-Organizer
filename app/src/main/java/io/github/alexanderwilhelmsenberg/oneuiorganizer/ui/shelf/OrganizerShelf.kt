@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
@@ -37,6 +36,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategorySection
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerShelfUiState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfAppUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfContentMode
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfErrorUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.displayName
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OrganizerDimens
 
@@ -92,12 +92,20 @@ fun OrganizerShelf(
                 )
             }
 
+            state.error?.let { currentError ->
+                item(key = "error-${currentError.name}") {
+                    ErrorState(currentError)
+                }
+            }
+
             when (state.contentMode) {
                 ShelfContentMode.LOADING -> {
                     item(key = "loading") {
                         LoadingState()
                     }
                 }
+
+                ShelfContentMode.ERROR -> Unit
 
                 ShelfContentMode.NO_RESULTS -> {
                     item(key = "no-results") {
@@ -318,7 +326,7 @@ private fun AppSection(
 @Composable
 private fun LoadingState() {
     StateCard {
-        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+        CircularProgressIndicator(modifier = Modifier.size(OrganizerDimens.loadingIndicatorSize))
         Spacer(modifier = Modifier.size(OrganizerDimens.spacingMedium))
         Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingExtraSmall)) {
             Text(
@@ -327,6 +335,40 @@ private fun LoadingState() {
             )
             Text(
                 text = stringResource(R.string.loading_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(error: ShelfErrorUiModel) {
+    val title =
+        stringResource(
+            when (error) {
+                ShelfErrorUiModel.SCAN_FAILED -> R.string.scan_error_title
+                ShelfErrorUiModel.LAUNCH_FAILED -> R.string.launch_error_title
+                ShelfErrorUiModel.STATE_UPDATE_FAILED -> R.string.state_error_title
+            }
+        )
+    val body =
+        stringResource(
+            when (error) {
+                ShelfErrorUiModel.SCAN_FAILED -> R.string.scan_error_body
+                ShelfErrorUiModel.LAUNCH_FAILED -> R.string.launch_error_body
+                ShelfErrorUiModel.STATE_UPDATE_FAILED -> R.string.state_error_body
+            }
+        )
+
+    StateCard {
+        Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingSmall)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = body,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
