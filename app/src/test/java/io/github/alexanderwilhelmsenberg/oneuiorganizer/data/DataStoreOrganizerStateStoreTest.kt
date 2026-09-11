@@ -89,6 +89,30 @@ class DataStoreOrganizerStateStoreTest {
     }
 
     @Test
+    fun `pre classification wave schema v1 state survives additive taxonomy`() = runBlocking {
+        val directory = Files.createTempDirectory("organizer-state-pre-classification-wave")
+        val file = directory.resolve("organizer-state.json").toFile()
+        file.writeText(
+            """{"schemaVersion":1,"categoryOverrides":{"example.override":"WORK"},"favouriteAppIds":["example.favourite"],"hiddenAppIds":["example.hidden"]}"""
+        )
+
+        val job = SupervisorJob()
+        val scope = CoroutineScope(Dispatchers.IO + job)
+        try {
+            val store = DataStoreOrganizerStateStore.create(file = file, scope = scope)
+            val state = store.state.first()
+
+            assertEquals(AppCategory.WORK, state.categoryOverrides[AppId("example.override")])
+            assertTrue(AppId("example.favourite") in state.favouriteAppIds)
+            assertTrue(AppId("example.hidden") in state.hiddenAppIds)
+            assertEquals(OrganizerState.CURRENT_SCHEMA_VERSION, state.schemaVersion)
+        } finally {
+            job.cancelAndJoin()
+            directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun `concurrent updates are atomic`() = runBlocking {
         withStore { store ->
             coroutineScope {
