@@ -3,7 +3,10 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.domain
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.PlatformAppCategory
@@ -65,6 +68,31 @@ class ClassificationReportFormatterTest {
     }
 
     @Test
+    fun customCategoryReportIncludesEffectiveIdentityAndDisplayName() {
+        val custom = CustomCategoryDefinition(CategoryId.custom("focus"), "Focus Apps")
+        val report =
+            ClassificationReportFormatter.format(
+                listOf(
+                    categorizedApp(
+                        packageName = "example.focus",
+                        className = "example.focus.MainActivity",
+                        label = "Focus",
+                        platformCategory = PlatformAppCategory.UNDEFINED,
+                        category = custom,
+                        source = ClassificationSource.USER_OVERRIDE
+                    )
+                )
+            )
+
+        assertTrue(report.contains("custom:focus (Focus Apps)\t1"))
+        assertTrue(
+            report.contains(
+                "Focus\texample.focus\texample.focus.MainActivity\tUNDEFINED\tcustom:focus (Focus Apps)\tUSER_OVERRIDE"
+            )
+        )
+    }
+
+    @Test
     fun reportContainsRequiredFieldsAndSanitizesControlCharacters() {
         val app =
             categorizedApp(
@@ -107,7 +135,7 @@ class ClassificationReportFormatterTest {
         className: String,
         label: String,
         platformCategory: PlatformAppCategory,
-        category: AppCategory,
+        category: CategoryDefinition,
         source: ClassificationSource
     ): CategorizedApp = CategorizedApp(
         app =

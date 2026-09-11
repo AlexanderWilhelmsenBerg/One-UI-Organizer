@@ -2,7 +2,9 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.domain
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.PlatformAppCategory
@@ -20,6 +22,21 @@ class DefaultCategoryEngineTest {
         val result = DefaultCategoryEngine().categorize(app, AppCategory.FINANCE)
 
         assertEquals(AppCategory.FINANCE, result.category)
+        assertEquals(ClassificationSource.USER_OVERRIDE, result.source)
+    }
+
+    @Test
+    fun customUserOverrideBeatsKnownAppRuleAndPreservesIdentity() {
+        val app = installedApp(
+            packageName = "com.termux",
+            platformCategory = PlatformAppCategory.GAME
+        )
+        val custom = CustomCategoryDefinition(CategoryId.custom("terminals"), "Terminals")
+
+        val result = DefaultCategoryEngine().categorize(app, custom)
+
+        assertEquals(custom, result.category)
+        assertEquals(custom.id, result.category.id)
         assertEquals(ClassificationSource.USER_OVERRIDE, result.source)
     }
 
