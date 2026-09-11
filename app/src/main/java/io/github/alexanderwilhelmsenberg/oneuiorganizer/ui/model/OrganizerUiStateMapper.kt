@@ -1,7 +1,6 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.LocalAppSearch
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 
@@ -29,11 +28,12 @@ object OrganizerUiStateMapper {
                 .filter { categorizedApp -> categorizedApp.app.id in organizerState.favouriteAppIds }
                 .map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
 
+        val orderedCategories = organizerState.orderedCategories()
         val categories =
-            AppCategory.entries.mapNotNull { category ->
+            orderedCategories.mapNotNull { category ->
                 val categoryApps =
                     filteredApps
-                        .filter { categorizedApp -> categorizedApp.category == category }
+                        .filter { categorizedApp -> categorizedApp.category.id == category.id }
                         .map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
                 categoryApps
                     .takeIf(List<ShelfAppUiModel>::isNotEmpty)
@@ -51,6 +51,7 @@ object OrganizerUiStateMapper {
             favourites = favourites,
             categories = categories,
             hiddenApps = hiddenApps,
+            availableCategories = orderedCategories,
             error = error,
             currentAppCount = apps.size
         )

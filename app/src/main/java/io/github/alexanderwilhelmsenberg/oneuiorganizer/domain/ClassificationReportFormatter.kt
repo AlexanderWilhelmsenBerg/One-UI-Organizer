@@ -2,12 +2,20 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.domain
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 
 object ClassificationReportFormatter {
     fun format(apps: List<CategorizedApp>): String {
-        val categoryCounts = apps.groupingBy(CategorizedApp::category).eachCount()
+        val categoryCounts = apps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount()
         val sourceCounts = apps.groupingBy(CategorizedApp::source).eachCount()
+        val customCategories =
+            apps.asSequence()
+                .map(CategorizedApp::category)
+                .filterNot { category -> category is AppCategory }
+                .distinctBy(CategoryDefinition::id)
+                .sortedBy { category -> category.id.value }
+                .toList()
         val orderedApps =
             apps.sortedWith(
                 compareBy<CategorizedApp>(
@@ -24,7 +32,10 @@ object ClassificationReportFormatter {
             appendLine()
             appendLine("[organizerCategoryCounts]")
             AppCategory.entries.forEach { category ->
-                appendLine("${category.name}\t${categoryCounts[category] ?: 0}")
+                appendLine("${category.name}\t${categoryCounts[category.id] ?: 0}")
+            }
+            customCategories.forEach { category ->
+                appendLine("${category.reportLabel()}\t${categoryCounts[category.id] ?: 0}")
             }
             appendLine()
             appendLine("[classificationSourceCounts]")
@@ -44,13 +55,20 @@ object ClassificationReportFormatter {
                         sanitizeField(app.id.packageName),
                         sanitizeField(app.launchTargetId.className),
                         app.platformCategory.name,
-                        categorizedApp.category.name,
+                        categorizedApp.category.reportLabel(),
                         categorizedApp.source.name
                     ).joinToString(separator = "\t")
                 )
             }
         }
     }
+
+    private fun CategoryDefinition.reportLabel(): String =
+        if (this is AppCategory) {
+            name
+        } else {
+            "${id.value} (${sanitizeField(displayName)})"
+        }
 
     private fun sanitizeField(value: String): String = value
         .replace('\t', ' ')

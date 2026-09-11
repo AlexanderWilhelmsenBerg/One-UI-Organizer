@@ -31,13 +31,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategorySectionUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerShelfUiState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfAppUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfContentMode
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfErrorUiModel
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.displayName
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OrganizerDimens
 
 @Composable
@@ -46,7 +46,7 @@ fun OrganizerShelf(
     showHiddenApps: Boolean,
     onQueryChange: (String) -> Unit,
     onLaunchApp: (LaunchTargetId) -> Unit,
-    onMoveApp: (LaunchTargetId, AppCategory) -> Unit,
+    onMoveApp: (LaunchTargetId, CategoryDefinition) -> Unit,
     onToggleFavourite: (LaunchTargetId) -> Unit,
     onHideApp: (LaunchTargetId) -> Unit,
     onRestoreApp: (LaunchTargetId) -> Unit,
@@ -136,7 +136,7 @@ fun OrganizerShelf(
                     }
 
                     state.categories.forEach { section ->
-                        item(key = "category-${section.category.name}") {
+                        item(key = "category-${section.category.id.value}") {
                             CategorySection(
                                 section = section,
                                 availableCategories = state.availableCategories,
@@ -148,7 +148,7 @@ fun OrganizerShelf(
                         }
                     }
 
-                    if (state.categories.none { it.category == AppCategory.UNSORTED }) {
+                    if (state.categories.none { section -> section.category.id == AppCategory.UNSORTED.id }) {
                         item(key = "unsorted-empty") {
                             UnsortedEmptyState()
                         }
@@ -236,14 +236,14 @@ private fun OrganizerSearchField(query: String, onQueryChange: (String) -> Unit)
 @Composable
 private fun CategorySection(
     section: CategorySectionUiModel,
-    availableCategories: List<AppCategory>,
+    availableCategories: List<CategoryDefinition>,
     onLaunchApp: (LaunchTargetId) -> Unit,
-    onMoveApp: (LaunchTargetId, AppCategory) -> Unit,
+    onMoveApp: (LaunchTargetId, CategoryDefinition) -> Unit,
     onToggleFavourite: (LaunchTargetId) -> Unit,
     onHideApp: (LaunchTargetId) -> Unit
 ) {
     AppSection(
-        title = section.category.displayName(),
+        title = section.category.displayName,
         apps = section.apps,
         availableCategories = availableCategories,
         onLaunchApp = onLaunchApp,
@@ -251,7 +251,7 @@ private fun CategorySection(
         onToggleFavourite = onToggleFavourite,
         onHideApp = onHideApp,
         emptyMessage =
-            if (section.category == AppCategory.UNSORTED) {
+            if (section.category.id == AppCategory.UNSORTED.id) {
                 stringResource(R.string.unsorted_empty_body)
             } else {
                 null
@@ -263,9 +263,9 @@ private fun CategorySection(
 private fun AppSection(
     title: String,
     apps: List<ShelfAppUiModel>,
-    availableCategories: List<AppCategory>,
+    availableCategories: List<CategoryDefinition>,
     onLaunchApp: (LaunchTargetId) -> Unit,
-    onMoveApp: (LaunchTargetId, AppCategory) -> Unit,
+    onMoveApp: (LaunchTargetId, CategoryDefinition) -> Unit,
     onToggleFavourite: (LaunchTargetId) -> Unit,
     onHideApp: (LaunchTargetId) -> Unit,
     emptyMessage: String? = null
@@ -433,7 +433,7 @@ private fun UnsortedEmptyState() {
             verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingExtraSmall)
         ) {
             Text(
-                text = AppCategory.UNSORTED.displayName(),
+                text = AppCategory.UNSORTED.displayName,
                 style = MaterialTheme.typography.titleMedium
             )
             Text(

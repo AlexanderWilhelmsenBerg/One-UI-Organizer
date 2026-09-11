@@ -1,9 +1,9 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.data
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryEngine
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.InstalledAppSource
@@ -16,13 +16,12 @@ import kotlinx.coroutines.sync.withLock
 /**
  * Source of truth for the current installed-app scan combined with user-owned organizer state.
  *
- * v0.1 retains state for packages that are not currently installed. Stale entries never create [CategorizedApp]
+ * State for packages that are not currently installed is retained. Stale entries never create [CategorizedApp]
  * values because only the current [InstalledAppSource] result is categorized. If the same package is installed again,
- * its retained override, favourite, and hidden state becomes active again. Cleanup is deferred until the product has
- * an explicit user-visible or bounded retention policy, avoiding silent loss of user corrections.
+ * its retained override, favourite, and hidden state becomes active again.
  *
- * User state is keyed by [AppId], which is package identity in the frozen v0.1 contract. Multiple launcher targets in
- * one package therefore intentionally share category, favourite, and hidden state.
+ * User state is keyed by [AppId], which is package identity. Multiple launcher targets in one package therefore
+ * intentionally share category, favourite, and hidden state.
  */
 class DefaultOrganizerRepository(
     private val installedAppSource: InstalledAppSource,
@@ -37,7 +36,8 @@ class DefaultOrganizerRepository(
     override val apps: Flow<List<CategorizedApp>> =
         combine(installedApps, organizerStateStore.state) { currentApps, state ->
             currentApps.map { app ->
-                categoryEngine.categorize(app, state.categoryOverrides[app.id])
+                val override = state.categoryOverrides[app.id]?.let(state::categoryDefinition)
+                categoryEngine.categorize(app, override)
             }
         }
 
@@ -47,13 +47,18 @@ class DefaultOrganizerRepository(
         }
     }
 
-    override suspend fun setCategoryOverride(appId: AppId, category: AppCategory?) {
+    override suspend fun setCategoryOverride(appId: AppId, categoryId: CategoryId?) {
         organizerStateStore.update { state ->
+            if (categoryId != null) {
+                requireNotNull(state.categoryDefinition(categoryId)) {
+                    "Category override must target a known built-in or custom category."
+                }
+            }
             val overrides =
-                if (category == null) {
+                if (categoryId == null) {
                     state.categoryOverrides - appId
                 } else {
-                    state.categoryOverrides + (appId to category)
+                    state.categoryOverrides + (appId to categoryId)
                 }
             state.copy(categoryOverrides = overrides)
         }
