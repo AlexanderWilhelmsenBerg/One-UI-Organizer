@@ -1,6 +1,6 @@
 # Classification Quality Roadmap and Result
 
-This document records the post-v0.1 classification-quality wave from evidence through integration acceptance. The foundation, general rules, game rules, WebAPK rule and triage/explanation UI are merged. Agent 70 owns final integration and acceptance on `integration/classification-quality`.
+This document records the post-v0.1 classification-quality wave from evidence through integration acceptance. The foundation, general rules, game rules, WebAPK rule and triage/explanation UI are merged. Agent 70 owns final integration and owner-device acceptance on `integration/classification-quality`.
 
 See [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md) for the detailed acceptance record.
 
@@ -18,7 +18,7 @@ Sanitized baseline aggregates were:
 - `USER_OVERRIDE`: 0;
 - `UNSORTED_FALLBACK`: 225.
 
-The evidence showed that deterministic package rules were sparse and established one generated Chromium WebAPK under the stable `org.chromium.webapk.` namespace. TWA-style wrappers were present without an equally safe universal identity rule.
+The evidence also established one generated Chromium WebAPK and a substantial emulator population that became clearer during row-level acceptance review.
 
 ## 2. Foundation decision — merged in PR #9
 
@@ -34,16 +34,17 @@ Agent 60 established:
 
 ## 3. Final taxonomy
 
-The classification wave added:
+The classification wave includes:
 
 - `WEB_SHORTCUTS` — Web Shortcuts;
+- `EMULATORS` — Emulators;
 - `GAME_ACTION_ADVENTURE` — Action & Adventure;
 - `GAME_RPG` — RPG;
 - `GAME_STRATEGY_SIMULATION` — Strategy & Simulation;
 - `GAME_PUZZLE_CASUAL` — Puzzle & Casual;
 - `GAME_BOARD_CARD` — Board & Card.
 
-`GAMES` remains the broad safe fallback. `UNSORTED` remains a normal fallback. Existing enum values were not renamed or removed.
+`EMULATORS` is a software-role category rather than a game genre. `GAMES` remains the broad safe fallback. `UNSORTED` remains a normal fallback. Existing enum values are not renamed or removed.
 
 ## 4. Rule architecture
 
@@ -62,7 +63,7 @@ Outer classification precedence is:
 3. Android-declared category;
 4. `Unsorted`.
 
-Duplicate selectors and overlapping prefixes fail fast. Prefixes require a package-segment boundary. No label guessing, URL inference, cloud classification or generic rule DSL was introduced.
+Duplicate selectors and overlapping prefixes fail fast. Prefixes require a package-segment boundary. No display-label guessing or probabilistic classifier is introduced.
 
 ## 5. General-rule lane — merged in PR #12
 
@@ -74,11 +75,11 @@ Against the frozen evidence, the general lane alone reduced `Unsorted` from 225 
 
 PR #13 initially added 106 narrow exact-package game rules. The first fresh Samsung acceptance report exposed one false positive: an `Eden Optimized` emulator variant used package identity `com.miHoYo.Yuanshen` while launching an `org.yuzu.yuzu_emu` activity. The package rule incorrectly forced it into RPG.
 
-Agent 70 removed that ambiguous exact-package rule and added a regression. The final game pack contains 105 narrow rules.
+Agent 70 removed that ambiguous package game rule and added regression coverage. The narrow game pack now contains 105 genre rules.
 
-Final expected same-device game distribution:
+Before the emulator pack is applied, the corrected game-only distribution is:
 
-| Game category | Before | Final expected |
+| Game category | Before | Corrected game lane |
 | --- | ---: | ---: |
 | Action & Adventure | 0 | 12 |
 | RPG | 0 | 37 |
@@ -88,21 +89,32 @@ Final expected same-device game distribution:
 | Games fallback | 129 | 24 |
 | **Total** | **129** | **129** |
 
-This correction follows the acceptance principle: an emulator or ambiguous gaming utility remains in broad `Games` rather than being forced into a genre.
+## 7. Emulator integration correction — Agent 70
 
-## 7. Web/PWA lane — merged in PR #10
+Owner review established that emulators form a useful and sufficiently large category distinct from game genres.
 
-The production Web shortcut rule is intentionally narrow:
+The emulator pack adds:
+
+- 14 exact-package rules for evidence-backed emulator identities;
+- one exact-component rule for the observed Eden/Yuzu launcher identity.
+
+The exact-component rule is important because the Eden emulator variant shares `com.miHoYo.Yuanshen` with software that must not be assumed to be an emulator based on package identity alone.
+
+The evidence-backed package rules cover DraStic, Flycast, DuckStation, RetroArch, Cemu, Azahar, RPCSX, Citra, citron, Dolphin, PPSSPP, ScummVM, Sudachi and NetherSX2.
+
+Gaming frontends, streaming clients and controller utilities are not automatically treated as emulators.
+
+## 8. Web/PWA lane — merged in PR #10
+
+The production Web shortcut rule remains intentionally narrow:
 
 ```text
 org.chromium.webapk.* -> Web Shortcuts
 ```
 
-The implemented selector is the segment-bounded prefix `org.chromium.webapk.`. It does not classify based on labels, URLs, activity-name fragments, browser names or Samsung launcher internals. Standard TWAs remain outside generic automatic classification.
+It does not classify based on labels, URLs, activity-name fragments, browser names or Samsung launcher internals. Standard TWAs remain outside generic automatic classification.
 
-Exactly one reviewed target moves into `Web Shortcuts`.
-
-## 8. Triage/explanation lane — merged in PR #11
+## 9. Triage/explanation lane — merged in PR #11
 
 The UI carries the real `ClassificationSource` into presentation state and explains classification as:
 
@@ -113,9 +125,9 @@ The UI carries the real `ClassificationSource` into presentation state and expla
 
 Automatic `UNSORTED_FALLBACK` entries receive a direct `Sort` affordance. Deliberate user overrides remain distinguishable.
 
-## 9. Final integrated expected result
+## 10. Final integrated expected result
 
-After the Agent 70 false-positive correction, the expected aggregate result against the same 566-target population is:
+After the game false-positive correction and emulator pack, the expected aggregate result against the same 566-target population is:
 
 | Category | Final expected |
 | --- | ---: |
@@ -135,79 +147,81 @@ After the Agent 70 false-positive correction, the expected aggregate result agai
 | Web Shortcuts | 1 |
 | Development | 3 |
 | Tools | 17 |
+| Emulators | **15** |
 | Action & Adventure | 12 |
-| RPG | 37 |
+| RPG | **37** |
 | Strategy & Simulation | 29 |
 | Puzzle & Casual | 23 |
 | Board & Card | 4 |
-| Games fallback | 24 |
+| Games fallback | **10** |
 | Other | 0 |
-| Unsorted | **124** |
+| Unsorted | **123** |
 | **Total** | **566** |
 
-Final expected source counts:
+Expected source counts:
 
 - `USER_OVERRIDE`: 0;
-- `KNOWN_APP_RULE`: 234;
-- `ANDROID_DECLARED_CATEGORY`: 208;
-- `UNSORTED_FALLBACK`: 124.
+- `KNOWN_APP_RULE`: 249;
+- `ANDROID_DECLARED_CATEGORY`: 194;
+- `UNSORTED_FALLBACK`: 123.
 
-`Unsorted` remains improved from 225 to 124. The game correction changes only one entry from narrow RPG back to broad `Games` and from known-rule source back to Android-declared source.
+Compared with the first fresh integrated report, 13 broad Android game entries, the Eden/Yuzu component and one previously `Unsorted` Citra entry move to `Emulators`.
 
-A second fresh report from the corrected build is required before these final figures are called device-confirmed.
+A fresh report from the emulator-category build is required before these figures are called device-confirmed.
 
-## 10. Migration decision
+## 11. Migration decision
 
 The taxonomy expansion is additive only:
 
-- no existing `AppCategory` value was renamed or removed;
+- no existing `AppCategory` value is renamed or removed;
 - persisted override enum names remain valid;
 - organizer-state schema remains version 1;
 - no data migration is required.
 
 Agent 70 includes a regression test that decodes a literal pre-wave schema-v1 payload and verifies category override, favourite and hidden state remain intact.
 
-The supplied Samsung report contains `USER_OVERRIDE = 0` and does not expose favourites/hidden state, so strict physical persisted-state proof remains a separate acceptance item if required literally.
+## 12. Optional metadata enrichment direction
 
-## 11. Integration quality
+The owner permits future Internet-backed category/tag enrichment.
+
+Google Play categories/tags are useful evidence, but Google's documented Developer APIs do not provide a general arbitrary-package catalog API for this product. Unofficial Play scraping is therefore not accepted as a production dependency.
+
+F-Droid publishes documented indexes and package metadata with categories and is a viable future provider for the subset it covers.
+
+A future provider must be local-first, cached, best-effort, mapped explicitly into app-owned categories and lower precedence than user overrides and bundled high-confidence rules. `INTERNET` should be added only together with the supported provider implementation.
+
+## 13. Integration quality
 
 Agent 70 re-proves:
 
 - all rule packs compose through one `KnownAppRuleSet`;
 - user override wins;
 - bundled rules beat Android category;
+- exact-component evidence can disambiguate a shared package identity;
 - unmatched Android games retain `Games` fallback;
-- unmatched/undefined apps retain `Unsorted` fallback;
-- the ambiguous Eden/Yuzu evidence remains broad `Games`.
+- unmatched/undefined apps retain `Unsorted` fallback.
 
-The permanent CI lane is extended to compile the `androidTest` APK. This catches broken Compose/instrumentation test sources without pretending to execute device tests in headless CI.
+The permanent CI lane compiles the `androidTest` APK in addition to the existing unit/lint/format/dependency/configuration-cache gates.
 
-## 12. Acceptance principle
+## 14. Acceptance principle
 
 The goal is not `Unsorted = 0` or `Games = 0`.
 
-The successful result is:
+The successful result is materially better grouping with low false-positive risk, preserved user corrections, understandable classification source and easy manual correction.
 
-- materially better useful grouping;
-- low false-positive risk;
-- deterministic local rules;
-- preserved user corrections;
-- understandable classification source;
-- easy manual correction for the remainder.
+The Eden correction demonstrates why exact-component evidence can be preferable to package-only assumptions. The emulator category demonstrates that the organizer taxonomy should serve useful personal organization rather than mirror a storefront taxonomy mechanically.
 
-The Eden correction is a concrete example of preferring a safe broad fallback over an aggressive narrow match.
+## 15. Remaining limitations
 
-## 13. Remaining limitations
+- 123 entries are expected to remain `Unsorted`.
+- 10 entries are expected to remain broad `Games`.
+- gaming frontends/streaming clients are not automatically classified as emulators.
+- standard TWA and non-Chromium browser shortcuts lack a universal safe rule.
+- exact known-app identities require maintenance.
+- optional network metadata enrichment is not yet implemented.
+- automatic classification remains one primary category per app.
 
-- 124 entries remain `Unsorted`.
-- 24 game entries remain broad `Games` after the false-positive correction.
-- Standard TWA and non-Chromium browser shortcuts lack a universal safe rule.
-- Exact package identities require maintenance and can be ambiguous for modified/repacked software.
-- Automatic classification remains one primary category per app.
-
-These limitations should not be solved by weakening determinism or adding network/cloud classification.
-
-## 14. After Agent 70
+## 16. After Agent 70
 
 The recommended next coherent wave is user-owned category management:
 
@@ -215,4 +229,4 @@ The recommended next coherent wave is user-owned category management:
 - persisted category order;
 - richer manual/category management UI.
 
-That wave should start with the persistence/domain contract and migration tests. Local backup/export/import and pinned/dynamic shortcuts should follow stable category identity. Performance work remains measurement-driven.
+A metadata-enrichment investigation may run as a separate architecture lane. Local backup/export/import and pinned/dynamic shortcuts should follow stable category identity. Performance work remains measurement-driven.
