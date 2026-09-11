@@ -158,7 +158,10 @@ internal object OrganizerStateJsonCodec {
             val categoryPrimitive = categoryElement as? JsonPrimitive
                 ?: throw IllegalArgumentException("Category override must be a string.")
             require(categoryPrimitive.isString) { "Category override must be a string." }
-            AppId(packageName) to AppCategory.valueOf(categoryPrimitive.content).id
+            val categoryId = requireNotNull(schemaV1CategoryIds[categoryPrimitive.content]) {
+                "Unknown schema-v1 category: ${categoryPrimitive.content}."
+            }
+            AppId(packageName) to categoryId
         }
     }
 
@@ -228,6 +231,35 @@ internal object OrganizerStateJsonCodec {
         .sorted()
         .map(::JsonPrimitive)
         .toList()
+
+    private val schemaV1CategoryIds =
+        mapOf(
+            "COMMUNICATION" to AppCategory.COMMUNICATION.id,
+            "SOCIAL" to AppCategory.SOCIAL.id,
+            "WORK" to AppCategory.WORK.id,
+            "PRODUCTIVITY" to AppCategory.PRODUCTIVITY.id,
+            "SMART_HOME" to AppCategory.SMART_HOME.id,
+            "HOMELAB" to AppCategory.HOMELAB.id,
+            "FINANCE" to AppCategory.FINANCE.id,
+            "SHOPPING" to AppCategory.SHOPPING.id,
+            "TRAVEL_NAVIGATION" to AppCategory.TRAVEL_NAVIGATION.id,
+            "MUSIC_AUDIO" to AppCategory.MUSIC_AUDIO.id,
+            "VIDEO" to AppCategory.VIDEO.id,
+            "PHOTOS" to AppCategory.PHOTOS.id,
+            "READING" to AppCategory.READING.id,
+            "WEB_SHORTCUTS" to AppCategory.WEB_SHORTCUTS.id,
+            "DEVELOPMENT" to AppCategory.DEVELOPMENT.id,
+            "TOOLS" to AppCategory.TOOLS.id,
+            "EMULATORS" to AppCategory.EMULATORS.id,
+            "GAME_ACTION_ADVENTURE" to AppCategory.GAME_ACTION_ADVENTURE.id,
+            "GAME_RPG" to AppCategory.GAME_RPG.id,
+            "GAME_STRATEGY_SIMULATION" to AppCategory.GAME_STRATEGY_SIMULATION.id,
+            "GAME_PUZZLE_CASUAL" to AppCategory.GAME_PUZZLE_CASUAL.id,
+            "GAME_BOARD_CARD" to AppCategory.GAME_BOARD_CARD.id,
+            "GAMES" to AppCategory.GAMES.id,
+            "OTHER" to AppCategory.OTHER.id,
+            "UNSORTED" to AppCategory.UNSORTED.id
+        )
 
     private const val SCHEMA_VERSION = "schemaVersion"
     private const val CATEGORY_OVERRIDES = "categoryOverrides"
