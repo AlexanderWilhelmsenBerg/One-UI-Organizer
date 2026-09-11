@@ -79,11 +79,15 @@ Agent 70 first removed the ambiguous package RPG rule. Owner review then approve
 
 The emulator pack also classifies the evidence-backed emulator packages for DraStic, Flycast, DuckStation, RetroArch, Cemu, Azahar, RPCSX, Citra, citron, Dolphin, PPSSPP, ScummVM, Sudachi and NetherSX2.
 
-## Final expected same-device aggregate result
+The final owner-device report from the emulator-category build contained the same 566 launch targets and matched the predicted aggregate result exactly. Manual review confirmed all 15 `Emulators` rows are emulator software/components, including the corrected Eden/Yuzu launcher and Citra.
 
-On the same 566-target population the current branch should produce:
+The 10 remaining broad `Games` rows are intentionally not forced into emulator or genre buckets. They include gaming frontends/streaming/compatibility software such as Xbox Game Pass, Moonlight/Artemis, Better xCloud, Winlator, GameHub and ES-DE, alongside a small number of game entries that remain safely broad.
 
-| Category | Before | Final expected |
+## Final device-confirmed same-device aggregate result
+
+On the same 566-target population the current branch produces:
+
+| Category | Before | Device confirmed |
 | --- | ---: | ---: |
 | Communication | 0 | 6 |
 | Social | 24 | 27 |
@@ -112,9 +116,9 @@ On the same 566-target population the current branch should produce:
 | Unsorted | **225** | **123** |
 | **Total** | **566** | **566** |
 
-Expected classification-source counts are:
+Device-confirmed classification-source counts are:
 
-| Classification source | Before | Final expected |
+| Classification source | Before | Device confirmed |
 | --- | ---: | ---: |
 | User override | 0 | 0 |
 | Bundled known-app rule | 5 | **249** |
@@ -124,7 +128,7 @@ Expected classification-source counts are:
 
 Compared with the first fresh integrated report, the emulator pack moves 13 broad Android `Games` entries, the Eden/Yuzu component, and one previously `Unsorted` Citra entry into `Emulators`.
 
-A fresh Samsung report from the current emulator-category build is required before these figures are called device-confirmed.
+The classification improvement is therefore device-confirmed rather than projected: `Unsorted` falls from 225 to 123 while preserving conservative fallbacks, and all 566 launch targets remain accounted for.
 
 ## Game decision
 
@@ -150,7 +154,7 @@ The taxonomy changes are additive. No existing `AppCategory` value is renamed or
 
 The integration lane includes a regression that reads a literal pre-wave schema-v1 payload and verifies an existing manual category override, favourite and hidden state survive unchanged.
 
-The supplied device report has `USER_OVERRIDE = 0` and does not expose favourite or hidden state, so strict physical proof for those state types remains a separate acceptance item if required literally.
+The final device report has `USER_OVERRIDE = 0` and does not expose favourite or hidden state, so strict physical proof for those state types remains a separate acceptance item if required literally. No migration failure has been observed.
 
 ## Optional network metadata enrichment decision
 
@@ -177,28 +181,31 @@ The permanent CI lane covers debug assembly, instrumentation-test APK compilatio
 
 `assembleDebugAndroidTest` remains a compile gate, not a claim of device/emulator instrumentation execution.
 
+CI run #192 passed the full repository quality lane for the emulator-category implementation before the final documentation-only acceptance update.
+
 ## Samsung acceptance status
 
-Confirmed from the first fresh device pass:
+Confirmed from the final owner-device pass:
 
-- the integrated application installs and runs on the primary Samsung device;
+- the current emulator-category build installs and runs on the primary Samsung device;
 - target count remains 566;
-- report generation works;
-- the classification wave materially reduces `Unsorted`;
-- row-level review found and enabled correction of a real false positive;
+- aggregate category counts match the predicted result exactly;
+- aggregate classification-source counts match the predicted result exactly;
+- `Emulators = 15`, broad `Games = 10`, RPG = 37 and `Unsorted = 123`;
+- Eden/Yuzu is correctly classified as `Emulators` through its exact launch component;
+- Citra is correctly classified as `Emulators` instead of `Unsorted`;
+- all reviewed emulator rows are actual emulator software/components;
+- ambiguous gaming frontends/streaming/compatibility software remains safely broad instead of being over-classified;
 - no raw launcher inventory is committed.
 
-Still required before final owner acceptance:
+The classification-quality device gate is complete.
 
-- install/run the current emulator-category build;
-- generate a fresh report and confirm the expected aggregate counts above;
-- sample representative emulator entries, including Eden/Yuzu and Citra;
-- if strict physical persisted-state acceptance is required, separately prove manual override/favourite/hidden survival.
+If strict physical persisted-state acceptance is required literally, manual override/favourite/hidden survival remains a separate narrow check because the classification report cannot observe those state types. Repository migration coverage for them is green.
 
 ## Remaining limitations
 
-- 123 entries are expected to remain `Unsorted`.
-- 10 entries are expected to remain broad `Games`.
+- 123 entries remain `Unsorted` by design rather than being guessed into categories.
+- 10 entries remain broad `Games` by design.
 - gaming frontends/streaming clients are not automatically treated as emulators.
 - standard TWA and non-Chromium browser shortcuts lack a universal safe rule.
 - known-app rules require maintenance as package identities change.
