@@ -6,7 +6,7 @@ This document records the integrated user-owned category-management design and t
 
 Agents 80, 81 and 82 are merged to `main` as PRs #15, #16 and #17. Agent 83 integrates those lanes in PR #18 on `integration/category-management`.
 
-The implementation is not considered fully accepted, and PR #18 is not merge-ready, until the physical Samsung upgrade/migration checklist in this document has been completed without clearing application data and the generalized result has been recorded. The final PR CI is the authoritative automated-quality result.
+The automated quality gate is green. Physical Samsung acceptance is **in progress**: owner-device evidence now proves a real manual category override and diagnostic reporting while preserving the full 566-target inventory. The implementation is not considered fully accepted, and PR #18 is not merge-ready, until the remaining physical upgrade/migration checklist in this document has been completed without clearing application data and the generalized result has been recorded.
 
 ## Final category model
 
@@ -91,7 +91,7 @@ The integrated presentation maps failures to safe messages for blank/too-long/du
 
 ## Automated acceptance
 
-The permanent PR quality lane is the automated gate and must be green on the final PR head. It covers:
+The permanent PR quality lane is green on the integrated Agent 83 branch. It covers:
 
 - debug app assembly;
 - instrumentation-test APK compilation;
@@ -106,7 +106,7 @@ The permanent PR quality lane is the automated gate and must be green on the fin
 
 Repository tests additionally prove stable rename identity, explicit deletion policies, invalid-destination atomicity, exact reorder validation, custom-category search, persistence recreation, schema-v1 migration, classification precedence and custom diagnostic-report representation.
 
-## Physical Samsung migration gate — pending until recorded
+## Physical Samsung migration gate — in progress
 
 Use the repository `Build APK` workflow with the **debug** variant on the Agent 83 branch. That workflow uses the permanent distribution keystore, verifies the signature and publishes the signed debug APK. Install it over the existing pre-category-management application; do not clear data.
 
@@ -115,6 +115,23 @@ Before upgrade, retain representative existing state:
 - one manual built-in category override;
 - one favourite;
 - one hidden app.
+
+### Recorded owner-device evidence — 2026-09-11
+
+A manual move of one previously automatically classified/unsorted app into the built-in `Video` category was exercised on the primary Samsung device and a fresh local classification report was reviewed.
+
+Sanitized evidence:
+
+- total launch-target inventory remained **566**;
+- category totals still summed to 566;
+- classification-source totals still summed to 566;
+- `Video` increased by one while `Unsorted` decreased by one relative to the accepted pre-override baseline;
+- the report showed exactly one `USER_OVERRIDE`;
+- the moved target's effective category was `VIDEO` with classification source `USER_OVERRIDE`;
+- bundled-rule and Android-declared source counts remained unchanged at 249 and 194 respectively;
+- `UNSORTED_FALLBACK` decreased to 122, matching the single manual override.
+
+This proves the real-device manual-override path and diagnostic-report source attribution without changing target inventory. It does **not** yet prove custom-category lifecycle behavior, process-recreation persistence, delete/reassign behavior, or the pre-category-management over-install preservation checks.
 
 After upgrade verify, using only generalized/sanitized evidence:
 
@@ -134,7 +151,7 @@ After upgrade verify, using only generalized/sanitized evidence:
 14. built-in categories cannot be renamed or deleted;
 15. representative apps still launch;
 16. back/dismiss behavior is correct;
-17. classification explanation/reporting still identifies user override correctly;
+17. classification explanation/reporting still identifies user override correctly — **PASS for a real built-in manual override; custom-category reporting remains to be exercised during the lifecycle pass**;
 18. additional custom categories cause no obvious layout failure.
 
 Also sanity-check organizer startup/scan against the existing first-use usability threshold. Do not add benchmark infrastructure unless a measured regression is observed.
