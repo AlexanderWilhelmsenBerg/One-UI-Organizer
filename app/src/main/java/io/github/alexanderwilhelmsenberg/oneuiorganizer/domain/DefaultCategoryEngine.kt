@@ -6,7 +6,6 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.PlatformAppCategory
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.toCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.BundledKnownAppRules
 
 class DefaultCategoryEngine(
@@ -25,7 +24,7 @@ class DefaultCategoryEngine(
         if (knownCategory != null) {
             return CategorizedApp(
                 app = app,
-                category = knownCategory.toCategoryDefinition(),
+                category = knownCategory,
                 source = ClassificationSource.KNOWN_APP_RULE
             )
         }
@@ -34,14 +33,14 @@ class DefaultCategoryEngine(
         if (platformCategory != null) {
             return CategorizedApp(
                 app = app,
-                category = platformCategory.toCategoryDefinition(),
+                category = platformCategory,
                 source = ClassificationSource.ANDROID_DECLARED_CATEGORY
             )
         }
 
         return CategorizedApp(
             app = app,
-            category = AppCategory.UNSORTED.toCategoryDefinition(),
+            category = AppCategory.UNSORTED,
             source = ClassificationSource.UNSORTED_FALLBACK
         )
     }
