@@ -29,10 +29,7 @@ sealed interface CategoryManagementError {
 
     data class NameTooLong(val maximumCodePoints: Int) : CategoryManagementError
 
-    data class DuplicateName(
-        val conflictingCategoryId: CategoryId,
-        val displayName: String
-    ) : CategoryManagementError
+    data class DuplicateName(val conflictingCategoryId: CategoryId, val displayName: String) : CategoryManagementError
 
     data class CategoryNotFound(val categoryId: CategoryId) : CategoryManagementError
 
@@ -44,10 +41,7 @@ sealed interface CategoryManagementError {
 
     data class InvalidReassignmentDestination(val categoryId: CategoryId) : CategoryManagementError
 
-    data class InvalidOrder(
-        val problem: CategoryOrderProblem,
-        val categoryId: CategoryId
-    ) : CategoryManagementError
+    data class InvalidOrder(val problem: CategoryOrderProblem, val categoryId: CategoryId) : CategoryManagementError
 
     data object PersistenceFailure : CategoryManagementError
 }
