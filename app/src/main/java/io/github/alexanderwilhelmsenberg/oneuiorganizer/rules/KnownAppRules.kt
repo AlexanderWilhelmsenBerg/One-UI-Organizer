@@ -71,10 +71,9 @@ class KnownAppRuleSet(rules: List<KnownAppRule>) {
             selector.prefix to rule.category
         }
 
-    fun categoryFor(app: InstalledApp): AppCategory? =
-        componentCategories[app.launchTargetId]
-            ?: packageCategories[app.id]
-            ?: packagePrefixCategories.singleOrNull { (prefix, _) ->
-                app.id.packageName.startsWith(prefix)
-            }?.second
+    fun categoryFor(app: InstalledApp): AppCategory? = componentCategories[app.launchTargetId]
+        ?: packageCategories[app.id]
+        ?: packagePrefixCategories.singleOrNull { (prefix, _) ->
+            app.id.packageName.startsWith(prefix)
+        }?.second
 }
