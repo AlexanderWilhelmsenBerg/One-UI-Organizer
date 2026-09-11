@@ -102,33 +102,35 @@ The historical merge shape was:
 
 This wave remains architecturally important because automatic rule packs continue to own only built-in `AppCategory` results and the outer precedence remains user override > bundled rule > Android category > `Unsorted`.
 
-## 5. Current wave — user-owned category management
+## 5. User-owned category-management wave — integrated, physical acceptance pending
 
-Category management requires a shared identity/persistence contract before domain and Compose work can safely run in parallel.
-
-Merge shape:
+Merge shape and current status:
 
 ```text
-80 Category identity / persistence foundation
+80 Category identity / persistence foundation  -> PR #15 merged
                  |
         +--------+--------+
         |                 |
 81 Category domain     82 Category UI
+   PR #16 merged          PR #17 merged
         |                 |
         +--------+--------+
                  |
         83 Integration / acceptance
+             PR #18 draft
+                 |
+      physical Samsung migration gate
 ```
 
-### Agent 80 — custom-category identity/persistence foundation
+### Agent 80 — merged foundation
 
-Branch:
+Branch used:
 
 ```text
 feature/category-identity-foundation
 ```
 
-Agent 80 owns the frozen shared contract only:
+Agent 80 froze:
 
 - `CategoryId` durable identity;
 - built-in IDs explicitly attached to `AppCategory` rather than derived from enum names/labels;
@@ -140,83 +142,108 @@ Agent 80 owns the frozen shared contract only:
 - persisted custom-category definitions;
 - persisted category order and deterministic normalization;
 - literal schema-v1 migration;
-- repository/search/report/UI-state compatibility required to represent custom categories;
-- regression tests and authoritative documentation.
+- repository/search/report/UI-state compatibility required to represent custom categories.
 
-Agent 80 does **not** own complete create/rename/delete/reorder workflows or a category-management screen.
+Built-ins use explicit IDs in the `builtin:` namespace. User-created categories use `custom:<opaque-id>`. Display name is metadata and never persisted identity.
 
-#### Identity contract
+Schema v2 persists override IDs, favourites, hidden apps, custom definitions and category order. Literal v1 enum override values migrate to explicit built-in IDs while favourites/hidden state survives.
 
-Built-ins use explicit IDs in the `builtin:` namespace. User-created categories use `custom:<opaque-id>`. Display name is metadata and must never be used as persisted identity. Renaming a custom category therefore changes only display metadata.
+`Favourites` stays virtual and outside persisted order. Read normalization preserves first valid occurrences, drops stale/duplicates, appends missing built-ins, then missing custom definitions.
 
-The later domain lane generates the opaque custom ID once at creation. It must not derive identity from the user-visible name.
+### Agent 81 — merged domain/repository
 
-#### Schema-v2 contract
-
-Schema v2 persists:
-
-- category override IDs;
-- favourites;
-- hidden apps;
-- custom category definitions;
-- category order.
-
-Literal v1 enum override values migrate to the explicit built-in IDs. Existing favourites/hidden state survives. Migration starts with no custom categories and the existing built-in order. Any later write uses schema v2.
-
-#### Order contract
-
-`Favourites` stays virtual and outside persisted order. Effective order:
-
-1. preserves the first valid persisted occurrence;
-2. drops stale/unknown IDs;
-3. drops duplicates after the first occurrence;
-4. appends missing built-ins in built-in default order;
-5. appends missing custom categories in definition order.
-
-New/missing built-ins therefore appear deterministically and malformed stale order state cannot crash the app.
-
-### Agent 81 — category management domain/repository
-
-Starts only after Agent 80 is merged to `main`.
-
-Owns:
+PR #16 owns:
 
 - creation and opaque ID generation;
 - rename without identity change;
-- delete with an explicit reassignment/fallback policy;
-- category reorder mutation API;
-- repository/state operations;
-- pure Kotlin regression tests.
+- delete with explicit reassignment/return-to-automatic policy;
+- exact-permutation category reorder mutation;
+- app-owned lifecycle errors;
+- atomic repository/state operations;
+- pure/persistence regression tests.
 
-Agent 81 must consume `CategoryId`, `CategoryDefinition`, `CustomCategoryDefinition` and schema-v2 `OrganizerState`; it must not add a second category entity/identity system or rewrite automatic rule packs.
+It consumes the Agent-80 models/schema and does not redefine automatic rule packs.
 
-### Agent 82 — category management Compose UI
+### Agent 82 — merged Compose UI
 
-Starts from the same post-Agent-80 `main` and may run in parallel with Agent 81 only against the frozen shared contract.
-
-Owns:
+PR #17 owns:
 
 - create/rename/delete/reorder presentation;
 - dedicated category-management surface;
 - accessible Compose state/semantics/tests;
-- UI-only wiring against app-owned category definitions/order.
+- UI behavior against app-owned category definitions/order.
 
-Agent 82 must not persist UI-only categories, duplicate repository behavior, or expose Compose/Material types through shared/domain contracts.
+It does not implement DataStore/repository behavior.
 
 ### Agent 83 — integration / acceptance
 
-Starts after 81 and 82 are merged.
+Branch:
 
-Owns:
+```text
+integration/category-management
+```
 
-- cross-layer wiring;
-- genuine integration repair;
-- schema-v1 upgrade proof through the integrated app;
-- real Samsung acceptance for lifecycle/order behavior;
-- final documentation/acceptance result;
-- leaves merge decision to the owner.
+PR #18 owns:
 
-## 6. Quality gates by responsibility
+- one real `DefaultOrganizerRepository` exposed through the separate app-owned `OrganizerRepository` and `CategoryManagementRepository` contracts;
+- ViewModel intent/result translation without duplicated lifecycle rules;
+- real shelf/category-picker/category-management wiring;
+- management state derived from persisted `OrganizerState`;
+- assignment counts that include retained hidden/uninstalled overrides;
+- sanitized lifecycle failure presentation;
+- Android back/dismiss integration;
+- direct integration regression tests;
+- final automated permanent lane;
+- physical schema-v1/pre-category-management over-install acceptance on the primary Samsung device;
+- final authoritative documentation.
+
+PR #18 remains draft/unmerged until the physical checklist in `CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md` passes. Green CI alone is not sufficient.
+
+## 6. Recommended next wave after Agent 83 acceptance
+
+Once PR #18 has passed physical Samsung migration acceptance and is merged, two independent consumers of stable category identity are strong parallel candidates:
+
+```text
+accepted category-management baseline
+                 |
+        +--------+--------+
+        |                 |
+ local backup/export   category shortcuts
+        |                 |
+        +--------+--------+
+                 |
+        integration / acceptance
+```
+
+### Local backup/export/import lane
+
+Own only:
+
+- versioned local export format;
+- local file export/import UX and adapter behavior;
+- validation before replacing organizer state;
+- preservation of custom IDs/order/overrides/favourites/hidden state;
+- import/export migration and corruption tests.
+
+Do not redefine category identity or lifecycle semantics.
+
+### Dynamic/pinned shortcuts lane
+
+Own only:
+
+- Android dynamic category shortcuts;
+- pinned shortcut request flow;
+- stable `CategoryId` payload/resolution;
+- rename-safe labels/refresh behavior;
+- platform/Compose tests appropriate to shortcuts.
+
+Do not duplicate category persistence or make shortcuts a second source of category state.
+
+These lanes may run in parallel because they consume the accepted category ID contract but do not own the same feature behavior. A later integration lane should re-prove upgrade/state compatibility and Samsung behavior.
+
+Optional F-Droid metadata enrichment and presentation polish remain separate later work. Performance work starts only after measurement proves a regression.
+
+## 7. Quality gates by responsibility
 
 ### Pure domain/rules
 
@@ -256,7 +283,7 @@ Owns:
 - configuration-cache creation/reuse;
 - forbidden-permission checks.
 
-## 7. Conflict-resolution policy
+## 8. Conflict-resolution policy
 
 When two lanes need the same concept:
 
@@ -267,11 +294,9 @@ When two lanes need the same concept:
 5. keep framework/library-specific types at adapters;
 6. do not solve merge pressure through duplicated implementations.
 
-For the current wave, identity/schema/order semantics are Agent 80-owned. Lifecycle behavior is Agent 81-owned. Category-management presentation is Agent 82-owned. Integration-only changes belong to Agent 83.
+For category management, identity/schema/order representation came from Agent 80, lifecycle behavior from Agent 81, presentation from Agent 82 and integration-only repair from Agent 83. Later backup and shortcuts consume those contracts rather than reopening them.
 
-Backup/export/import and dynamic/pinned shortcuts consume this category identity later; they must not be folded into Agent 80 merely because persistence is already changing.
-
-## 8. PR control
+## 9. PR control
 
 Green CI is necessary but not sufficient. A PR is merge-ready only when its lane-specific acceptance is satisfied and all unresolved device/migration steps are visible.
 

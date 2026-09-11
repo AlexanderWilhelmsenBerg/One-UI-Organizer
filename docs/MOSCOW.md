@@ -1,8 +1,8 @@
 # MoSCoW Scope Analysis
 
-This document separates the shipped core from the highest-value follow-up work. v0.1 and the classification-quality wave through Agent 70 / PR #14 are merged. The current development wave is user-owned category management, beginning with the Agent 80 identity/persistence foundation.
+This document separates the shipped core from the highest-value follow-up work. v0.1 and the classification-quality wave through Agent 70 / PR #14 are merged. Agents 80–82 of the user-owned category-management wave are merged as PRs #15–#17; Agent 83 integrates them in PR #18. The category-management wave remains pending the mandatory physical Samsung upgrade/migration acceptance before PR #18 can be considered merge-ready.
 
-Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). The accepted classification result is recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md).
+Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Classification acceptance is recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md); category-management acceptance is recorded in [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md).
 
 ## Must have — current product contract
 
@@ -49,10 +49,14 @@ Requirements:
 - Hide and restore hidden apps.
 - Search by app and category name.
 - Launch the exact selected target.
+- Create and rename custom categories with stable identity.
+- Reorder built-in and custom categories.
+- Delete custom categories only with an explicit reassignment or return-to-automatic choice.
+- Keep built-in categories protected from rename/delete.
 
 ### Category identity and persistence
 
-The current schema-v2 category contract is a prerequisite for category-management work:
+The schema-v2 category contract is the current integrated model:
 
 - built-in categories have explicit durable IDs independent of enum names and display labels;
 - user-created categories use durable app-owned `custom:<opaque-id>` identities independent of display name;
@@ -61,6 +65,7 @@ The current schema-v2 category contract is a prerequisite for category-managemen
 - custom category definitions and category order are persisted locally;
 - existing schema-v1 overrides, favourites and hidden state migrate without loss;
 - order normalization is deterministic for duplicates, stale IDs and missing/new categories;
+- lifecycle reorder accepts only an exact permutation of current normal categories;
 - supported old state must not be treated as corruption merely because the schema version increased.
 
 ### Privacy / minimalism
@@ -72,7 +77,7 @@ The current schema-v2 category contract is a prerequisite for category-managemen
 - No unnecessary background service.
 - Network access, if introduced, must serve an explicit supported feature and remain behind an app-owned boundary.
 
-The current build still has no `INTERNET` permission. Optional metadata enrichment remains a future separate feature.
+The category-management implementation still has no `INTERNET` permission. Optional metadata enrichment remains a future separate feature.
 
 ### Engineering baseline
 
@@ -93,6 +98,7 @@ The current build still has no `INTERNET` permission. Optional metadata enrichme
 - Compose semantics/interaction tests for critical UI behavior.
 - Instrumented/system tests where Android behavior requires them.
 - Physical Samsung acceptance for One UI/platform-critical behavior.
+- Physical over-install migration proof for the category-management schema wave.
 - Performance is measured before optimization.
 
 ## Completed post-v0.1 work
@@ -105,9 +111,9 @@ Agent 70 / PR #14 repaired the Eden/Yuzu package ambiguity using exact-component
 
 ## Should have — current high-value wave
 
-### Custom categories and category order
+### Custom categories and category order — integrated, physical acceptance pending
 
-Foundation contract — Agent 80:
+Agent 80 / PR #15 delivered the identity/persistence foundation:
 
 - durable built-in/custom category identities;
 - schema-v2 migration from literal schema-v1 payloads;
@@ -115,43 +121,53 @@ Foundation contract — Agent 80:
 - persisted deterministic category order;
 - shared category representation across repository/search/report/UI-state mapping.
 
-Lifecycle/domain work — Agent 81:
+Agent 81 / PR #16 delivered lifecycle/domain behavior:
 
-- create custom user categories and generate the opaque ID once;
+- create custom categories and generate the opaque ID once;
 - rename without changing identity;
-- delete with an explicit reassignment/fallback policy;
-- reorder operations;
-- repository/domain tests.
+- delete with explicit reassignment/automatic policy;
+- strict reorder mutation;
+- app-owned failures and atomic repository behavior;
+- persistence/recreation regression tests.
 
-Presentation work — Agent 82:
+Agent 82 / PR #17 delivered presentation:
 
 - create/rename/delete/reorder UI;
 - dedicated category-management surface;
 - accessible Compose behavior/tests;
 - no persistence or classifier duplication in UI.
 
-Integration — Agent 83:
+Agent 83 / PR #18 owns integration/acceptance:
 
-- cross-layer wiring;
-- upgrade/migration proof on the real app/device;
-- Samsung acceptance;
-- genuine integration repair only.
+- one real repository instance through app-owned organizer/lifecycle contracts;
+- real ViewModel/shelf/picker/management wiring;
+- sanitized failure presentation;
+- retained hidden/uninstalled override counts for safe deletion decisions;
+- Android back/dismiss behavior;
+- complete automated quality lane;
+- physical over-install Samsung migration/behavior proof.
 
-### Local backup / portability
+Do not mark this wave complete or merge PR #18 until the physical checklist in `CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md` passes.
+
+### Local backup / portability — next candidate
 
 - Export organizer-owned state to a local file.
 - Import a previously exported local file.
 - Version the export format from its first release.
 - Preserve stable custom category identity/order.
+- Validate imported state before replacing current state.
 
-Backup follows stable category lifecycle semantics and is not part of Agent 80.
+Backup consumes the accepted category lifecycle/identity contract and must not redefine it.
 
-### Shortcuts
+### Shortcuts — next candidate
 
 - Android dynamic shortcuts for useful categories.
 - Request a pinned home-screen shortcut for a selected category.
+- Resolve shortcuts through stable category IDs so category rename does not break identity.
 
-Shortcuts consume stable category identity and should not redefine it.
+Shortcuts consume stable category identity and must not redefine it.
+
+Backup and shortcuts are suitable for parallel development after Agent 83 acceptance because they consume the same stable IDs but own different behavior.
 
 ### Optional metadata enrichment
 
@@ -209,10 +225,10 @@ When new work appears:
 1. correctness/state-preservation/privacy regressions are blockers;
 2. low false-positive risk outranks maximizing narrow classification counts;
 3. user-owned organization comes before more aggressive automatic guessing;
-4. persisted-state work freezes identity/migration contracts before lifecycle/UI spreads them;
-5. Agent 81/82 consume Agent 80 rather than create second category models;
+4. persisted-state work freezes identity/migration contracts before consumers spread them;
+5. one repository/app-owned state remains the source of category behavior; UI does not create a second lifecycle model;
 6. backup and shortcuts consume stable category identity rather than redefine it;
 7. supported metadata enrichment may complement local rules but does not replace deterministic/manual precedence;
 8. performance work follows measurements;
 9. launcher replacement, unsupported Samsung internals and speculative infrastructure remain out of scope;
-10. coding agents leave merge decisions to the owner unless explicitly instructed otherwise.
+10. coding/integration agents leave merge decisions to the owner unless explicitly instructed otherwise.

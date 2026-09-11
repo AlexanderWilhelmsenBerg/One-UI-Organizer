@@ -72,7 +72,7 @@ If an app with persisted organizer state is uninstalled, Organizer does not cras
 
 ### C4 — Versioned local state
 
-The first persisted organizer state began at schema version 1. The current category-identity foundation evolves organizer state to schema version 2.
+The first persisted organizer state began at schema version 1. The current organizer state is schema version 2 and includes durable category identities, custom definitions and category order.
 
 Every persisted-state schema change requires a real migration/read path and literal prior-schema fixtures. Existing category overrides, favourites and hidden state must survive unless an explicitly documented migration decision says otherwise. Supported old state must not be treated as corruption merely because the schema version increased.
 
@@ -124,7 +124,7 @@ Shelf composables are not coupled to Samsung-only blur/window APIs. Presentation
 
 ### F1 — No speculative Internet permission
 
-The shipped baseline and category-identity foundation do not request `android.permission.INTERNET`. A future supported network feature may add it only with the documented provider implementation and privacy/cache behavior.
+The current product and category-management wave do not request `android.permission.INTERNET`. A future supported network feature may add it only with the documented provider implementation and privacy/cache behavior.
 
 ### F2 — No broad package-query permission
 
@@ -148,9 +148,9 @@ PackageManager/Android discovery code is hidden behind a boundary replaceable by
 
 Automatic category selection is testable as pure Kotlin logic without Android instrumentation.
 
-### G3 — Repository is source of UI state
+### G3 — Repository/app-owned state is the source of UI state
 
-The UI does not independently merge package scans and persistence. One repository/use-case boundary produces the organizer model consumed by presentation state.
+The UI does not independently merge package scans and persistence or maintain a second category lifecycle model. App-owned repository/state contracts produce the organizer/category model consumed by presentation state.
 
 ### G4 — No premature infrastructure
 
@@ -217,7 +217,7 @@ Every built-in `AppCategory` has one explicit unique durable `CategoryId`. The p
 
 ### K2 — Stable custom identity
 
-A user-created category is represented by an app-owned `CustomCategoryDefinition` with a `custom:<opaque-id>` identity and separate display name. A rename preserves the ID. The later creation workflow generates the opaque ID once; it must not derive identity from the display name.
+A user-created category is represented by an app-owned `CustomCategoryDefinition` with a `custom:<opaque-id>` identity and separate display name. A rename preserves the ID. Creation generates the opaque ID once; it must not derive identity from the display name.
 
 ### K3 — One effective category contract
 
@@ -246,3 +246,45 @@ Existing known-app, game, Web/PWA and emulator rule behavior remains unchanged. 
 ### K9 — Scope boundary
 
 Agent 80 does not implement complete create/rename/delete/reorder behavior or a category-management screen. Those belong to Agents 81/82, with Agent 83 integration/acceptance after both merge.
+
+## L. User-owned category management acceptance
+
+The Agent 80–83 wave is accepted only when all of the following hold. Detailed physical steps are recorded in `CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`.
+
+### L1 — Create and stable rename
+
+The user can create a custom category subject to the app-owned name policy. Rename changes the display name without changing durable `CategoryId`; existing assignments remain attached to that ID.
+
+### L2 — Real shelf/picker/search integration
+
+Custom categories appear through the same app-owned definition/order used by the shelf and move picker. Apps assigned to them are searchable by the custom display name without a second UI-only index.
+
+### L3 — Persisted order
+
+Built-in and custom normal categories can be reordered. The repository accepts only an exact current-category permutation, persists the requested order, and recreation restores it. `Favourites` remains outside that order.
+
+### L4 — Explicit deletion policy
+
+Deleting a populated custom category requires an explicit choice: reassign affected overrides to another current category or remove those overrides and return the apps to automatic classification. Favourite and hidden state survive either policy. Invalid destinations fail atomically.
+
+### L5 — Built-in protection
+
+Built-in categories cannot be renamed or deleted through repository or UI behavior.
+
+### L6 — Classification compatibility and diagnostics
+
+Tests prove that custom user overrides beat both bundled rules and Android-declared categories and retain `ClassificationSource.USER_OVERRIDE`. Clearing/deleting the override exposes the correct automatic result again. Existing rule-pack regressions remain green for apps without manual override. The local report distinguishes effective custom identity/display name from classification source.
+
+### L7 — Failure handling
+
+Blank/too-long/duplicate names, stale category identity, invalid deletion destination/order and failed persistence produce safe app-owned failures. The UI does not expose raw storage exceptions or commit a partial state change.
+
+### L8 — Upgrade migration on the real Samsung installation
+
+A signed debug APK from the repository workflow must install **over** an existing pre-category-management installation without clearing app data. A representative previous built-in override, favourite and hidden app must survive. New custom categories/order/assignments must then survive force-stop/process recreation.
+
+Repository migration tests are necessary but not sufficient for this criterion.
+
+### L9 — Final wave completion
+
+Agent 83 / PR #18 may be marked complete only when the final permanent quality lane is green **and** the physical Samsung migration/behavior checklist passes with generalized/sanitized evidence. Until then PR #18 remains unmerged and the category-management wave remains pending physical acceptance.
