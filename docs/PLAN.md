@@ -1,8 +1,8 @@
 # Product and Delivery Plan
 
-**Current status:** v0.1 is merged. The post-v0.1 classification-quality implementation is also merged to `main`; Agent 70 is the integration/acceptance gate. Repository-level integration is complete on `integration/classification-quality`, while the fresh same-device Samsung acceptance pass remains an explicit owner-device step.
+**Current status:** v0.1 and the post-v0.1 classification implementation are merged to `main`. Agent 70 is the integration/acceptance gate on `integration/classification-quality`. The first fresh Samsung pass ran successfully and exposed one genuine game-classification false positive, which Agent 70 corrected. A second fresh report from the corrected build remains the classification acceptance check.
 
-The integrated classification result and remaining acceptance steps are recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md). Execution ownership and sequencing live in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md).
+The detailed result is recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md). Execution ownership and sequencing live in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md).
 
 ## 1. Product definition
 
@@ -40,7 +40,7 @@ Current organization behavior includes:
 - classification explanation based on the real `ClassificationSource`;
 - explicit local classification-report sharing for diagnostic review.
 
-## 4. Final automatic-classification taxonomy
+## 4. Automatic-classification taxonomy
 
 The current one-primary-category taxonomy is:
 
@@ -78,7 +78,7 @@ Automatic classification precedence is fixed:
 3. Android-declared category mapping;
 4. `Unsorted`.
 
-Inside bundled rules, deterministic selector precedence is exact component > exact package > package prefix. Prefix matching is narrowly reserved for evidence-backed generated namespaces; the shipped Web shortcut rule uses `org.chromium.webapk.` only.
+Inside bundled rules, selector precedence is exact component > exact package > package prefix. Prefix matching is narrowly reserved for evidence-backed generated namespaces; the shipped Web shortcut rule uses `org.chromium.webapk.` only.
 
 ## 5. Architecture
 
@@ -105,23 +105,6 @@ CategoryEngine <--- bundled deterministic rule packs
         Jetpack Compose shelf
 ```
 
-Core app-owned contracts include:
-
-```text
-AppId
-LaunchTargetId
-InstalledApp
-AppCategory
-ClassificationSource
-CategorizedApp
-OrganizerState
-InstalledAppSource
-AppLauncher
-CategoryEngine
-OrganizerStateStore
-OrganizerRepository
-```
-
 Android framework objects, DataStore implementation types and Compose types remain at their respective boundaries.
 
 ## 6. Persistence
@@ -132,7 +115,7 @@ Organizer state remains explicit schema version 1 and stores only user-owned org
 - favourites;
 - hidden apps.
 
-The classification taxonomy expansion was additive only: no existing `AppCategory` value was renamed or removed, so no schema migration was required. Agent 70 adds a regression test that reads a literal pre-classification-wave schema-v1 payload and proves override/favourite/hidden state remains readable.
+The classification taxonomy expansion is additive only. No existing `AppCategory` value was renamed or removed, so no schema migration is required. Agent 70 includes a regression test that reads a literal pre-classification-wave schema-v1 payload and proves override/favourite/hidden state remains readable.
 
 Future custom-category/category-order work will be persisted-state work and must define durable category identity plus migration tests before UI implementation spreads.
 
@@ -140,24 +123,11 @@ Future custom-category/category-order work will be persisted-state work and must
 
 ### v0.1 — complete
 
-The Agent 00–50 sequence delivered:
-
-- warning-free/reproducible Android scaffold and CI;
-- supported launcher discovery and exact launch targeting;
-- pure deterministic categorization/search;
-- DataStore-backed organizer state and repository behavior;
-- Compose shelf/design system;
-- real cross-layer integration and owner Samsung proof of the v0.1 shelf.
+The Agent 00–50 sequence delivered the warning-free Android scaffold/CI, supported launcher discovery and exact launch targeting, deterministic categorization/search, DataStore-backed organizer state, Compose shelf/design system and owner Samsung proof of the v0.1 shelf.
 
 ### Classification foundation — complete
 
-Agent 60 / PR #9 added:
-
-- private same-device evidence reporting;
-- aggregate classification reporting;
-- additive game/Web taxonomy;
-- exact-component/exact-package/package-prefix selector seam;
-- separate general/game/Web rule-pack ownership.
+Agent 60 / PR #9 added private same-device evidence reporting, additive game/Web taxonomy, deterministic selector/index infrastructure and separate general/game/Web rule-pack ownership.
 
 Foundation evidence contained 566 launcher targets, including 225 `Unsorted` and 129 broad `Games` entries.
 
@@ -170,25 +140,28 @@ Foundation evidence contained 566 launcher targets, including 225 `Unsorted` and
 
 ### Agent 70 — integration / acceptance
 
-Agent 70 verifies the merged packs compose safely, re-proves precedence and persisted-state behavior, tightens the permanent quality lane so `androidTest` sources compile, updates authoritative documentation and leaves a PR unmerged for owner control.
+Agent 70 verifies composition, precedence and persisted-state compatibility, tightens the permanent quality lane so `androidTest` sources compile, updates authoritative documentation and leaves the PR unmerged for owner control.
 
-The deterministic combined projection against the original frozen 566-target Samsung evidence is:
+The first fresh Samsung report matched the initial integrated projection at aggregate level but exposed one row-level false positive: an `Eden Optimized` Yuzu-family emulator variant reused `com.miHoYo.Yuanshen` and was incorrectly forced into RPG by the exact-package game rule.
+
+Agent 70 removed that ambiguous rule and added a regression. Final expected aggregates on the same 566-target population are now:
 
 - `Unsorted`: 225 -> 124;
-- broad `Games`: 129 -> 23;
+- broad `Games`: 129 -> 24;
 - Action & Adventure: 12;
-- RPG: 38;
+- RPG: 37;
 - Strategy & Simulation: 29;
 - Puzzle & Casual: 23;
 - Board & Card: 4;
 - Web Shortcuts: 1;
-- bundled-rule source: 5 -> 235.
+- bundled-rule source: 5 -> 234;
+- Android-declared source: 336 -> 208.
 
-A fresh report from the same physical Samsung device remains required before final owner acceptance because the installed-app population can change over time.
+A second fresh report from the corrected build remains required before those final figures are called device-confirmed.
 
 ## 8. Testing and quality policy
 
-The permanent cheap repository lane covers:
+The permanent repository lane covers:
 
 - debug assembly;
 - instrumentation-test APK compilation;
@@ -207,16 +180,16 @@ Real Samsung acceptance remains mandatory for product-critical package discovery
 
 ## 9. Remaining classification limitations
 
-The current classifier is deliberately conservative:
+The classifier is deliberately conservative:
 
-- the frozen evidence still projects 124 `Unsorted` rows;
-- 23 games remain in broad `Games`;
+- 124 entries remain `Unsorted`;
+- 24 games remain broad `Games` after the false-positive correction;
 - standard TWA wrappers are not generically classified;
-- no safe generic Samsung Internet/other-browser shortcut signature has been established;
-- known package identities require maintenance as apps change;
+- no safe generic Samsung Internet/other-browser shortcut signature is established;
+- exact package identities require maintenance and can be ambiguous for modified/repacked software;
 - the model remains one primary category per app.
 
-These are acceptable limitations, not invitations to introduce cloud/label-guessing classification.
+These are acceptable limitations, not invitations to introduce cloud or label-guessing classification.
 
 ## 10. Next development wave — user-owned category management
 
@@ -229,7 +202,7 @@ Recommended sequence:
 3. implement create/rename/delete/reorder and richer management UI;
 4. integrate and run Samsung acceptance.
 
-Local backup/export/import should follow once the custom-category representation is stable, so the first export format does not immediately churn. Dynamic/pinned shortcuts should follow stable category identity for the same reason.
+Local backup/export/import should follow once the custom-category representation is stable. Dynamic/pinned shortcuts should follow stable category identity for the same reason.
 
 Presentation polish can proceed later or in a low-conflict UI lane. Performance tooling remains deferred unless measured Samsung behavior demonstrates a real regression.
 
@@ -250,12 +223,13 @@ Do not expand the current product into:
 
 The wave is accepted only when:
 
-- Agent 70 repository CI is green;
-- signed debug APK is installed over the existing owner-device app without clearing data;
-- manual overrides, favourites and hidden state survive;
-- new taxonomy/search/move/explanation/triage behavior is sampled on the Samsung device;
+- Agent 70 repository CI is green on the final corrected head;
+- corrected signed debug APK is installed/run on the owner Samsung device;
+- taxonomy/search/move/explanation/triage behavior remains functional;
 - app launching, dismiss/back and rescan still work;
-- a fresh same-device classification report is reviewed privately;
-- sanitized current aggregate counts and false-positive findings are recorded;
+- a fresh corrected same-device classification report confirms the final sanitized counts;
+- false-positive findings and corrections are recorded without committing raw inventory;
 - `INTERNET` and `QUERY_ALL_PACKAGES` remain absent;
+- repository migration tests remain green;
+- strict physical override/favourite/hidden preservation is separately checked if required because the report format cannot prove it;
 - the owner explicitly decides whether to merge the Agent 70 PR.
