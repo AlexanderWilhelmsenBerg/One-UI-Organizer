@@ -1,49 +1,50 @@
 # MoSCoW Scope Analysis
 
-This document separates the first useful release from attractive follow-on ideas. The goal is to keep One UI Organizer tiny enough to finish while preserving a clear path to richer organization later.
+This document separates the shipped core from the highest-value follow-up work. v0.1 is merged; classification-quality implementation is merged and is passing through Agent 70 integration/owner-device acceptance.
 
-Implementation sequencing is defined separately in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Parallel work does **not** change product priority: every Must item below remains required for v0.1.
+Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). The current integrated classification result is in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md).
 
-## Must have — v0.1 cannot ship without these
+## Must have — current product contract
 
 ### Companion behavior
 
 - One UI Home remains the default launcher.
-- Organizer opens as a separate companion activity/shelf rather than replacing the launcher.
-- The user can dismiss Organizer and return directly to the existing home experience.
+- Organizer is a separate companion activity/shelf.
+- Dismiss/back returns to the existing home experience.
 
 ### Supported app discovery
 
-- Discover ordinary launchable apps through supported Android APIs.
-- Avoid `QUERY_ALL_PACKAGES` in v0.1.
-- Correctly model package/component identity well enough to handle launcher aliases and multiple launch activities deterministically.
-- Refresh the discovered set when Organizer is opened/resumed so installs and removals appear without a persistent service.
+- Discover normal launcher activities through supported Android APIs.
+- Do not request `QUERY_ALL_PACKAGES`.
+- Model package/component identity deterministically, including aliases/multiple launcher activities.
+- Rescan on open/resume without a persistent service.
 
 ### Automatic categorization
 
-- Deterministic categorization pipeline:
-  1. user override;
-  2. known-app rule;
-  3. Android-declared category mapping;
-  4. `Unsorted`.
-- `Unsorted` remains fully usable, not an error state.
-- A bundled starter ruleset for useful common classifications.
+Classification precedence remains:
 
-### Manual correction
+1. user override;
+2. bundled known-app rule;
+3. Android-declared category mapping;
+4. `Unsorted`.
 
-- User can change an app's primary category.
-- User correction persists locally.
-- User correction remains authoritative if automatic rules change later.
+Requirements:
 
-### Basic app shelf
+- deterministic local classification;
+- `Unsorted` remains usable and launchable;
+- `Games` remains a valid broad fallback;
+- rule-pack changes never erase user corrections;
+- no label guessing, cloud classifier or runtime network lookup.
 
-- Category browsing.
-- App-name search.
-- Category-name search.
-- Tap to launch.
+### Manual correction and organization
+
+- Change an app's primary category.
+- Persist the user correction locally.
+- Keep user correction authoritative over later rule changes.
 - Favourite/unfavourite.
-- Hide and later restore hidden apps.
-- Light/dark readability and basic accessibility semantics.
+- Hide and restore hidden apps.
+- Search by app and category name.
+- Launch the exact selected target.
 
 ### Privacy / minimalism
 
@@ -52,176 +53,185 @@ Implementation sequencing is defined separately in [`PARALLEL_DEVELOPMENT.md`](P
 - No cloud service.
 - No `INTERNET` permission.
 - No `QUERY_ALL_PACKAGES`.
-- No background service for ordinary v0.1 behavior.
+- No unnecessary background service.
 
 ### Engineering baseline
 
-- Use only exact stable-compatible versions from `STABLE_BASELINE.md`.
+- Exact stable-compatible versions come from `STABLE_BASELINE.md`.
 - Reproducible Gradle daemon JDK and explicit Android Java/JVM toolchain.
 - Central version catalog and dependency verification.
 - Warning-free compiler/Gradle/Lint/ktlint baseline.
-- Dependency health gate.
-- App-owned cross-layer contracts; Android/DataStore/Compose implementation types remain in their appropriate layers.
-- Persisted user state starts with explicit schema version 1.
-- No reliance on used-but-undeclared transitive dependencies.
+- Dependency-health and configuration-cache gates.
+- App-owned cross-layer contracts.
+- Explicit persisted schema version.
+- No relied-on transitive dependencies.
 
-### Testing and performance
+### Testing / acceptance
 
 - Clean build from checkout.
-- Testable package-scanner boundary.
-- Pure Kotlin category engine with unit coverage.
-- Persistence tests for user overrides/favourites/hidden state.
-- Critical Compose/UI tests.
-- Instrumented/system tests for behaviors that cannot be proven locally.
-- Physical Samsung device acceptance on modern One UI / Android 16.
-- Performance is measured after integration before optimization.
+- Pure Kotlin category/search/state tests.
+- Compose semantics/interaction tests for critical UI behavior.
+- Instrumented/system tests where Android behavior requires them.
+- Physical Samsung acceptance for One UI/platform-critical behavior.
+- Persisted-state changes include migration tests.
+- Performance is measured before optimization.
 
-### Parallel-development discipline
+## Completed post-v0.1 Should work
 
-- Foundation/scaffold Agent 00 merges before feature agents branch from the implementation baseline.
-- Platform, domain, data and UI lanes remain separately owned during Wave 1.
-- Shared app-owned contracts are not duplicated to avoid coordination.
-- Contract changes are explicit and affected sibling branches rebase.
-- A separate integration/acceptance Agent 50 closes cross-layer behavior.
-- Coding agents do not merge their own PRs unless the owner explicitly instructs them to.
+### Classification quality and taxonomy tuning — implemented
 
-## Should have — high-value follow-up, but v0.1 remains useful without it
+The classification wave delivered:
 
-### Classification quality and taxonomy tuning
+- evidence-driven general known-app expansion using exact package identity;
+- a narrow deterministic `Web Shortcuts` rule for Chromium WebAPK packages under `org.chromium.webapk.`;
+- five broad game subcategories while preserving `Games` fallback;
+- `Unsorted` triage without forcing uncertain matches;
+- classification explanation sourced from the real `ClassificationSource`;
+- local explicit classification-report sharing for diagnostic review;
+- no taxonomy rename/removal and therefore no organizer-state schema migration.
 
-- Tune bundled known-app rules from real device evidence to reduce large `Unsorted` buckets without forcing uncertain matches.
-- Add a `Web Shortcuts` category only when browser/PWA launcher entries expose a deterministic, maintainable signature through supported metadata.
-- Evaluate a small set of broad game subcategories when deterministic classification is practical instead of keeping one very large `Games` bucket.
-- Review categories with only one or two apps and consolidate overlapping taxonomy where that improves browsing.
-- Keep any diagnostic/export helper local-only and explicit; do not add telemetry, analytics, networking, or background collection for rule tuning.
-- Preserve user overrides as authoritative when automatic rules or taxonomy change.
-- Treat category rename/removal as persisted-state work requiring explicit migration review/tests.
+Against the same frozen 566-target evidence set, the combined projection changes:
 
-See [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md) for the detailed next-PR scope.
+- `Unsorted`: 225 -> 124;
+- `Games`: 129 -> 23;
+- bundled known-rule source: 5 -> 235.
 
-### Custom categories
+A fresh same-device capture is still part of Agent 70 physical acceptance; these numbers are the deterministic projection against the original evidence rather than a fabricated new device run.
 
-- Create, rename, and delete user categories.
-- Reorder categories.
-- Choose a category icon from a bundled icon set.
+### Better `Unsorted` management / rule explanation — implemented baseline
 
-### Better category management
+The app now distinguishes automatic fallback from deliberate user overrides and gives automatic `Unsorted` entries a direct correction affordance. Explanation labels cover user override, bundled rule, Android category and fallback.
 
-- Dedicated hidden-app management screen beyond the minimum v0.1 restore surface.
-- Dedicated `Unsorted` triage flow.
-- Bulk move several apps to a category.
-- Rule explanation such as "Placed here by Android category" or "Your override".
+A larger dedicated/bulk management surface remains a follow-up opportunity rather than unfinished baseline work.
+
+## Should have — next high-value work
+
+### Custom categories and category order
+
+- Create custom user categories.
+- Rename custom categories.
+- Delete custom categories with an explicit reassignment/fallback policy.
+- Persist stable app-owned custom-category identifiers.
+- Reorder categories and persist that order.
+- Choose category presentation metadata/icons from a bundled safe set if useful.
+- Provide migration tests for the required persisted-state evolution.
+
+This is the recommended next coherent wave because automatic classification is now materially better and the next product leverage comes from user-owned organization rather than increasingly aggressive automatic guesses.
+
+### Richer category management
+
+- Dedicated category-management surface.
+- Efficient bulk/manual moves where UX evidence justifies them.
+- Better visibility into category order and custom-category lifecycle.
+- Preserve the simple one-primary-category model unless scope is explicitly changed.
+
+### Local backup / portability
+
+- Export organizer-owned state to a local file.
+- Import a previously exported local file.
+- Version the export format from its first release.
+- Preserve custom category identity/order once those contracts are stable.
+
+Backup/import should follow the custom-category persistence contract rather than freezing an export format just before the schema changes.
 
 ### Shortcuts
 
-- Android dynamic shortcuts for favourite categories.
-- Ability to request a pinned home-screen shortcut for a selected category.
+- Android dynamic shortcuts for useful categories.
+- Request a pinned home-screen shortcut for a selected category.
 
-### Backup / portability
-
-- Export organizer rules and user overrides to a local file.
-- Import a previously exported local rules file.
-- Version the export format from its first release.
+Shortcuts should follow stable category identity so persisted/pinned destinations do not depend on fragile display names.
 
 ### Presentation polish
 
-- More complete One UI-inspired spacing and motion tokens.
-- Smooth transition from home screen into the Organizer surface.
-- Optional blur only where the platform/device reliably supports it.
+- More complete One UI-inspired spacing/motion tokens.
+- Smoother transition between home and Organizer.
+- Optional blur only where reliable.
+- Layout refinements only when they preserve accessibility and device behavior.
 
 ### Performance hardening
 
-- Baseline profile generation when a stable plugin line cleanly supports the chosen AGP generation.
-- Additional macrobenchmark regression gates once enough history exists to set trustworthy thresholds.
+- Add benchmark/profile infrastructure only when measured regressions or stable historical baselines justify it.
+- Baseline profiles only when the stable plugin line cleanly supports the selected toolchain.
 
-## Could have — useful ideas that should not delay the core app
+## Could have
 
 ### Home-screen widget
 
-- Glance widget showing favourites or selected categories.
-- Configurable 4x1 / 4x2 layouts.
+- Glance widget for favourites or selected categories.
+- Configurable compact layouts.
 
 ### Multiple tags/categories
 
-- Allow one app to belong to more than one category while retaining one primary category for normal browsing.
-- Example: Home Assistant could appear under both Smart Home and Homelab.
+- Allow secondary tags while retaining one primary category.
+- Only after the single-category custom-category model is stable.
 
 ### Usage-based suggestions
 
-- Optional, explicit permission-based frequently-used/time-of-day suggestions.
-- Must remain opt-in and local.
+- Explicit opt-in only.
+- Local processing only.
+- Requires a separately justified permission/product decision.
 
-### Work profile support
+### Work-profile support
 
-- Distinguish personal and work-profile launch targets.
-- Category/rule state scoped correctly per profile.
+- Distinguish personal/work launch targets and state correctly by profile.
 
 ### Better search
 
 - Fuzzy matching.
 - Acronym/initial matching.
-- Search aliases supplied by the user.
+- User-defined aliases.
 
 ### Rule tooling
 
-- User-editable automatic rules.
-- Import community-maintained rule packs from a local file.
-- Explain why a rule matched.
+- User-editable local rules.
+- Import local/community rule packs from a file.
+- More detailed matched-rule explanation if useful.
 
-### Smart sorting
+### Large-screen/foldable adaptation
 
-- Manual category order.
-- Alphabetical, recently installed, or user-defined order within categories.
-- Optional local usage ranking if the user grants usage access.
+- Adaptive layouts when actual use warrants them.
 
-### Tablet / foldable adaptation
-
-- Material 3 adaptive layouts for large screens/foldables if real use warrants it.
-
-## Won't have — explicitly out of scope for v0.1
-
-These are not declarations that the project can never change. They are deliberate exclusions from the first product slice.
+## Won't have — unless scope is explicitly reopened
 
 ### Native One UI manipulation
 
-- Rewriting Samsung's native app-drawer order.
+- Rewriting Samsung's app-drawer order.
 - Creating/editing Samsung launcher folders programmatically.
 - Writing Samsung launcher databases.
-- Depending on undocumented Samsung launcher APIs.
+- Undocumented Samsung launcher APIs.
 
 ### Launcher replacement
 
-- Becoming the default Android HOME application.
-- Reimplementing widgets, wallpaper handling, launcher gestures, recents, or the One UI home screen.
+- Becoming default HOME.
+- Reimplementing launcher widgets, wallpaper, gestures, recents or home screen.
 
 ### Cloud / AI classification
 
-- Server-side app classification.
+- Server-side classification.
 - LLM classification.
-- User accounts or sync backend.
+- Accounts/sync backend.
 - Remote analytics/telemetry.
 
 ### Broad package access for convenience
 
-- `QUERY_ALL_PACKAGES` unless a later product requirement both genuinely needs it and satisfies applicable distribution policy.
+- `QUERY_ALL_PACKAGES` without a later explicit requirement and policy review.
 
 ### Always-on monitoring
 
-- Permanent foreground/background service.
-- Constant package-change monitoring solely to avoid a cheap rescan when the Organizer opens.
+- Permanent foreground/background service merely to keep the app list current.
 
 ### Cross-platform implementation
 
-- iOS version.
-- Desktop version.
-- A cross-platform framework solely for hypothetical future portability.
+- iOS/desktop port or cross-platform framework for hypothetical portability.
 
 ## Priority interpretation
 
-When a new idea appears during implementation:
+When new work appears:
 
-1. If it is required for a Must item to work correctly, include it in the owning lane or integration repair.
-2. If it improves quality but does not block a Must item, record it under Should or Could.
-3. If it expands the product into launcher replacement, cloud services, unsupported Samsung internals, or unnecessary infrastructure, defer it unless scope is explicitly re-approved.
-4. Prefer finishing one polished companion workflow over shipping many half-connected surfaces.
-5. Do not use parallel development as justification for duplicating architecture or broadening scope.
+1. correctness/state-preservation/privacy regressions are blockers;
+2. user-owned organization comes before more aggressive automatic guessing;
+3. persisted-state work defines migration contracts before UI spreads the representation;
+4. backup and shortcuts follow stable category identity;
+5. performance work follows measurements;
+6. launcher replacement, cloud services, unsupported Samsung internals and speculative infrastructure remain out of scope;
+7. coding agents leave merge decisions to the owner unless explicitly instructed otherwise.
