@@ -1,6 +1,6 @@
 # MoSCoW Scope Analysis
 
-This document separates the shipped core from the highest-value follow-up work. v0.1 is merged; classification-quality implementation is merged and is passing through Agent 70 integration/owner-device acceptance.
+This document separates the shipped core from the highest-value follow-up work. v0.1 is merged; classification-quality implementation is passing through Agent 70 integration/owner-device acceptance.
 
 Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). The current integrated classification result is in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md).
 
@@ -30,12 +30,13 @@ Classification precedence remains:
 
 Requirements:
 
-- deterministic local classification;
+- deterministic local baseline classification;
 - `Unsorted` remains usable and launchable;
 - `Games` remains a valid broad fallback;
+- `Emulators` is separate from game genres;
 - rule-pack changes never erase user corrections;
-- no label guessing, cloud classifier or runtime network lookup;
-- ambiguous modified/repacked identities prefer a broad fallback over a narrow false positive.
+- no display-label guessing or probabilistic classification in the baseline;
+- ambiguous modified/repacked identities prefer exact-component evidence or a broad fallback over a narrow false positive.
 
 ### Manual correction and organization
 
@@ -51,10 +52,12 @@ Requirements:
 
 - No account.
 - No analytics or ads.
-- No cloud service.
-- No `INTERNET` permission.
+- No cloud classification service.
 - No `QUERY_ALL_PACKAGES`.
 - No unnecessary background service.
+- Network access, if introduced, must serve an explicit supported feature and remain behind an app-owned boundary.
+
+The current build still has no `INTERNET` permission. The owner has approved future optional metadata enrichment, but permission/dependencies should arrive only with the actual provider implementation.
 
 ### Engineering baseline
 
@@ -79,35 +82,35 @@ Requirements:
 
 ## Completed post-v0.1 Should work
 
-### Classification quality and taxonomy tuning — implemented, Agent 70 correction pending final device recheck
+### Classification quality and taxonomy tuning — implemented, final device recheck pending
 
 The classification wave delivered:
 
 - evidence-driven general known-app expansion using exact package identity;
 - a narrow deterministic `Web Shortcuts` rule for Chromium WebAPK packages under `org.chromium.webapk.`;
-- five broad game subcategories while preserving `Games` fallback;
+- five game genres while preserving `Games` fallback;
+- a first-class `Emulators` category backed by 14 exact-package selectors and one exact-component selector;
 - `Unsorted` triage without forcing uncertain matches;
 - classification explanation sourced from the real `ClassificationSource`;
 - local explicit classification-report sharing for diagnostic review;
-- no taxonomy rename/removal and therefore no organizer-state schema migration.
+- additive taxonomy changes only, so organizer-state schema remains version 1.
 
-The first fresh Samsung report matched the original aggregate projection, then row-level review exposed one false positive: an Eden/Yuzu-family emulator variant reused a package that had been treated as an RPG identity. Agent 70 removed that ambiguous rule and added regression coverage.
+The first fresh Samsung report exposed one false positive: an Eden/Yuzu-family emulator reused a package previously treated as an RPG identity. Agent 70 removed that package-only game rule and then used the observed launch component to classify the emulator safely.
 
-Final expected result on the same 566-target population is:
+Expected final result on the same 566-target population is:
 
-- `Unsorted`: 225 -> 124;
-- `Games`: 129 -> 24;
+- `Unsorted`: 225 -> 123;
+- `Emulators`: 0 -> 15;
+- `Games`: 129 -> 10;
 - RPG: 37;
-- bundled known-rule source: 5 -> 234;
-- Android-declared source: 336 -> 208.
+- bundled known-rule source: 5 -> 249;
+- Android-declared source: 336 -> 194.
 
-A second fresh same-device capture from the corrected build is required before those final figures are device-confirmed.
+A fresh same-device capture from the emulator-category build is required before those final figures are device-confirmed.
 
 ### Better `Unsorted` management / rule explanation — implemented baseline
 
 The app distinguishes automatic fallback from deliberate user overrides and gives automatic `Unsorted` entries a direct correction affordance. Explanation labels cover user override, bundled rule, Android category and fallback.
-
-A larger dedicated/bulk management surface remains a follow-up opportunity rather than unfinished baseline work.
 
 ## Should have — next high-value work
 
@@ -120,8 +123,6 @@ A larger dedicated/bulk management surface remains a follow-up opportunity rathe
 - Reorder categories and persist that order.
 - Choose category presentation metadata/icons from a bundled safe set if useful.
 - Provide migration tests for the required persisted-state evolution.
-
-This is the recommended next coherent wave because automatic classification is now materially better and the next product leverage comes from user-owned organization rather than increasingly aggressive automatic guesses.
 
 ### Richer category management
 
@@ -137,14 +138,27 @@ This is the recommended next coherent wave because automatic classification is n
 - Version the export format from its first release.
 - Preserve custom category identity/order once those contracts are stable.
 
-Backup/import should follow the custom-category persistence contract rather than freezing an export format just before the schema changes.
-
 ### Shortcuts
 
 - Android dynamic shortcuts for useful categories.
 - Request a pinned home-screen shortcut for a selected category.
 
-Shortcuts should follow stable category identity so persisted/pinned destinations do not depend on fragile display names.
+### Optional metadata enrichment
+
+The owner permits Internet-backed metadata when it materially improves classification.
+
+Requirements before implementation:
+
+- use a supported/documented source rather than brittle Google Play scraping;
+- define an app-owned metadata/provider contract;
+- keep network/provider types at the adapter boundary;
+- cache locally and make lookup best-effort/non-blocking;
+- explicitly map provider categories/tags into organizer categories;
+- preserve user override and bundled known-rule precedence;
+- expose metadata-derived classification distinctly if it can decide category;
+- add `INTERNET` only in the provider implementation PR.
+
+F-Droid's documented index/package metadata is a viable source for its subset of apps. Google Play categories/tags are useful but Google does not currently document a general arbitrary-package catalog API for this use case.
 
 ### Presentation polish
 
@@ -212,10 +226,14 @@ Shortcuts should follow stable category identity so persisted/pinned destination
 
 ### Cloud / AI classification
 
-- Server-side classification.
+- Server-side classification service.
 - LLM classification.
 - Accounts/sync backend.
 - Remote analytics/telemetry.
+
+### Unsupported store scraping
+
+- Unofficial brittle Google Play scraping as a production classification dependency.
 
 ### Broad package access for convenience
 
@@ -236,8 +254,9 @@ When new work appears:
 1. correctness/state-preservation/privacy regressions are blockers;
 2. low false-positive risk outranks maximizing narrow classification counts;
 3. user-owned organization comes before more aggressive automatic guessing;
-4. persisted-state work defines migration contracts before UI spreads the representation;
-5. backup and shortcuts follow stable category identity;
-6. performance work follows measurements;
-7. launcher replacement, cloud services, unsupported Samsung internals and speculative infrastructure remain out of scope;
-8. coding agents leave merge decisions to the owner unless explicitly instructed otherwise.
+4. supported metadata enrichment may complement local rules but does not replace deterministic/manual precedence;
+5. persisted-state work defines migration contracts before UI spreads the representation;
+6. backup and shortcuts follow stable category identity;
+7. performance work follows measurements;
+8. launcher replacement, unsupported Samsung internals and speculative infrastructure remain out of scope;
+9. coding agents leave merge decisions to the owner unless explicitly instructed otherwise.
