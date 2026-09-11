@@ -147,6 +147,29 @@ class OrganizerShelfTest {
     }
 
     @Test
+    fun classificationReportRequestRemainsExplicitAndHostControlled() {
+        val signal = app("Signal", AppCategory.COMMUNICATION)
+        var requested = false
+        composeRule.setShelfContent(
+            state =
+                OrganizerShelfUiState(
+                    categories =
+                        listOf(
+                            CategorySectionUiModel(AppCategory.COMMUNICATION, listOf(signal))
+                        )
+                ),
+            onClassificationReportRequested = { requested = true }
+        )
+
+        composeRule.onNodeWithText("Share classification report")
+            .assertHasClickAction()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals(true, requested)
+        }
+    }
+
+    @Test
     fun hiddenManagementRequestAndDismissRemainHostControlled() {
         val hiddenApp = app("Authenticator", AppCategory.TOOLS)
         var showHiddenApps by mutableStateOf(false)
@@ -163,6 +186,7 @@ class OrganizerShelfTest {
                     onToggleFavourite = {},
                     onHideApp = {},
                     onRestoreApp = {},
+                    onClassificationReportRequested = {},
                     onHiddenAppsRequested = {
                         requested = true
                         showHiddenApps = true
@@ -233,6 +257,7 @@ class OrganizerShelfTest {
                     onToggleFavourite = {},
                     onHideApp = {},
                     onRestoreApp = {},
+                    onClassificationReportRequested = {},
                     onHiddenAppsRequested = {},
                     onHiddenAppsDismissed = {}
                 )
@@ -269,7 +294,8 @@ private fun ComposeContentTestRule.setShelfContent(
     onMoveApp: (LaunchTargetId, AppCategory) -> Unit = { _, _ -> },
     onToggleFavourite: (LaunchTargetId) -> Unit = {},
     onHideApp: (LaunchTargetId) -> Unit = {},
-    onRestoreApp: (LaunchTargetId) -> Unit = {}
+    onRestoreApp: (LaunchTargetId) -> Unit = {},
+    onClassificationReportRequested: () -> Unit = {}
 ) {
     setContent {
         OneUiOrganizerTheme(dynamicColor = false) {
@@ -282,6 +308,7 @@ private fun ComposeContentTestRule.setShelfContent(
                 onToggleFavourite = onToggleFavourite,
                 onHideApp = onHideApp,
                 onRestoreApp = onRestoreApp,
+                onClassificationReportRequested = onClassificationReportRequested,
                 onHiddenAppsRequested = {},
                 onHiddenAppsDismissed = {}
             )

@@ -2,7 +2,7 @@
 
 Use these prompts as copy/paste task briefs for separate coding agents.
 
-## Sequence
+## Historical v0.1 sequence
 
 ### Start first
 
@@ -22,6 +22,18 @@ These four lanes are intentionally separated by file ownership and app-owned con
 ### Start after Wave 1 merges
 
 - [`50-integration-acceptance.md`](50-integration-acceptance.md) — wire real layers, close v0.1 behavior, device acceptance, cross-app tests and performance hardening.
+
+The Agent 00–50 sequence is complete on the merged v0.1 baseline.
+
+## Post-v0.1 classification wave
+
+Start Agent 60 alone before parallel classification expansion:
+
+- [`60-classification-foundation.md`](60-classification-foundation.md) — local evidence report, deterministic selector composition, additive taxonomy freeze, migration review, and parallel rule ownership seams.
+
+Agent 60 has now reviewed the private owner-device report. Its PR freezes the shared taxonomy and selector contract, but the downstream general/game/Web-PWA lanes must still start only after Agent 60 is merged to `main`.
+
+After that gate, use the file ownership in [`../PARALLEL_DEVELOPMENT.md`](../PARALLEL_DEVELOPMENT.md): general rules, game rules and Web/PWA rules may proceed in parallel without editing the shared selector/index/taxonomy infrastructure.
 
 ## Rules common to every prompt
 

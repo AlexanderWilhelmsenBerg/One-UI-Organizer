@@ -1,5 +1,6 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,6 +48,7 @@ class MainActivity : ComponentActivity() {
                         onToggleFavourite = organizerViewModel::toggleFavourite,
                         onHideApp = organizerViewModel::hideApp,
                         onRestoreApp = organizerViewModel::restoreApp,
+                        onClassificationReportRequested = ::shareClassificationReport,
                         onHiddenAppsRequested = organizerViewModel::showHiddenApps,
                         onHiddenAppsDismissed = organizerViewModel::hideHiddenApps
                     )
@@ -63,5 +65,20 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         presentationScope.cancel()
         super.onDestroy()
+    }
+
+    private fun shareClassificationReport() {
+        val sendIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.classification_report_subject))
+                putExtra(Intent.EXTRA_TEXT, organizerViewModel.classificationReport())
+            }
+        startActivity(
+            Intent.createChooser(
+                sendIntent,
+                getString(R.string.classification_report_chooser_title)
+            )
+        )
     }
 }

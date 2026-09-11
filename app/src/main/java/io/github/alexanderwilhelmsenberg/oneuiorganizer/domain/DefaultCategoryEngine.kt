@@ -1,15 +1,15 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.domain
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.PlatformAppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.BundledKnownAppRules
 
-class DefaultCategoryEngine(private val knownAppCategory: (AppId) -> AppCategory? = BundledKnownAppRules::categoryFor) :
-    CategoryEngine {
+class DefaultCategoryEngine(
+    private val knownAppCategory: (InstalledApp) -> AppCategory? = BundledKnownAppRules::categoryFor
+) : CategoryEngine {
     override fun categorize(app: InstalledApp, userOverride: AppCategory?): CategorizedApp {
         if (userOverride != null) {
             return CategorizedApp(
@@ -19,7 +19,7 @@ class DefaultCategoryEngine(private val knownAppCategory: (AppId) -> AppCategory
             )
         }
 
-        val knownCategory = knownAppCategory(app.id)
+        val knownCategory = knownAppCategory(app)
         if (knownCategory != null) {
             return CategorizedApp(
                 app = app,
