@@ -12,10 +12,11 @@ import kotlin.test.assertEquals
 
 class ClassificationQualityIntegrationTest {
     @Test
-    fun `merged rule packs classify representative general game and web entries`() {
+    fun `merged rule packs classify representative general emulator game and web entries`() {
         val expected =
             mapOf(
                 "io.homeassistant.companion.android" to AppCategory.SMART_HOME,
+                "org.dolphinemu.dolphinemu" to AppCategory.EMULATORS,
                 "com.rockstargames.bully" to AppCategory.GAME_ACTION_ADVENTURE,
                 "com.aspyr.swkotor" to AppCategory.GAME_RPG,
                 "com.unciv.app" to AppCategory.GAME_STRATEGY_SIMULATION,
@@ -27,6 +28,21 @@ class ClassificationQualityIntegrationTest {
         expected.forEach { (packageName, category) ->
             assertEquals(category, BundledKnownAppRules.categoryFor(installedApp(packageName)))
         }
+    }
+
+    @Test
+    fun `component-specific emulator rule disambiguates shared package identity`() {
+        val app =
+            installedApp(
+                packageName = "com.miHoYo.Yuanshen",
+                className = "org.yuzu.yuzu_emu.ui.main.MainActivity",
+                platformCategory = PlatformAppCategory.GAME
+            )
+
+        val categorized = DefaultCategoryEngine().categorize(app, userOverride = null)
+
+        assertEquals(AppCategory.EMULATORS, categorized.category)
+        assertEquals(ClassificationSource.KNOWN_APP_RULE, categorized.source)
     }
 
     @Test
@@ -89,10 +105,11 @@ class ClassificationQualityIntegrationTest {
 
     private fun installedApp(
         packageName: String,
+        className: String = "$packageName.MainActivity",
         platformCategory: PlatformAppCategory = PlatformAppCategory.UNDEFINED
     ): InstalledApp = InstalledApp(
         id = AppId(packageName),
-        launchTargetId = LaunchTargetId(packageName, "$packageName.MainActivity"),
+        launchTargetId = LaunchTargetId(packageName, className),
         label = "Integration fixture",
         platformCategory = platformCategory
     )
