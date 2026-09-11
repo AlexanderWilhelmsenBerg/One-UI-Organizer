@@ -1,13 +1,23 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui
 
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.CategoryManagementRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.OrganizerRepository
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryDeletionPolicy
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryManagementError
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryManagementResult
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.ClassificationReportFormatter
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AppLauncher
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryDeletionChoiceUiModel
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementErrorUiModel
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementUiState
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementUiStateMapper
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryMoveDirectionUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerShelfUiState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerUiStateMapper
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfErrorUiModel
@@ -24,6 +34,7 @@ import kotlinx.coroutines.launch
 /** Activity-scoped presentation state holder backed by process-scoped repository state. */
 class OrganizerViewModel(
     private val organizerRepository: OrganizerRepository,
+    private val categoryManagementRepository: CategoryManagementRepository,
     private val appLauncher: AppLauncher,
     private val scope: CoroutineScope
 ) {
@@ -31,6 +42,9 @@ class OrganizerViewModel(
     private val isLoading = MutableStateFlow(true)
     private val error = MutableStateFlow<ShelfErrorUiModel?>(null)
     private val _showHiddenApps = MutableStateFlow(false)
+    private val _showCategoryManagement = MutableStateFlow(false)
+    private val categoryValidationError = MutableStateFlow<CategoryManagementErrorUiModel?>(null)
+    private val categoryOperationError = MutableStateFlow<CategoryManagementErrorUiModel?>(null)
     private var refreshJob: Job? = null
 
     private val organizerState =
@@ -79,7 +93,25 @@ class OrganizerViewModel(
             initialValue = OrganizerShelfUiState(isLoading = true)
         )
 
+    val categoryManagementUiState =
+        combine(
+            organizerState,
+            categoryValidationError,
+            categoryOperationError
+        ) { state, validationError, operationError ->
+            CategoryManagementUiStateMapper.map(
+                organizerState = state,
+                validationError = validationError,
+                operationError = operationError
+            )
+        }.stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = CategoryManagementUiState()
+        )
+
     val showHiddenApps = _showHiddenApps.asStateFlow()
+    val showCategoryManagement = _showCategoryManagement.asStateFlow()
 
     fun refresh() {
         if (refreshJob?.isActive == true) {
@@ -144,11 +176,76 @@ class OrganizerViewModel(
     }
 
     fun showHiddenApps() {
+        _showCategoryManagement.value = false
         _showHiddenApps.value = true
     }
 
     fun hideHiddenApps() {
         _showHiddenApps.value = false
+    }
+
+    fun showCategoryManagement() {
+        _showHiddenApps.value = false
+        clearCategoryManagementErrors()
+        _showCategoryManagement.value = true
+    }
+
+    fun hideCategoryManagement() {
+        _showCategoryManagement.value = false
+        clearCategoryManagementErrors()
+    }
+
+    fun clearCategoryManagementErrors() {
+        categoryValidationError.value = null
+        categoryOperationError.value = null
+    }
+
+    fun createCustomCategory(displayName: String) {
+        updateCategoryManagement {
+            categoryManagementRepository.createCustomCategory(displayName)
+        }
+    }
+
+    fun renameCustomCategory(categoryId: CategoryId, displayName: String) {
+        updateCategoryManagement {
+            categoryManagementRepository.renameCustomCategory(categoryId, displayName)
+        }
+    }
+
+    fun deleteCustomCategory(categoryId: CategoryId, choice: CategoryDeletionChoiceUiModel) {
+        val policy =
+            when (choice) {
+                CategoryDeletionChoiceUiModel.AutomaticClassification -> CategoryDeletionPolicy.ReturnToAutomatic
+                is CategoryDeletionChoiceUiModel.Reassign ->
+                    CategoryDeletionPolicy.Reassign(choice.targetCategoryId)
+            }
+        updateCategoryManagement {
+            categoryManagementRepository.deleteCustomCategory(categoryId, policy)
+        }
+    }
+
+    fun moveCategory(categoryId: CategoryId, direction: CategoryMoveDirectionUiModel) {
+        val orderedIds = organizerState.value.orderedCategories().map { category -> category.id }.toMutableList()
+        val currentIndex = orderedIds.indexOf(categoryId)
+        if (currentIndex < 0) {
+            categoryOperationError.value = CategoryManagementErrorUiModel.CategoryUnavailable
+            return
+        }
+
+        val destinationIndex =
+            when (direction) {
+                CategoryMoveDirectionUiModel.UP -> currentIndex - 1
+                CategoryMoveDirectionUiModel.DOWN -> currentIndex + 1
+            }
+        if (destinationIndex !in orderedIds.indices) {
+            return
+        }
+
+        val movedCategoryId = orderedIds.removeAt(currentIndex)
+        orderedIds.add(destinationIndex, movedCategoryId)
+        updateCategoryManagement {
+            categoryManagementRepository.reorderCategories(orderedIds)
+        }
     }
 
     fun classificationReport(): String = ClassificationReportFormatter.format(categorizedApps.value)
@@ -165,6 +262,53 @@ class OrganizerViewModel(
             }
         }
     }
+
+    private fun <T> updateCategoryManagement(update: suspend () -> CategoryManagementResult<T>) {
+        scope.launch {
+            clearCategoryManagementErrors()
+            val result =
+                try {
+                    update()
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (_: Exception) {
+                    CategoryManagementResult.Failure(CategoryManagementError.PersistenceFailure)
+                }
+
+            when (result) {
+                is CategoryManagementResult.Success -> clearCategoryManagementErrors()
+                is CategoryManagementResult.Failure -> showCategoryManagementError(result.error)
+            }
+        }
+    }
+
+    private fun showCategoryManagementError(categoryError: CategoryManagementError) {
+        val uiError = categoryError.toUiModel()
+        when (categoryError) {
+            CategoryManagementError.BlankName,
+            is CategoryManagementError.NameTooLong,
+            is CategoryManagementError.DuplicateName -> categoryValidationError.value = uiError
+
+            else -> categoryOperationError.value = uiError
+        }
+    }
+
+    private fun CategoryManagementError.toUiModel(): CategoryManagementErrorUiModel =
+        when (this) {
+            CategoryManagementError.BlankName -> CategoryManagementErrorUiModel.NameRequired
+            is CategoryManagementError.NameTooLong ->
+                CategoryManagementErrorUiModel.NameTooLong(maximumCodePoints)
+            is CategoryManagementError.DuplicateName -> CategoryManagementErrorUiModel.DuplicateName
+            is CategoryManagementError.CategoryNotFound -> CategoryManagementErrorUiModel.CategoryUnavailable
+            is CategoryManagementError.BuiltInCategoryImmutable ->
+                CategoryManagementErrorUiModel.BuiltInCategoryImmutable
+            is CategoryManagementError.InvalidReassignmentDestination ->
+                CategoryManagementErrorUiModel.InvalidReassignmentDestination
+            is CategoryManagementError.InvalidOrder -> CategoryManagementErrorUiModel.InvalidOrder
+            CategoryManagementError.PersistenceFailure,
+            is CategoryManagementError.InvalidGeneratedCategoryId,
+            is CategoryManagementError.CategoryIdAlreadyExists -> CategoryManagementErrorUiModel.SaveFailed
+        }
 
     private fun LaunchTargetId.toAppId(): AppId = AppId(packageName)
 
