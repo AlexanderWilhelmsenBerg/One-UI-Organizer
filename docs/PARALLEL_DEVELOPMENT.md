@@ -336,16 +336,21 @@ app/src/main/java/**/rules/BundledKnownAppRules.kt
 app/src/main/java/**/rules/general/GeneralKnownAppRules.kt
 app/src/main/java/**/rules/games/GameKnownAppRules.kt
 app/src/main/java/**/rules/web/WebShortcutKnownAppRules.kt
+app/src/main/java/**/model/AppCategory.kt
 classification-report integration and its regression tests
 classification taxonomy/migration decision
 classification-wave documentation
 ```
 
-Agent 60 must collect or review the owner-device classification report before freezing new taxonomy values. The raw report is private and must never be committed. If device access is unavailable to the agent, the PR remains evidence-gated until the owner supplies the report privately.
+The primary Samsung report has been reviewed privately. Sanitized evidence and the frozen decisions are recorded in `CLASSIFICATION_ROADMAP.md`; raw launcher rows remain private and must never be committed.
+
+Agent 60 freezes an additive taxonomy: `Web Shortcuts`, five broad game subcategories (`Action & Adventure`, `RPG`, `Strategy & Simulation`, `Puzzle & Casual`, `Board & Card`) and the existing `Games` fallback. Existing category names remain unchanged, so organizer-state schema version 1 remains valid and no persistence migration is required.
+
+The shared bundled-rule selector contract is also frozen as exact component > exact package > package prefix. Package-prefix matching exists only because the reviewed report established a generated Chromium WebAPK namespace that cannot be represented by a durable finite exact-package list. Prefixes require a trailing package-segment boundary; duplicate or overlapping prefixes fail fast. The outer category precedence remains user override > bundled rule > Android category > `Unsorted`.
 
 ### Parallel classification lanes after Agent 60 merges
 
-Only after Agent 60 has reviewed the real report, frozen the accepted taxonomy/rule selectors, resolved migration implications, and merged may the rule expansion lanes start from the same updated `main`.
+Only after Agent 60 is merged may the rule expansion lanes start from the same updated `main`.
 
 | Lane | Production ownership | Test ownership | Shared files it must not edit |
 |---|---|---|---|
@@ -355,12 +360,16 @@ Only after Agent 60 has reviewed the real report, frozen the accepted taxonomy/r
 
 These lanes add evidence-backed rules only. They do not create alternate engines, duplicate selectors, local taxonomies, or label-guessing systems to avoid coordination.
 
+The game lane uses only the five frozen subcategories and leaves uncertain/mixed titles in `Games`. It does not introduce `Sports & Racing` or `Other Games` without a later coordinated taxonomy decision.
+
+The Web/PWA lane may use the frozen package-prefix selector for evidence-backed generated namespaces such as Chromium WebAPK packages. It must not classify arbitrary TWA wrappers, activity names, labels, or URLs without separate deterministic evidence.
+
 ### Classification-wave conflict rules
 
 1. `KnownAppSelector`, `KnownAppRuleSet`, `BundledKnownAppRules`, `AppCategory`, `ClassificationSource`, and persisted schema are shared foundation contracts after Agent 60.
-2. Exact component matching precedes exact package matching inside the bundled-rule tier; the outer precedence remains user override > bundled rule > Android category > `Unsorted`.
-3. Duplicate exact selectors across the composed packs are a build/test failure, not a merge-time convention.
-4. A new matcher requires reviewed device evidence and an explicit shared-contract PR before parallel rule branches consume it.
+2. Exact component matching precedes exact package matching, which precedes package-prefix matching inside the bundled-rule tier; the outer precedence remains user override > bundled rule > Android category > `Unsorted`.
+3. Duplicate selectors and overlapping package prefixes are build/test failures, not merge-time conventions.
+4. Another matcher requires reviewed device evidence and an explicit shared-contract PR before parallel rule branches consume it.
 5. A taxonomy rename/removal is persistence work and cannot be slipped into a rule-pack PR.
 6. Each rule lane reports before/after aggregate effects from the same evidence set where practical, while raw owner-device rows remain private.
 
@@ -379,4 +388,4 @@ These lanes add evidence-backed rules only. They do not create alternate engines
                          + owner-device validation
 ```
 
-Green CI on Agent 60 is necessary but not sufficient: the foundation PR is not merge-ready until the real report has been reviewed and taxonomy/migration decisions are documented.
+Green CI and reviewed owner evidence are both required before Agent 60 is merge-ready. Subsequent rule-expansion PRs remain independently reviewable and unmerged until explicitly approved.

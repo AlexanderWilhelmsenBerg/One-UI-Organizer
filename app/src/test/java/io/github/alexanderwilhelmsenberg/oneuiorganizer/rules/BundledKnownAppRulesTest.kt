@@ -57,6 +57,50 @@ class BundledKnownAppRulesTest {
     }
 
     @Test
+    fun packagePrefixRuleMatchesGeneratedPackageNamespaceWithoutUsingLabel() {
+        val ruleSet =
+            KnownAppRuleSet(
+                listOf(
+                    KnownAppRule(
+                        KnownAppSelector.PackagePrefix("org.chromium.webapk."),
+                        AppCategory.WEB_SHORTCUTS
+                    )
+                )
+            )
+
+        assertEquals(
+            AppCategory.WEB_SHORTCUTS,
+            ruleSet.categoryFor(
+                installedApp(
+                    packageName = "org.chromium.webapk.generated_id",
+                    className = "org.chromium.webapk.shell_apk.h2o.H2OOpaqueMainActivity"
+                )
+            )
+        )
+        assertNull(ruleSet.categoryFor(installedApp("org.chromium.webapknot.generated")))
+    }
+
+    @Test
+    fun exactPackageRuleWinsOverPackagePrefixRuleInsideKnownRuleTier() {
+        val packageName = "org.chromium.webapk.special"
+        val ruleSet =
+            KnownAppRuleSet(
+                listOf(
+                    KnownAppRule(
+                        KnownAppSelector.PackagePrefix("org.chromium.webapk."),
+                        AppCategory.WEB_SHORTCUTS
+                    ),
+                    KnownAppRule(
+                        KnownAppSelector.ExactPackage(AppId(packageName)),
+                        AppCategory.TOOLS
+                    )
+                )
+            )
+
+        assertEquals(AppCategory.TOOLS, ruleSet.categoryFor(installedApp(packageName)))
+    }
+
+    @Test
     fun exactComponentRuleWinsOverExactPackageRuleInsideKnownRuleTier() {
         val packageName = "example.multi"
         val specialTarget = LaunchTargetId(packageName, "$packageName.SpecialActivity")
@@ -106,6 +150,31 @@ class BundledKnownAppRulesTest {
                     KnownAppRule(selector, AppCategory.WORK)
                 )
             )
+        }
+    }
+
+    @Test
+    fun overlappingPackagePrefixesFailFast() {
+        assertFailsWith<IllegalStateException> {
+            KnownAppRuleSet(
+                listOf(
+                    KnownAppRule(
+                        KnownAppSelector.PackagePrefix("org.chromium."),
+                        AppCategory.TOOLS
+                    ),
+                    KnownAppRule(
+                        KnownAppSelector.PackagePrefix("org.chromium.webapk."),
+                        AppCategory.WEB_SHORTCUTS
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
+    fun packagePrefixRequiresSegmentBoundary() {
+        assertFailsWith<IllegalArgumentException> {
+            KnownAppSelector.PackagePrefix("org.chromium.webapk")
         }
     }
 

@@ -19,4 +19,15 @@ class CategoryLabelTest {
             assertEquals(displayLabel, searchLabel, "Search/display label drift for ${category.name}")
         }
     }
+
+    @Test
+    fun postV01ClassificationTaxonomyUsesFrozenAdditiveCategories() {
+        assertEquals("Web Shortcuts", AppCategory.WEB_SHORTCUTS.displayName())
+        assertEquals("Action & Adventure", AppCategory.GAME_ACTION_ADVENTURE.displayName())
+        assertEquals("RPG", AppCategory.GAME_RPG.displayName())
+        assertEquals("Strategy & Simulation", AppCategory.GAME_STRATEGY_SIMULATION.displayName())
+        assertEquals("Puzzle & Casual", AppCategory.GAME_PUZZLE_CASUAL.displayName())
+        assertEquals("Board & Card", AppCategory.GAME_BOARD_CARD.displayName())
+        assertEquals("Games", AppCategory.GAMES.displayName())
+    }
 }

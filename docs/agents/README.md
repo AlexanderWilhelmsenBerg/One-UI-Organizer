@@ -29,9 +29,9 @@ The Agent 00–50 sequence is complete on the merged v0.1 baseline.
 
 Start Agent 60 alone before parallel classification expansion:
 
-- [`60-classification-foundation.md`](60-classification-foundation.md) — local evidence report, exact-selector rule composition, taxonomy/migration evidence gate, and parallel rule ownership seams.
+- [`60-classification-foundation.md`](60-classification-foundation.md) — local evidence report, deterministic selector composition, additive taxonomy freeze, migration review, and parallel rule ownership seams.
 
-Do not start the general/game/Web-PWA rule expansion lanes until Agent 60 has reviewed the private owner-device report, frozen the taxonomy and matcher contract, resolved migration implications, and merged.
+Agent 60 has now reviewed the private owner-device report. Its PR freezes the shared taxonomy and selector contract, but the downstream general/game/Web-PWA lanes must still start only after Agent 60 is merged to `main`.
 
 After that gate, use the file ownership in [`../PARALLEL_DEVELOPMENT.md`](../PARALLEL_DEVELOPMENT.md): general rules, game rules and Web/PWA rules may proceed in parallel without editing the shared selector/index/taxonomy infrastructure.
 
