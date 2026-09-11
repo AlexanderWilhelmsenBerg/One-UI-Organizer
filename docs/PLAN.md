@@ -1,6 +1,6 @@
 # Product and Delivery Plan
 
-**Implementation status:** ready to scaffold.
+**Implementation status:** v0.1 integration is complete on the integration branch and is in final merge verification. Classification-quality tuning is explicitly deferred to the next post-v0.1 PR; see [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md).
 
 Execution details and agent ownership are defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Copy/paste coding briefs live under [`agents/`](agents/README.md).
 
@@ -224,11 +224,9 @@ Delivered on `main`:
 - parallel coding plan;
 - coding-agent prompts.
 
-### Wave 0 / Milestone 1A — Agent 00 foundation
+### Wave 0 / Milestone 1A — Agent 00 foundation — complete
 
-**One agent only. Merge before parallel feature work.**
-
-Deliverables:
+Delivered:
 
 - Android/Gradle scaffold;
 - exact stable-compatible toolchain;
@@ -239,15 +237,13 @@ Deliverables:
 - minimal Compose smoke app;
 - shared app-owned contracts/models frozen for the parallel lanes.
 
-Exit condition: later agents can work without casually editing common Gradle/build policy or inventing competing contracts.
+### Wave 1 / Milestone 1B-3 — complete
 
-### Wave 1 / Milestone 1B-3 — four agents in parallel
-
-Start all four from the same updated `main` after Agent 00 merges.
+The four parallel lanes delivered platform discovery/launching, category/search domain behavior, persistence/repository state, and the Compose UI/design system.
 
 #### Agent 10 — platform apps / integration spike
 
-Owns:
+Delivered:
 
 - Android launcher-app discovery;
 - exact launch target handling;
@@ -258,7 +254,7 @@ Owns:
 
 #### Agent 20 — category/search domain
 
-Owns:
+Delivered:
 
 - deterministic precedence engine;
 - Android category mapping from app-owned metadata;
@@ -269,7 +265,7 @@ Owns:
 
 #### Agent 30 — state/repository
 
-Owns:
+Delivered:
 
 - DataStore-backed schema version 1;
 - state serialization/default/corruption policy;
@@ -280,7 +276,7 @@ Owns:
 
 #### Agent 40 — Compose UI/design system
 
-Owns:
+Delivered:
 
 - One UI-inspired theme/tokens;
 - shelf/category/app-tile/search/loading/empty surfaces;
@@ -289,26 +285,27 @@ Owns:
 - light/dark/accessibility behavior;
 - UI tests against fake app-owned state.
 
-Wave-1 PRs may merge in any order if they stay within ownership boundaries and do not redesign frozen shared contracts.
+### Wave 2 / Milestone 4 — Agent 50 integration and hardening — merge verification
 
-### Wave 2 / Milestone 4 — Agent 50 integration and hardening
-
-Start after Agents 10/20/30/40 are merged.
-
-Deliverables:
+Delivered in the integration PR:
 
 - real dependency/composition wiring;
-- ViewModel/UI-state integration;
+- app-owned presentation/UI-state integration;
 - complete v0.1 Must behavior;
-- regression repair where boundaries meet;
-- cross-app/instrumented tests;
+- boundary regression repairs;
 - privacy/package audit;
 - full warning-free quality lane;
-- performance measurement/benchmark tooling when the integrated flow exists;
-- physical Samsung acceptance checklist/results;
-- release-candidate documentation.
+- physical Samsung proof that the integrated app launches and category shelf renders.
 
-Exit condition: app is ready for owner device testing and remains unmerged until explicitly approved.
+The integration PR remains owner-controlled and must not merge automatically.
+
+### Next post-v0.1 slice — classification quality and taxonomy tuning
+
+Owner testing found the starter categorization useful but coarse, with 225 entries in `Unsorted` and 129 in `Games`, plus some tiny categories and browser-created/PWA-style launcher shortcuts.
+
+This is deliberately a **separate follow-up PR**, not an expansion of the integration PR. The detailed scope lives in [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md).
+
+The next slice should improve classification from real device evidence while preserving deterministic rules, user-override precedence, local-only behavior, and `Unsorted` as the safe fallback. It should evaluate Web Shortcuts, broad game subcategories, rule-pack expansion, and consolidation of low-value tiny categories.
 
 ## 7. Merge/conflict rules
 
@@ -381,7 +378,7 @@ A Samsung physical-device pass is mandatory for v0.1. Emulator-only acceptance i
 
 Do not optimize before the integrated flow exists.
 
-Agent 50 measures real journeys using the stable tooling in `STABLE_BASELINE.md`:
+Measure real journeys using the stable tooling in `STABLE_BASELINE.md` when performance work is justified:
 
 - cold/warm start;
 - initial/resume scan;
@@ -389,11 +386,22 @@ Agent 50 measures real journeys using the stable tooling in `STABLE_BASELINE.md`
 - category scrolling/frame timing;
 - Organizer -> external app launch.
 
-Macrobenchmark is preferred for end-to-end journeys; Microbenchmark only for isolated hot code.
+Macrobenchmark is preferred for end-to-end journeys; Microbenchmark only for isolated hot code. Do not add benchmark tooling merely to satisfy a checklist when no measured issue exists.
 
 ## 10. Post-v0.1 roadmap
 
-### Should candidates
+### Immediate next slice
+
+- evidence-driven classification-quality tuning from real Samsung launcher data;
+- expand deterministic bundled known-app rules;
+- identify browser/PWA launcher entries as `Web Shortcuts` only when supported metadata gives a reliable signature;
+- evaluate a small broad game taxonomy rather than one 129-app bucket;
+- review/consolidate categories with only one or two apps;
+- add local diagnostic/export support only if it materially helps rule tuning, with no telemetry/networking.
+
+See [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md) for the detailed acceptance direction.
+
+### Other Should candidates
 
 - custom categories;
 - reorder categories;
@@ -401,7 +409,7 @@ Macrobenchmark is preferred for end-to-end journeys; Microbenchmark only for iso
 - export/import organizer rules;
 - richer `Unsorted` management;
 - more complete One UI-inspired polish;
-- performance/baseline profiles when the stable toolchain supports them cleanly.
+- performance/baseline profiles when the stable toolchain supports them cleanly and measurements justify them.
 
 ### Could candidates
 
