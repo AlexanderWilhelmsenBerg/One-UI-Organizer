@@ -2,15 +2,17 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.domain
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.PlatformAppCategory
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.toCategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.BundledKnownAppRules
 
 class DefaultCategoryEngine(
     private val knownAppCategory: (InstalledApp) -> AppCategory? = BundledKnownAppRules::categoryFor
 ) : CategoryEngine {
-    override fun categorize(app: InstalledApp, userOverride: AppCategory?): CategorizedApp {
+    override fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp {
         if (userOverride != null) {
             return CategorizedApp(
                 app = app,
@@ -23,7 +25,7 @@ class DefaultCategoryEngine(
         if (knownCategory != null) {
             return CategorizedApp(
                 app = app,
-                category = knownCategory,
+                category = knownCategory.toCategoryDefinition(),
                 source = ClassificationSource.KNOWN_APP_RULE
             )
         }
@@ -32,14 +34,14 @@ class DefaultCategoryEngine(
         if (platformCategory != null) {
             return CategorizedApp(
                 app = app,
-                category = platformCategory,
+                category = platformCategory.toCategoryDefinition(),
                 source = ClassificationSource.ANDROID_DECLARED_CATEGORY
             )
         }
 
         return CategorizedApp(
             app = app,
-            category = AppCategory.UNSORTED,
+            category = AppCategory.UNSORTED.toCategoryDefinition(),
             source = ClassificationSource.UNSORTED_FALLBACK
         )
     }
