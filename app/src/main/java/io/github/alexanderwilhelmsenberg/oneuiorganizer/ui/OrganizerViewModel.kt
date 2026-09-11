@@ -207,7 +207,6 @@ class OrganizerViewModel(
         val policy =
             when (choice) {
                 CategoryDeletionChoiceUiModel.AutomaticClassification -> CategoryDeletionPolicy.ReturnToAutomatic
-
                 is CategoryDeletionChoiceUiModel.Reassign -> CategoryDeletionPolicy.Reassign(choice.targetCategoryId)
             }
         updateCategoryManagement {
