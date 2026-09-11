@@ -11,10 +11,8 @@ sealed interface CategoryDefinition {
     val kind: CategoryKind
 }
 
-data class CustomCategoryDefinition(
-    override val id: CategoryId,
-    override val displayName: String
-) : CategoryDefinition {
+data class CustomCategoryDefinition(override val id: CategoryId, override val displayName: String) :
+    CategoryDefinition {
     init {
         require(id.isCustom) { "Custom category identities must use the custom namespace." }
         require(displayName.isNotBlank()) { "Custom category name must not be blank." }
