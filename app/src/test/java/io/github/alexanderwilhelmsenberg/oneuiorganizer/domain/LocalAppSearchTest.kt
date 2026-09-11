@@ -35,6 +35,18 @@ class LocalAppSearchTest {
     }
 
     @Test
+    fun matchesCaseMappingsThatExpandDuringUnicodeNormalization() {
+        val apps = listOf(
+            categorizedApp("example.street", "Straße", AppCategory.TRAVEL_NAVIGATION),
+            categorizedApp("example.work", "Arbeid", AppCategory.WORK)
+        )
+
+        val result = LocalAppSearch.filter(apps, "STRASSE")
+
+        assertEquals(listOf("Straße"), result.map { categorizedApp -> categorizedApp.app.label })
+    }
+
+    @Test
     fun appLabelMatchSurfacesOnlyMatchingApps() {
         val apps = listOf(
             categorizedApp("example.home", "Home Assistant", AppCategory.SMART_HOME),

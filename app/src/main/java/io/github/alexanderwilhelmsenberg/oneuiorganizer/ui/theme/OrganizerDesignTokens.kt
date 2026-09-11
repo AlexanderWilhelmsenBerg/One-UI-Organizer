@@ -25,7 +25,14 @@ object OrganizerDimens {
     val appTileWidth = 88.dp
     val appTileMinHeight = 104.dp
     val hiddenAppIconSize = 44.dp
+    val favouriteBadgeSize = 20.dp
+    val favouriteBadgeCornerRadius = 10.dp
+    val moveDialogMaxHeight = 420.dp
+    val loadingIndicatorSize = 32.dp
     val surfaceTonalElevation = 2.dp
+    val sheetMaxHeight = 560.dp
+    val sheetTopCornerRadius = 32.dp
+    val sheetTonalElevation = 6.dp
 }
 
 val OrganizerShapes =

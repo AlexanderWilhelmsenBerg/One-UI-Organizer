@@ -36,7 +36,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfAppUiModel
@@ -177,8 +176,8 @@ internal fun AppIcon(
                 modifier =
                     Modifier
                         .align(Alignment.TopEnd)
-                        .size(20.dp),
-                shape = RoundedCornerShape(10.dp),
+                        .size(OrganizerDimens.favouriteBadgeSize),
+                shape = RoundedCornerShape(OrganizerDimens.favouriteBadgeCornerRadius),
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -204,7 +203,7 @@ private fun MoveCategoryDialog(
             Column(
                 modifier =
                     Modifier
-                        .heightIn(max = 420.dp)
+                        .heightIn(max = OrganizerDimens.moveDialogMaxHeight)
                         .verticalScroll(rememberScrollState())
             ) {
                 categories
