@@ -5,8 +5,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 object CategoryManagementUiStateMapper {
     fun map(
         organizerState: OrganizerState,
-        validationError: CategoryManagementErrorUiModel?,
-        operationError: CategoryManagementErrorUiModel?
+        operationError: String?
     ): CategoryManagementUiState {
         val assignedCounts = organizerState.categoryOverrides.values.groupingBy { categoryId -> categoryId }.eachCount()
 
@@ -18,7 +17,6 @@ object CategoryManagementUiStateMapper {
                         assignedAppCount = assignedCounts[category.id] ?: 0
                     )
                 },
-            validationError = validationError,
             operationError = operationError
         )
     }
