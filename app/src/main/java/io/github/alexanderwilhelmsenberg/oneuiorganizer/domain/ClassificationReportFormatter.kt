@@ -63,12 +63,11 @@ object ClassificationReportFormatter {
         }
     }
 
-    private fun CategoryDefinition.reportLabel(): String =
-        if (this is AppCategory) {
-            name
-        } else {
-            "${id.value} (${sanitizeField(displayName)})"
-        }
+    private fun CategoryDefinition.reportLabel(): String = if (this is AppCategory) {
+        name
+    } else {
+        "${id.value} (${sanitizeField(displayName)})"
+    }
 
     private fun sanitizeField(value: String): String = value
         .replace('\t', ' ')
