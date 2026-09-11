@@ -14,9 +14,8 @@ data class OrganizerState(
         }
     }
 
-    fun categoryDefinition(id: CategoryId): CategoryDefinition? =
-        AppCategory.fromId(id)
-            ?: customCategories.firstOrNull { category -> category.id == id }
+    fun categoryDefinition(id: CategoryId): CategoryDefinition? = AppCategory.fromId(id)
+        ?: customCategories.firstOrNull { category -> category.id == id }
 
     fun normalizedCategoryOrder(): List<CategoryId> {
         val knownIds =
@@ -45,8 +44,7 @@ data class OrganizerState(
         return normalized
     }
 
-    fun orderedCategories(): List<CategoryDefinition> =
-        normalizedCategoryOrder().mapNotNull(::categoryDefinition)
+    fun orderedCategories(): List<CategoryDefinition> = normalizedCategoryOrder().mapNotNull(::categoryDefinition)
 
     fun normalized(): OrganizerState = copy(categoryOrder = normalizedCategoryOrder())
 
