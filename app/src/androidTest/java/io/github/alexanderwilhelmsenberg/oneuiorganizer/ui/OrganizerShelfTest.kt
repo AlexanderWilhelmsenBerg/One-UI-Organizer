@@ -132,7 +132,8 @@ class OrganizerShelfTest {
         var state by
             mutableStateOf(
                 OrganizerShelfUiState(
-                    categories = listOf(CategorySectionUiModel(AppCategory.UNSORTED, listOf(unsorted)))
+                    categories = listOf(CategorySectionUiModel(AppCategory.UNSORTED, listOf(unsorted))),
+                    availableCategories = listOf(AppCategory.UNSORTED, AppCategory.TOOLS)
                 )
             )
         var moved: Pair<LaunchTargetId, CategoryDefinition>? = null
@@ -147,7 +148,8 @@ class OrganizerShelfTest {
                     )
                 state =
                     OrganizerShelfUiState(
-                        categories = listOf(CategorySectionUiModel(category, listOf(corrected)))
+                        categories = listOf(CategorySectionUiModel(category, listOf(corrected))),
+                        availableCategories = listOf(AppCategory.UNSORTED, AppCategory.TOOLS)
                     )
             }
         )
@@ -182,7 +184,8 @@ class OrganizerShelfTest {
                     categories =
                         listOf(
                             CategorySectionUiModel(AppCategory.COMMUNICATION, listOf(signal))
-                        )
+                        ),
+                    availableCategories = listOf(AppCategory.COMMUNICATION, AppCategory.TOOLS)
                 ),
             onLaunchApp = { launched = it },
             onMoveApp = { target, category -> moved = target to category },

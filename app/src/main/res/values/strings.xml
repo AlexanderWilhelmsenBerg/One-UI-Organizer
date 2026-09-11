@@ -30,6 +30,7 @@
     <string name="share_classification_report">Share classification report</string>
     <string name="classification_report_subject">One UI Organizer classification report</string>
     <string name="classification_report_chooser_title">Share local classification report</string>
+    <string name="manage_categories">Manage categories</string>
     <string name="manage_hidden_apps">Manage hidden apps</string>
     <string name="manage_hidden_apps_count">Manage hidden apps (%1$d)</string>
 
@@ -67,4 +68,38 @@
     <string name="restore_app_content_description">Restore %1$s</string>
     <string name="hidden_apps_empty_title">No hidden apps</string>
     <string name="hidden_apps_empty_body">Apps you hide from the shelf will appear here.</string>
+
+    <string name="manage_categories_title">Categories</string>
+    <string name="manage_categories_body">Reorder all categories, or create and edit your own. Built-in categories stay named and available.</string>
+    <string name="category_management_done">Done</string>
+    <string name="create_category">Create category</string>
+    <string name="create_category_title">Create category</string>
+    <string name="create_category_confirm">Create</string>
+    <string name="rename_category">Rename</string>
+    <string name="rename_category_title">Rename %1$s</string>
+    <string name="rename_category_confirm">Save</string>
+    <string name="delete_category">Delete</string>
+    <string name="delete_category_title">Delete %1$s?</string>
+    <string name="delete_category_confirm">Delete category</string>
+    <string name="built_in_category_label">Built-in category</string>
+    <string name="custom_category_label">Custom category</string>
+    <plurals name="category_assigned_apps">
+        <item quantity="one">%1$d assigned app</item>
+        <item quantity="other">%1$d assigned apps</item>
+    </plurals>
+    <string name="move_category_up_content_description">Move %1$s up</string>
+    <string name="move_category_down_content_description">Move %1$s down</string>
+    <string name="category_name_label">Category name</string>
+    <string name="category_name_content_description">Category name</string>
+    <string name="category_name_required">Enter a category name.</string>
+    <string name="delete_empty_category_body">This custom category has no assigned apps. Deleting it cannot be undone.</string>
+    <plurals name="delete_populated_category_body">
+        <item quantity="one">%1$d app is assigned to this category. Choose what should happen to that assignment before deleting it.</item>
+        <item quantity="other">%1$d apps are assigned to this category. Choose what should happen to those assignments before deleting it.</item>
+    </plurals>
+    <string name="delete_category_automatic_option">Return to automatic classification</string>
+    <string name="delete_category_automatic_body">Assigned apps will use the normal known-rule, Android-category, or Unsorted path again.</string>
+    <string name="delete_category_reassign_heading">Or reassign apps</string>
+    <string name="delete_category_reassign_option">Move to %1$s</string>
+    <string name="delete_category_reassign_body">Move the assigned apps to %1$s before deleting this category.</string>
 </resources>

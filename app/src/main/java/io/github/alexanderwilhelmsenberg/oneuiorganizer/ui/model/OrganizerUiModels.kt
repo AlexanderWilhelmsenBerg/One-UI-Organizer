@@ -40,7 +40,7 @@ data class OrganizerShelfUiState(
     val favourites: List<ShelfAppUiModel> = emptyList(),
     val categories: List<CategorySectionUiModel> = emptyList(),
     val hiddenApps: List<ShelfAppUiModel> = emptyList(),
-    val availableCategories: List<CategoryDefinition> = AppCategory.entries,
+    val availableCategories: List<CategoryDefinition> = emptyList(),
     val error: ShelfErrorUiModel? = null,
     val currentAppCount: Int = 0
 ) {

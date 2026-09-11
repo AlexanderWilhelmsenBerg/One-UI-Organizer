@@ -53,7 +53,8 @@ fun OrganizerShelf(
     onClassificationReportRequested: () -> Unit,
     onHiddenAppsRequested: () -> Unit,
     onHiddenAppsDismissed: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onCategoryManagementRequested: () -> Unit = {}
 ) {
     if (showHiddenApps) {
         HiddenAppsManagement(
@@ -153,6 +154,15 @@ fun OrganizerShelf(
                             UnsortedEmptyState()
                         }
                     }
+                }
+            }
+
+            item(key = "category-management") {
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onCategoryManagementRequested
+                ) {
+                    Text(stringResource(R.string.manage_categories))
                 }
             }
 
