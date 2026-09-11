@@ -125,11 +125,11 @@ The UI carries the real `ClassificationSource` into presentation state and expla
 
 Automatic `UNSORTED_FALLBACK` entries receive a direct `Sort` affordance. Deliberate user overrides remain distinguishable.
 
-## 10. Final integrated expected result
+## 10. Final integrated device-confirmed result
 
-After the game false-positive correction and emulator pack, the expected aggregate result against the same 566-target population is:
+The final Samsung report from the emulator-category build confirms the aggregate result exactly against the same 566-target population:
 
-| Category | Final expected |
+| Category | Device confirmed |
 | --- | ---: |
 | Communication | 6 |
 | Social | 27 |
@@ -158,16 +158,16 @@ After the game false-positive correction and emulator pack, the expected aggrega
 | Unsorted | **123** |
 | **Total** | **566** |
 
-Expected source counts:
+Device-confirmed source counts:
 
 - `USER_OVERRIDE`: 0;
-- `KNOWN_APP_RULE`: 249;
-- `ANDROID_DECLARED_CATEGORY`: 194;
-- `UNSORTED_FALLBACK`: 123.
+- `KNOWN_APP_RULE`: **249**;
+- `ANDROID_DECLARED_CATEGORY`: **194**;
+- `UNSORTED_FALLBACK`: **123**.
 
 Compared with the first fresh integrated report, 13 broad Android game entries, the Eden/Yuzu component and one previously `Unsorted` Citra entry move to `Emulators`.
 
-A fresh report from the emulator-category build is required before these figures are called device-confirmed.
+Manual review confirms all 15 emulator rows are actual emulator software/components. The 10 remaining broad `Games` rows are MonsterFactory, Magic Timer, Xbox Game Pass, Moonlight, Artemis, Prado, Better xCloud, Winlator, GameHub and ES-DE. Several are frontends, streaming or compatibility software; the remainder lack enough evidence for a narrower permanent bucket.
 
 ## 11. Migration decision
 
@@ -179,6 +179,8 @@ The taxonomy expansion is additive only:
 - no data migration is required.
 
 Agent 70 includes a regression test that decodes a literal pre-wave schema-v1 payload and verifies category override, favourite and hidden state remain intact.
+
+The final Samsung report contains `USER_OVERRIDE = 0` and does not expose favourites/hidden state, so strict physical persisted-state proof remains a separate acceptance item if required literally. Repository migration coverage is green.
 
 ## 12. Optional metadata enrichment direction
 
@@ -213,8 +215,8 @@ The Eden correction demonstrates why exact-component evidence can be preferable 
 
 ## 15. Remaining limitations
 
-- 123 entries are expected to remain `Unsorted`.
-- 10 entries are expected to remain broad `Games`.
+- 123 entries remain `Unsorted`.
+- 10 entries remain broad `Games`.
 - gaming frontends/streaming clients are not automatically classified as emulators.
 - standard TWA and non-Chromium browser shortcuts lack a universal safe rule.
 - exact known-app identities require maintenance.
@@ -223,7 +225,7 @@ The Eden correction demonstrates why exact-component evidence can be preferable 
 
 ## 16. After Agent 70
 
-The recommended next coherent wave is user-owned category management:
+The classification-quality device gate is complete. The recommended next coherent wave is user-owned category management:
 
 - custom categories with stable app-owned identifiers;
 - persisted category order;
