@@ -9,7 +9,9 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AppLauncher
@@ -42,6 +44,36 @@ class OrganizerViewModelCategoryManagementTest {
 
             viewModel.hideCategoryManagement()
             assertFalse(viewModel.showCategoryManagement.value)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `management counts use same effective inventory as shelf`() {
+        val automaticApp =
+            CategorizedApp(
+                app =
+                    InstalledApp(
+                        id = AppId("example.video"),
+                        launchTargetId = LaunchTargetId("example.video", "MainActivity"),
+                        label = "Video app"
+                    ),
+                category = AppCategory.VIDEO,
+                source = ClassificationSource.KNOWN_APP_RULE
+            )
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val viewModel = viewModel(scope = scope, apps = listOf(automaticApp))
+
+        try {
+            val shelfVideo = viewModel.uiState.value.categories.single { it.category.id == AppCategory.VIDEO.id }
+            val managementVideo =
+                viewModel.categoryManagementUiState.value.categories.single {
+                    it.category.id == AppCategory.VIDEO.id
+                }
+
+            assertEquals(1, shelfVideo.apps.size)
+            assertEquals(1, managementVideo.assignedAppCount)
         } finally {
             scope.cancel()
         }
@@ -129,9 +161,10 @@ class OrganizerViewModelCategoryManagementTest {
     private fun viewModel(
         scope: CoroutineScope,
         organizerState: OrganizerState = OrganizerState(),
+        apps: List<CategorizedApp> = emptyList(),
         categoryManagementRepository: CategoryManagementRepository = FakeCategoryManagementRepository()
     ): OrganizerViewModel = OrganizerViewModel(
-        organizerRepository = FakeOrganizerRepository(organizerState),
+        organizerRepository = FakeOrganizerRepository(organizerState, apps),
         categoryManagementRepository = categoryManagementRepository,
         appLauncher =
             object : AppLauncher {
@@ -141,8 +174,11 @@ class OrganizerViewModelCategoryManagementTest {
     )
 }
 
-private class FakeOrganizerRepository(initialState: OrganizerState) : OrganizerRepository {
-    override val apps: Flow<List<CategorizedApp>> = MutableStateFlow(emptyList())
+private class FakeOrganizerRepository(
+    initialState: OrganizerState,
+    initialApps: List<CategorizedApp>
+) : OrganizerRepository {
+    override val apps: Flow<List<CategorizedApp>> = MutableStateFlow(initialApps)
     override val organizerState: Flow<OrganizerState> = MutableStateFlow(initialState)
 
     override suspend fun refresh() = Unit
