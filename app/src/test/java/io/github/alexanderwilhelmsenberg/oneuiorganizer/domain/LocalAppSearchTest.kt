@@ -72,6 +72,18 @@ class LocalAppSearchTest {
     }
 
     @Test
+    fun emulatorCategoryLabelIsSearchable() {
+        val apps = listOf(
+            categorizedApp("example.dolphin", "Dolphin", AppCategory.EMULATORS),
+            categorizedApp("example.game", "Game", AppCategory.GAMES)
+        )
+
+        val result = LocalAppSearch.filter(apps, "emulators")
+
+        assertEquals(listOf("Dolphin"), result.map { categorizedApp -> categorizedApp.app.label })
+    }
+
+    @Test
     fun emptyQueryReturnsAllVisibleAppsInDeterministicOrder() {
         val apps = listOf(
             categorizedApp("example.zulu", "Zulu", AppCategory.TOOLS),

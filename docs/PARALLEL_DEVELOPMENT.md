@@ -1,8 +1,6 @@
 # Parallel Development Plan
 
-**Prepared:** 2026-09-08
-
-This document is the execution plan for moving One UI Organizer from planning into implementation using several coding agents without creating overlapping ownership, incompatible abstractions, or build-tool drift.
+This document records the repository's delivery sequencing and ownership rules. Historical lanes remain useful because they explain the current boundaries; future parallel work must reuse those boundaries rather than inventing duplicates.
 
 Read first:
 
@@ -14,202 +12,69 @@ Read first:
 - `ACCEPTANCE_CRITERIA.md`
 - `MOSCOW.md`
 
-## 1. Parallelization strategy
+## 1. Non-negotiable parallel-development rules
 
-Do **not** start every coder from the current empty repository independently. The project has a strict build/toolchain baseline and shared contracts; allowing several agents to invent those simultaneously would create avoidable merge conflicts and incompatible architecture.
+Every coding/integration lane must:
 
-Use two implementation waves.
+1. start from the required current `main`;
+2. refresh HEAD and CI before continuing existing work;
+3. read the authoritative baseline/scope docs before editing;
+4. consume app-owned contracts rather than create parallel models;
+5. stay inside explicit file ownership where practical;
+6. avoid dependency/toolchain changes unless the lane is specifically an upgrade;
+7. run the cheapest complete quality lane that proves its behavior;
+8. report unresolved physical-device steps honestly;
+9. leave its PR unmerged unless the owner explicitly asks for merge.
 
-### Wave 0 — foundation, one owner
+Shared-contract pressure is resolved by the smallest coordinated contract change, followed by rebasing affected lanes. Duplicated scanners, category engines, repositories, state models or UI models are not acceptable conflict avoidance.
 
-**Agent 00 — Foundation / Scaffold / CI**
+## 2. Historical v0.1 delivery — complete
 
-This agent starts first and owns the only initial build-system PR.
+The original implementation used three waves.
 
-It creates:
+### Agent 00 — foundation / scaffold / CI
 
-- Gradle wrapper and Android project scaffold;
-- version catalog using the exact stable baseline;
-- Gradle daemon JVM criteria and Java toolchain configuration;
+Owned:
+
+- Gradle/Android scaffold;
+- central versions/toolchains;
 - dependency verification;
-- Kotlin DSL settings/build files;
-- `:app` module;
-- package structure and app-owned shared contracts/models needed by the parallel lanes;
-- warning-free compile/lint/ktlint/dependency-health checks;
-- baseline GitHub Actions workflow;
-- minimal smoke activity only as needed to prove the scaffold;
-- no organizer feature implementation beyond contract shells and smoke wiring.
+- CI/quality gates;
+- shared app-owned model/contract skeletons.
 
-**Merge Agent 00 before starting Wave 1.**
+This foundation merged before feature implementation.
 
-This is the only hard sequencing gate.
+### Wave 1 — Agents 10/20/30/40
 
-### Wave 1 — four agents in parallel
+| Agent | Lane | Primary ownership |
+| --- | --- | --- |
+| 10 | Android platform apps | launcher discovery/launch adapters and platform tests |
+| 20 | Categorization/search | pure domain category/search behavior and rules |
+| 30 | Persistence/repository | DataStore state and repository merge behavior |
+| 40 | Compose UI/design | UI models, shelf components, theme/tokens and UI tests |
 
-After Agent 00 is merged, start Agents 10, 20, 30 and 40 from the same updated `main`.
-
-| Agent | Lane | Primary ownership | Must not own |
-|---|---|---|---|
-| 10 | Android platform spike | `platform/apps/**`, platform integration tests/spike diagnostics | category rules, DataStore, final shelf UI |
-| 20 | Categorization/domain | `domain/**`, known rules, search/category pure tests | PackageManager, DataStore, Compose screen |
-| 30 | Persistence/repository | `data/**`, state schema/migrations, repository merge logic | package scanning implementation, final UI |
-| 40 | Compose/design system | `ui/**`, theme/tokens, reusable shelf components with fake data | PackageManager, DataStore schema, category algorithm |
-
-Agents may add tests inside their owned lane. They should not edit shared contracts unless the contract is genuinely unworkable; such a change must be isolated, explained in the PR, and coordinated before other lanes merge.
-
-### Wave 2 — integration and hardening
-
-After the four Wave-1 PRs are merged, start:
-
-**Agent 50 — Integration / Acceptance / Performance**
-
-This agent owns:
-
-- composition root and real dependency wiring;
-- ViewModel/UI-state integration;
-- search + category + persistence behavior across real boundaries;
-- final long-press actions and hidden-app management needed for v0.1;
-- Samsung-device acceptance checklist;
-- instrumentation/UI Automator cross-app tests;
-- performance measurements and benchmark module only when the product flow exists;
-- release-candidate quality gates;
-- fixing integration defects without broadening product scope.
-
-Agent 50 must not silently replace architecture or dependencies that already satisfy the documented contracts.
-
-## 2. Shared contract freeze after Agent 00
-
-Agent 00 should create the smallest useful app-owned contracts so parallel work has a stable seam. Names may be adjusted if Kotlin/package conventions demand it, but responsibilities should remain equivalent.
-
-Suggested contracts/models:
+The shared app-owned contracts established by the foundation included:
 
 ```text
-model/
-  AppId
-  LaunchTargetId
-  InstalledApp
-  AppCategory
-  ClassificationSource
-  CategorizedApp
-  OrganizerState
-
-platform/apps/
-  InstalledAppSource
-  AppLauncher
-
-domain/
-  AppCategorizer / CategoryEngine contract
-  SearchNormalizer contract if needed
-
-data/
-  OrganizerStateStore
-  OrganizerRepository contract
+AppId
+LaunchTargetId
+InstalledApp
+AppCategory
+ClassificationSource
+CategorizedApp
+OrganizerState
+InstalledAppSource
+AppLauncher
+CategoryEngine
+OrganizerStateStore
+OrganizerRepository
 ```
 
-Rules:
+### Agent 50 — v0.1 integration / acceptance
 
-- Android types do not enter `model`/`domain` contracts.
-- DataStore/serialization types do not enter repository/domain contracts.
-- Compose types do not enter domain/data contracts.
-- user-owned state is versioned from schema version 1.
-- interfaces remain narrow; no generic `AndroidManager`, `DataManager`, or service-locator container.
+After the four feature lanes merged, Agent 50 owned real composition/wiring, presentation state and cross-layer acceptance. v0.1 is merged.
 
-## 3. Branch and PR discipline
-
-Suggested branches:
-
-```text
-foundation/scaffold
-feature/platform-apps
-feature/category-engine
-feature/state-repository
-feature/shelf-ui
-integration/v0.1
-```
-
-Every agent must:
-
-1. branch from the latest required `main`;
-2. read `AGENTS.md` and all referenced baseline docs before editing;
-3. stay inside its lane;
-4. use only current versions from `STABLE_BASELINE.md`;
-5. not change dependency/toolchain versions unless the task is specifically an upgrade;
-6. run the lane's relevant quality gates;
-7. leave the PR unmerged for review;
-8. report exact tests run and any unresolved device-only acceptance steps.
-
-## 4. File ownership rules
-
-### Agent 00
-
-Owns initially:
-
-```text
-settings.gradle.kts
-build.gradle.kts
-gradle/**
-gradlew*
-app/build.gradle.kts
-.github/workflows/**
-shared contract/model skeletons
-```
-
-After Agent 00 merges, build files are effectively frozen. Feature agents may request a dependency addition but should not casually modify toolchain versions or common build policy.
-
-### Agent 10
-
-Expected ownership:
-
-```text
-app/src/main/java/**/platform/apps/**
-app/src/androidTest/**/platform/apps/**
-```
-
-### Agent 20
-
-Expected ownership:
-
-```text
-app/src/main/java/**/domain/**
-app/src/main/java/**/rules/**
-app/src/test/**/domain/**
-app/src/test/**/rules/**
-```
-
-### Agent 30
-
-Expected ownership:
-
-```text
-app/src/main/java/**/data/**
-app/src/test/**/data/**
-```
-
-### Agent 40
-
-Expected ownership:
-
-```text
-app/src/main/java/**/ui/**
-app/src/test/**/ui/** where appropriate
-app/src/androidTest/**/ui/** where appropriate
-```
-
-### Agent 50
-
-Owns integration points after Wave 1:
-
-```text
-composition root/application wiring
-ViewModel integration
-cross-layer acceptance tests
-benchmark module when justified
-release workflow refinements
-```
-
-## 5. Merge order
-
-Required order:
+The historical merge shape was:
 
 ```text
 00 Foundation
@@ -222,170 +87,244 @@ Required order:
                        |
                  50 Integration
                        |
-                 device acceptance
-                       |
                      v0.1
 ```
 
-Within Wave 1, PRs can merge in any order **provided they remain inside their ownership boundaries and use the frozen contracts**.
+## 3. Permanent architecture/file ownership
 
-If one Wave-1 PR legitimately changes a shared contract, pause merge of affected sibling PRs, rebase them onto the contract change, then continue. Do not solve contract drift by duplicating models.
+The historical lane split remains the normal ownership guide:
 
-## 6. Quality gates by lane
+```text
+platform/apps/**  -> Android discovery/launch adapters
+domain/**         -> pure categorization/search/report logic
+rules/**          -> deterministic bundled rules
+model/**          -> app-owned shared models
+<data>/**         -> persisted state/repository adapters
+ui/**             -> Compose presentation/UI-state mapping/design system
+```
 
-### Foundation
+Build/toolchain policy remains centrally owned and effectively frozen during feature work.
 
-- clean checkout builds;
-- Gradle daemon JDK criteria uses the documented JDK 26 baseline;
-- Android compile/JVM target remains Java 17;
-- dependency verification enabled;
-- configuration cache works for normal verification tasks;
-- zero compiler/deprecation/lint/ktlint warnings in the scaffold;
-- CI uses immutable action SHAs.
+Rules:
 
-### Platform
+- Android types do not enter model/domain contracts;
+- DataStore/serialization types do not enter repository/domain contracts;
+- Compose/Material types do not enter data/domain contracts;
+- user-owned state is explicitly versioned;
+- no generic `AndroidManager`, `DataManager` or service-locator container.
 
-- launcher-visible discovery without `QUERY_ALL_PACKAGES`;
-- deterministic component identity;
-- Organizer excluded;
-- representative launch targets open correctly;
-- package scanning off main thread;
-- real Samsung spike result documented.
+## 4. Post-v0.1 classification wave — implementation merged
 
-### Domain
+Owner testing after v0.1 produced a private 566-target Samsung report with 225 `Unsorted` and 129 broad `Games` entries. Classification-quality work used a new evidence-first gate rather than reopening v0.1 lanes.
 
-- category precedence fully unit-tested;
-- fallback never hides launchable apps;
-- user override always wins;
-- known rules deterministic;
-- search normalization pure and local.
+### Agent 60 — classification foundation / evidence — merged PR #9
+
+Agent 60 froze:
+
+- local classification reporting and aggregate output;
+- additive Web/game taxonomy;
+- exact-component > exact-package > package-prefix selector contract;
+- shared selector/index/composition implementation;
+- separate general/game/Web rule packs;
+- raw owner-device report privacy rules.
+
+The outer precedence remained user override > bundled rule > Android category > `Unsorted`.
+
+### Parallel classification rule lanes — merged
+
+After PR #9 merged, the rule lanes worked from the same foundation:
+
+| PR | Lane | Owned production surface |
+| --- | --- | --- |
+| #12 | General rules | `rules/general/GeneralKnownAppRules.kt` |
+| #13 | Game rules | `rules/games/GameKnownAppRules.kt` |
+| #10 | Web/PWA rules | `rules/web/WebShortcutKnownAppRules.kt` |
+
+They did not independently modify selector infrastructure, taxonomy or persistence.
+
+The game lane uses only the five frozen narrow buckets and retains `Games` fallback. The Web lane uses only the evidence-backed Chromium WebAPK namespace and does not infer arbitrary TWA/browser entries.
+
+### Agent 64 / PR #11 — triage / explanation UI — merged
+
+The UI lane carried the real `ClassificationSource` through the presentation mapper, added source explanation and reused the existing category picker as a direct correction affordance for automatic `Unsorted` fallback.
+
+No classifier/persistence/platform dependency was duplicated in UI.
+
+## 5. Agent 70 — classification-quality integration / acceptance
+
+Agent 70 starts only after PRs #12, #13, #10 and #11 are merged to `main`.
+
+Branch:
+
+```text
+integration/classification-quality
+```
+
+Agent 70 owns only genuine integration/acceptance work:
+
+- prove all rule packs compose through the shared `KnownAppRuleSet`;
+- re-prove outer precedence across merged packs;
+- prove additive taxonomy remains compatible with pre-wave schema-v1 state;
+- verify UI presentation uses actual `ClassificationSource`;
+- tighten permanent quality coverage when a real gap is found;
+- record integrated sanitized evidence and migration decisions;
+- update authoritative planning docs;
+- define the next coherent wave;
+- leave the PR unmerged.
+
+Agent 70 must not use the integration label to redesign the classifier or add speculative features.
+
+### Agent 70 quality correction
+
+PR #11 added useful Compose instrumentation tests under `androidTest`, but the existing CI lane did not compile that source set. Agent 70 therefore adds `:app:assembleDebugAndroidTest` to the permanent verification and configuration-cache reuse commands.
+
+This is intentionally a compile gate, not a false claim of emulator/device execution. Instrumentation behavior and Samsung-specific acceptance remain physical/device work.
+
+### Agent 70 device gate
+
+Repository integration can be completed remotely, but classification acceptance is not complete until the owner-device pass:
+
+1. builds/downloads the current signed debug APK;
+2. installs it over the existing app without clearing state;
+3. verifies category overrides, favourites and hidden state survive;
+4. verifies expanded taxonomy/search/move/explanation/triage UI;
+5. verifies launch, back/dismiss and rescan behavior;
+6. generates a fresh report from the same Samsung device;
+7. records only sanitized aggregate counts/generalized false-positive findings.
+
+The deterministic combined projection against the original frozen 566-target report is recorded in `CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`; it must not be misrepresented as a fresh device capture.
+
+### Classification merge shape
+
+```text
+60 Foundation / evidence
+          |
+          +----------------+----------------+
+          |                |                |
+     12 General       13 Games         10 Web/PWA
+          |                |                |
+          +----------------+----------------+
+                           |
+                    11 Triage/UI
+                           |
+                    70 Integration
+                           |
+                 owner Samsung acceptance
+                           |
+                    owner merge decision
+```
+
+The exact historical merge ordering of #10/#11/#12/#13 is less important than the gate: Agent 70 starts from current `main` only after all required inputs are merged.
+
+## 6. Quality gates by responsibility
+
+### Pure domain/rules
+
+- deterministic unit tests;
+- duplicate/conflicting selector failures;
+- precedence tests;
+- no Android framework dependency;
+- no label/network inference.
 
 ### Persistence/repository
 
-- schema version 1 explicit;
-- persisted overrides/favourites/hidden survive process recreation;
-- migration tests exist before any schema 2 change;
-- uninstall/stale-state policy deterministic;
-- repository merges source + state without UI knowledge.
+- explicit schema version;
+- override/favourite/hidden survival;
+- migration tests for any schema/category-identity change;
+- deterministic stale/uninstall behavior.
 
 ### UI
 
-- fake-data previews/tests require no real PackageManager/DataStore;
-- category browsing/search visuals;
-- app tiles and long-press affordance;
-- light/dark/system theme;
-- accessibility semantics;
-- One UI-inspired design tokens centralized.
+- UI-state mapping derives from app-owned state;
+- Compose behavior/semantics tests;
+- no classifier/persistence implementation duplicated in Compose;
+- physical Samsung review where presentation behavior matters.
 
-### Integration
+### Permanent repository lane
 
-- all v0.1 Must items and acceptance criteria exercised;
-- physical Samsung acceptance complete;
-- no `INTERNET` or `QUERY_ALL_PACKAGES` permission;
-- cross-app launch tests via UI Automator where stable;
-- release build/lint/tests pass;
-- performance measured for startup, scan, search, scroll and launch journeys before optimizing.
+- assemble debug app;
+- compile instrumentation test APK;
+- JVM tests;
+- Android Lint;
+- ktlint;
+- dependency `buildHealth`;
+- strict dependency verification;
+- Gradle warning-mode failure;
+- configuration-cache creation/reuse;
+- forbidden-permission checks.
 
 ## 7. Conflict-resolution policy
 
-When two lanes need the same file:
+When two lanes need the same concept:
 
-1. prefer moving the shared concept into an app-owned contract rather than having both agents edit the integration implementation;
-2. the agent that owns the lower-level boundary implements it;
-3. sibling agents consume the contract using fakes;
-4. integration wiring waits for Agent 50 unless it is strictly required to demonstrate a lane;
-5. never solve merge pressure by allowing duplicated models or duplicated persistence/scanner implementations.
+1. identify the actual lower-level owner;
+2. change the smallest app-owned contract only if truly required;
+3. make sibling impact explicit;
+4. rebase affected branches;
+5. keep framework/library-specific types at adapters;
+6. do not solve merge pressure through duplicated implementations.
 
-## 8. What can be developed in parallel later
+Persisted-state/category-identity changes are especially coordinated: category rename/removal/custom identity/order are migration work, not incidental UI changes.
 
-After v0.1, future work can use the same lane pattern:
+## 8. Recommended next parallel wave — user-owned category management
 
-- custom categories + export/import;
-- shortcuts;
-- widget;
-- work-profile support;
-- performance/baseline profiles;
-- rule tooling.
+After Agent 70 is accepted, the next wave should focus on user-owned organization rather than more aggressive automatic classification.
 
-Each feature should receive an explicit owner and adapter boundary before parallel coding begins.
-
-## 9. Ready-to-start criterion
-
-Parallel implementation is ready when Agent 00 is merged and `main` contains:
-
-- a clean, warning-free Android scaffold;
-- frozen app-owned contracts;
-- reproducible toolchains;
-- CI gates;
-- no feature agent-specific implementation hidden in the foundation PR.
-
-Copy/paste prompts for each agent live under [`agents/`](agents/README.md).
-
-## 10. Post-v0.1 classification wave
-
-The Agent 00–50 sequence above is the historical v0.1 delivery structure. v0.1 is merged. Classification-quality work uses a new evidence-first gate rather than reopening those completed lanes.
-
-### Agent 60 — classification foundation / evidence
-
-Agent 60 starts alone from current `main` on `feature/classification-foundation` and owns the shared classification seams:
+Recommended sequencing:
 
 ```text
-app/src/main/java/**/domain/ClassificationReportFormatter.kt
-app/src/main/java/**/rules/KnownAppRules.kt
-app/src/main/java/**/rules/BundledKnownAppRules.kt
-app/src/main/java/**/rules/general/GeneralKnownAppRules.kt
-app/src/main/java/**/rules/games/GameKnownAppRules.kt
-app/src/main/java/**/rules/web/WebShortcutKnownAppRules.kt
-app/src/main/java/**/model/AppCategory.kt
-classification-report integration and its regression tests
-classification taxonomy/migration decision
-classification-wave documentation
+80 Category identity/persistence foundation
+                 |
+        +--------+--------+
+        |                 |
+81 Category domain     82 Category UI
+        |                 |
+        +--------+--------+
+                 |
+        83 Integration/acceptance
 ```
 
-The primary Samsung report has been reviewed privately. Sanitized evidence and the frozen decisions are recorded in `CLASSIFICATION_ROADMAP.md`; raw launcher rows remain private and must never be committed.
+### Agent 80 — custom-category/persistence foundation
 
-Agent 60 freezes an additive taxonomy: `Web Shortcuts`, five broad game subcategories (`Action & Adventure`, `RPG`, `Strategy & Simulation`, `Puzzle & Casual`, `Board & Card`) and the existing `Games` fallback. Existing category names remain unchanged, so organizer-state schema version 1 remains valid and no persistence migration is required.
+Owns the smallest shared contract required for:
 
-The shared bundled-rule selector contract is also frozen as exact component > exact package > package prefix. Package-prefix matching exists only because the reviewed report established a generated Chromium WebAPK namespace that cannot be represented by a durable finite exact-package list. Prefixes require a trailing package-segment boundary; duplicate or overlapping prefixes fail fast. The outer category precedence remains user override > bundled rule > Android category > `Unsorted`.
+- durable custom-category identifiers;
+- category metadata/order representation;
+- persisted schema evolution;
+- migration tests from current schema v1;
+- no UI feature implementation beyond contract proof.
 
-### Parallel classification lanes after Agent 60 merges
+This must merge before parallel domain/UI lanes if shared models/schema change.
 
-Only after Agent 60 is merged may the rule expansion lanes start from the same updated `main`.
+### Agent 81 — category management domain/repository
 
-| Lane | Production ownership | Test ownership | Shared files it must not edit |
-|---|---|---|---|
-| General rules | `app/src/main/java/**/rules/general/GeneralKnownAppRules.kt` | matching `app/src/test/**/rules/general/**` tests | selector/index/composition, taxonomy, persistence |
-| Game rules | `app/src/main/java/**/rules/games/GameKnownAppRules.kt` | matching `app/src/test/**/rules/games/**` tests | selector/index/composition, taxonomy, Android mapping |
-| Web/PWA rules | `app/src/main/java/**/rules/web/WebShortcutKnownAppRules.kt` | matching `app/src/test/**/rules/web/**` tests | selector/index/composition, taxonomy, platform scanner unless explicitly re-coordinated |
+Potential ownership:
 
-These lanes add evidence-backed rules only. They do not create alternate engines, duplicate selectors, local taxonomies, or label-guessing systems to avoid coordination.
+- create/rename/delete behavior;
+- deletion reassignment/fallback policy;
+- reorder operations;
+- repository/state behavior;
+- pure tests.
 
-The game lane uses only the five frozen subcategories and leaves uncertain/mixed titles in `Games`. It does not introduce `Sports & Racing` or `Other Games` without a later coordinated taxonomy decision.
+### Agent 82 — category management UI
 
-The Web/PWA lane may use the frozen package-prefix selector for evidence-backed generated namespaces such as Chromium WebAPK packages. It must not classify arbitrary TWA wrappers, activity names, labels, or URLs without separate deterministic evidence.
+Potential ownership:
 
-### Classification-wave conflict rules
+- create/rename/delete/reorder UI;
+- richer category-management surface;
+- bulk/manual organization only where the frozen domain contract supports it;
+- Compose tests and accessibility.
 
-1. `KnownAppSelector`, `KnownAppRuleSet`, `BundledKnownAppRules`, `AppCategory`, `ClassificationSource`, and persisted schema are shared foundation contracts after Agent 60.
-2. Exact component matching precedes exact package matching, which precedes package-prefix matching inside the bundled-rule tier; the outer precedence remains user override > bundled rule > Android category > `Unsorted`.
-3. Duplicate selectors and overlapping package prefixes are build/test failures, not merge-time conventions.
-4. Another matcher requires reviewed device evidence and an explicit shared-contract PR before parallel rule branches consume it.
-5. A taxonomy rename/removal is persistence work and cannot be slipped into a rule-pack PR.
-6. Each rule lane reports before/after aggregate effects from the same evidence set where practical, while raw owner-device rows remain private.
+### Agent 83 — integration / acceptance
 
-### Post-v0.1 merge shape
+Owns cross-layer wiring, migration/device acceptance and any genuine integration repair.
 
-```text
-60 Classification foundation + evidence
-                  |
-                  +----------------+----------------+
-                  |                |                |
-             General rules     Game rules      Web/PWA rules
-                  |                |                |
-                  +----------------+----------------+
-                                   |
-                         classification integration
-                         + owner-device validation
-```
+Do **not** fold local backup/export/import into the foundation merely because persistence is changing. Define the custom-category representation first, then version the export format against a stable contract. Likewise, dynamic/pinned shortcuts should follow stable category identity.
 
-Green CI and reviewed owner evidence are both required before Agent 60 is merge-ready. Subsequent rule-expansion PRs remain independently reviewable and unmerged until explicitly approved.
+Presentation polish may later be split into a low-conflict UI lane. Performance/benchmark work should only become a lane after measurements identify a meaningful target.
+
+## 9. PR control
+
+Green CI is necessary but not sufficient. A PR is merge-ready only when its lane-specific acceptance is satisfied and all unresolved device/migration steps are visible.
+
+No coding/integration agent merges its own PR unless the owner explicitly instructs it to do so.

@@ -4,6 +4,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.emulators.EmulatorKnownAppRules
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.games.GameKnownAppRules
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.general.GeneralKnownAppRules
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.web.WebShortcutKnownAppRules
@@ -16,7 +17,10 @@ class BundledKnownAppRulesTest {
     @Test
     fun bundledRulesComposeOwnedRulePacksInStableOrder() {
         assertEquals(
-            GeneralKnownAppRules.entries + GameKnownAppRules.entries + WebShortcutKnownAppRules.entries,
+            GeneralKnownAppRules.entries +
+                EmulatorKnownAppRules.entries +
+                GameKnownAppRules.entries +
+                WebShortcutKnownAppRules.entries,
             BundledKnownAppRules.entries
         )
     }

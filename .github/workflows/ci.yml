@@ -80,7 +80,7 @@ jobs:
 
       - name: Verify scaffold
         run: >-
-          ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
           --warning-mode=fail
           --dependency-verification=strict
           --configuration-cache
@@ -100,6 +100,7 @@ jobs:
           set -euo pipefail
           ./gradlew \
             :app:assembleDebug \
+            :app:assembleDebugAndroidTest \
             :app:testDebugUnitTest \
             :app:lintDebug \
             :app:ktlintCheck \

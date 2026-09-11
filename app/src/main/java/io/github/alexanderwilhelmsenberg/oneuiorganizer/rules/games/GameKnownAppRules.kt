@@ -35,7 +35,6 @@ object GameKnownAppRules {
             packageRule("com.jockeholm.undertale", AppCategory.GAME_RPG),
             packageRule("com.kice.afterplace", AppCategory.GAME_RPG),
             packageRule("com.LonelyTroops.HerooftheKingdom", AppCategory.GAME_RPG),
-            packageRule("com.miHoYo.Yuanshen", AppCategory.GAME_RPG),
             packageRule("com.murchikstudio.octane100", AppCategory.GAME_RPG),
             packageRule("com.mxdzzus.google", AppCategory.GAME_RPG),
             packageRule("com.netflix.NGP.Moonlighter", AppCategory.GAME_RPG),

@@ -29,7 +29,7 @@ class GameKnownAppRulesTest {
                 AppCategory.GAME_BOARD_CARD
             )
 
-        assertEquals(106, GameKnownAppRules.entries.size)
+        assertEquals(105, GameKnownAppRules.entries.size)
         assertTrue(GameKnownAppRules.entries.all { rule -> rule.selector is KnownAppSelector.ExactPackage })
         assertEquals(frozenGameCategories, GameKnownAppRules.entries.map { rule -> rule.category }.toSet())
     }
@@ -79,6 +79,23 @@ class GameKnownAppRulesTest {
     }
 
     @Test
+    fun emulatorUsingGamePackageIdentityStaysInSafeGamesFallback() {
+        val categorized =
+            categoryEngine.categorize(
+                app =
+                    installedGame(
+                        packageName = "com.miHoYo.Yuanshen",
+                        className = "org.yuzu.yuzu_emu.ui.main.MainActivity",
+                        label = "Eden Optimized"
+                    ),
+                userOverride = null
+            )
+
+        assertEquals(AppCategory.GAMES, categorized.category)
+        assertEquals(ClassificationSource.ANDROID_DECLARED_CATEGORY, categorized.source)
+    }
+
+    @Test
     fun gameRulesDoNotInferFromLocalizedOrDisplayTitle() {
         val categorized =
             categoryEngine.categorize(
@@ -113,9 +130,13 @@ class GameKnownAppRulesTest {
         }
     }
 
-    private fun installedGame(packageName: String, label: String = "Game"): InstalledApp = InstalledApp(
+    private fun installedGame(
+        packageName: String,
+        className: String = "$packageName.MainActivity",
+        label: String = "Game"
+    ): InstalledApp = InstalledApp(
         id = AppId(packageName),
-        launchTargetId = LaunchTargetId(packageName, "$packageName.MainActivity"),
+        launchTargetId = LaunchTargetId(packageName, className),
         label = label,
         platformCategory = PlatformAppCategory.GAME
     )
