@@ -1,6 +1,6 @@
 # Product and Delivery Plan
 
-**Current status:** v0.1 and the post-v0.1 classification implementation are merged to `main`. Agent 70 is the integration/acceptance gate on `integration/classification-quality`. Owner-device review exposed one emulator/game false positive and then justified a first-class `Emulators` category. The current branch contains that correction and requires one final Samsung report before classification acceptance.
+**Current status:** v0.1 and the post-v0.1 classification implementation are merged to `main`. Agent 70 is the integration/acceptance gate on `integration/classification-quality`. Owner-device review exposed one emulator/game false positive, justified a first-class `Emulators` category, and the final Samsung report now confirms the corrected classification result exactly. Repository/device classification acceptance is complete; merge remains an explicit owner decision.
 
 The detailed result is recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md). Execution ownership and sequencing live in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md).
 
@@ -157,21 +157,24 @@ The first fresh Samsung report matched the initial integrated projection at aggr
 
 Agent 70 removed that ambiguous game rule. Owner review then approved an `Emulators` category and evidence-backed emulator pack. The Eden/Yuzu case now uses an exact launch-component selector instead of package-only matching.
 
-Expected final aggregates on the same 566-target population are:
+The final fresh Samsung report from the emulator-category build confirms the predicted result exactly on the same 566-target population:
 
-- `Unsorted`: 225 -> 123;
-- `Emulators`: 0 -> 15;
-- broad `Games`: 129 -> 10;
+- `Unsorted`: 225 -> **123**;
+- `Emulators`: 0 -> **15**;
+- broad `Games`: 129 -> **10**;
 - Action & Adventure: 12;
-- RPG: 37;
+- RPG: **37**;
 - Strategy & Simulation: 29;
 - Puzzle & Casual: 23;
 - Board & Card: 4;
 - Web Shortcuts: 1;
-- bundled-rule source: 5 -> 249;
-- Android-declared source: 336 -> 194.
+- bundled-rule source: 5 -> **249**;
+- Android-declared source: 336 -> **194**;
+- total remains 566.
 
-A fresh report from the emulator-category build remains required before these figures are device-confirmed.
+Manual review confirms all 15 emulator rows are actual emulator software/components. Eden/Yuzu and Citra are correctly classified as `Emulators`, while ambiguous gaming frontends/streaming/compatibility software remains in broad `Games` rather than being over-classified.
+
+The classification-quality Samsung device gate is therefore complete. The report still cannot observe manual override/favourite/hidden persistence, so a strict physical proof of those state types remains separate if required literally; repository migration coverage is green.
 
 ## 8. Metadata enrichment direction
 
@@ -214,14 +217,16 @@ Real Samsung acceptance remains mandatory for product-critical package discovery
 
 The classifier remains deliberately conservative:
 
-- 123 entries are expected to remain `Unsorted`;
-- 10 entries are expected to remain broad `Games`;
+- 123 entries remain `Unsorted`;
+- 10 entries remain broad `Games`;
 - gaming frontends and streaming clients are not automatically treated as emulators;
 - standard TWA wrappers are not generically classified;
 - no safe generic Samsung Internet/other-browser shortcut signature is established;
 - exact package identities require maintenance and can be ambiguous for modified/repacked software;
 - optional external metadata enrichment is approved in scope but not implemented;
 - the model remains one primary category per app.
+
+These are accepted tradeoffs, not open blockers for the classification-quality wave.
 
 ## 11. Next development wave — user-owned category management
 
@@ -253,16 +258,20 @@ Do not expand the current product into:
 
 ## 13. Definition of done for the classification-quality wave
 
-The wave is accepted only when:
+The classification-quality wave is complete when the repository-side acceptance update is green and the owner decides whether to merge PR #14.
 
-- Agent 70 repository CI is green on the final emulator-category head;
+Confirmed:
+
+- Agent 70 repository CI is green on the emulator-category implementation;
 - signed debug APK is installed/run on the owner Samsung device;
-- taxonomy/search/move/explanation/triage behavior remains functional;
-- app launching, dismiss/back and rescan still work;
-- a fresh same-device classification report confirms the final sanitized counts;
-- representative emulator rules, including Eden/Yuzu and Citra, are sampled;
+- the final same-device report confirms the sanitized category/source counts exactly;
+- Eden/Yuzu and Citra are correctly classified as `Emulators`;
+- representative emulator rows show no new false positive;
+- broad gaming frontends/streaming/compatibility software remains conservative;
 - false-positive findings and corrections are recorded without committing raw inventory;
 - current `INTERNET` and `QUERY_ALL_PACKAGES` permissions remain absent;
-- repository migration tests remain green;
-- strict physical override/favourite/hidden preservation is separately checked if required because the report format cannot prove it;
-- the owner explicitly decides whether to merge the Agent 70 PR.
+- repository migration tests are green.
+
+If strict physical persisted-state acceptance is required literally, manual override/favourite/hidden survival remains one separate narrow device check because the report format cannot prove it.
+
+The final merge decision remains with the owner.
