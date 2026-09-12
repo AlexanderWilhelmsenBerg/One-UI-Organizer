@@ -14,7 +14,6 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupDocumentR
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupRestoreNotice
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupRestoreProblem
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupRestoreUiState
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
