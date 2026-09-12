@@ -8,8 +8,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.AndroidCategoryShortcutManager
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutIntents
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutManager
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.OrganizerViewModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.management.CategoryManagement
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfErrorUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.shelf.OrganizerSheetHost
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.shelf.OrganizerShelf
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OneUiOrganizerTheme
@@ -17,10 +23,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private lateinit var presentationScope: CoroutineScope
     private lateinit var organizerViewModel: OrganizerViewModel
+    private lateinit var categoryShortcutManager: CategoryShortcutManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,7 +40,11 @@ class MainActivity : ComponentActivity() {
         val organizerApplication = application as OneUiOrganizerApplication
         presentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         organizerViewModel = organizerApplication.createOrganizerViewModel(presentationScope)
+        categoryShortcutManager = AndroidCategoryShortcutManager(this)
         val supportsDynamicColor = organizerApplication.uiPlatformCapabilities.supportsDynamicColor
+
+        handleShortcutIntent(intent)
+        observeShortcutSynchronization()
 
         setContent {
             val state by organizerViewModel.uiState.collectAsState()
@@ -50,7 +65,11 @@ class MainActivity : ComponentActivity() {
                             onRenameCategory = organizerViewModel::renameCustomCategory,
                             onDeleteCategory = organizerViewModel::deleteCustomCategory,
                             onMoveCategory = organizerViewModel::moveCategory,
-                            onDismiss = organizerViewModel::hideCategoryManagement
+                            onDismiss = organizerViewModel::hideCategoryManagement,
+                            pinningSupported = categoryShortcutManager.isPinningSupported,
+                            onPinCategory = { category ->
+                                categoryShortcutManager.requestPinShortcut(category)
+                            }
                         )
                     } else {
                         OrganizerShelf(
@@ -69,12 +88,19 @@ class MainActivity : ComponentActivity() {
                             onClassificationReportRequested = ::shareClassificationReport,
                             onHiddenAppsRequested = organizerViewModel::showHiddenApps,
                             onHiddenAppsDismissed = organizerViewModel::hideHiddenApps,
-                            onCategoryManagementRequested = organizerViewModel::showCategoryManagement
+                            onCategoryManagementRequested = organizerViewModel::showCategoryManagement,
+                            onCategoryDestinationCleared = organizerViewModel::clearCategoryDestination
                         )
                     }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShortcutIntent(intent)
     }
 
     override fun onResume() {
@@ -85,6 +111,33 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         presentationScope.cancel()
         super.onDestroy()
+    }
+
+    private fun handleShortcutIntent(sourceIntent: Intent?) {
+        val destination = CategoryShortcutIntents.destinationFrom(sourceIntent) ?: return
+        organizerViewModel.openCategoryDestination(destination)
+        categoryShortcutManager.reportShortcutUsed(destination.categoryId)
+    }
+
+    private fun observeShortcutSynchronization() {
+        presentationScope.launch {
+            organizerViewModel.uiState
+                .map { state ->
+                    CategoryShortcutSyncSnapshot(
+                        canSynchronize = !state.isLoading && state.error != ShelfErrorUiModel.SCAN_FAILED,
+                        orderedCategories = state.availableCategories,
+                        currentCategoryAppCounts = state.currentCategoryAppCounts
+                    )
+                }.distinctUntilChanged()
+                .collectLatest { snapshot ->
+                    if (snapshot.canSynchronize) {
+                        categoryShortcutManager.synchronize(
+                            orderedCategories = snapshot.orderedCategories,
+                            currentCategoryAppCounts = snapshot.currentCategoryAppCounts
+                        )
+                    }
+                }
+        }
     }
 
     private fun shareClassificationReport() {
@@ -101,4 +154,10 @@ class MainActivity : ComponentActivity() {
             )
         )
     }
+
+    private data class CategoryShortcutSyncSnapshot(
+        val canSynchronize: Boolean,
+        val orderedCategories: List<CategoryDefinition>,
+        val currentCategoryAppCounts: Map<CategoryId, Int>
+    )
 }
