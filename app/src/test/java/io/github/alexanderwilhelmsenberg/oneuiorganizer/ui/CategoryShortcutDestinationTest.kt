@@ -144,18 +144,14 @@ class CategoryShortcutDestinationTest {
         assertFalse(family.id in result.currentCategoryAppCounts)
     }
 
-    private fun categorizedApp(
-        packageName: String,
-        category: CategoryDefinition
-    ): CategorizedApp =
-        CategorizedApp(
-            app =
-                InstalledApp(
-                    id = AppId(packageName),
-                    launchTargetId = LaunchTargetId(packageName, "$packageName.MainActivity"),
-                    label = packageName
-                ),
-            category = category,
-            source = ClassificationSource.USER_OVERRIDE
-        )
+    private fun categorizedApp(packageName: String, category: CategoryDefinition): CategorizedApp = CategorizedApp(
+        app =
+            InstalledApp(
+                id = AppId(packageName),
+                launchTargetId = LaunchTargetId(packageName, "$packageName.MainActivity"),
+                label = packageName
+            ),
+        category = category,
+        source = ClassificationSource.USER_OVERRIDE
+    )
 }
