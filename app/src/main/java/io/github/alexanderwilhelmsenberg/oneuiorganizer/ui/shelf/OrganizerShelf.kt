@@ -54,7 +54,8 @@ fun OrganizerShelf(
     onHiddenAppsRequested: () -> Unit,
     onHiddenAppsDismissed: () -> Unit,
     modifier: Modifier = Modifier,
-    onCategoryManagementRequested: () -> Unit = {}
+    onCategoryManagementRequested: () -> Unit = {},
+    onCategoryDestinationCleared: () -> Unit = {}
 ) {
     if (showHiddenApps) {
         HiddenAppsManagement(
@@ -92,6 +93,15 @@ fun OrganizerShelf(
                     query = state.query,
                     onQueryChange = onQueryChange
                 )
+            }
+
+            if (state.focusedCategory != null || state.categoryDestinationUnavailable) {
+                item(key = "category-destination") {
+                    CategoryDestinationState(
+                        state = state,
+                        onClear = onCategoryDestinationCleared
+                    )
+                }
             }
 
             state.error?.let { currentError ->
@@ -144,12 +154,16 @@ fun OrganizerShelf(
                                 onLaunchApp = onLaunchApp,
                                 onMoveApp = onMoveApp,
                                 onToggleFavourite = onToggleFavourite,
-                                onHideApp = onHideApp
+                                onHideApp = onHideApp,
+                                isFocused = state.focusedCategory?.id == section.category.id
                             )
                         }
                     }
 
-                    if (state.categories.none { section -> section.category.id == AppCategory.UNSORTED.id }) {
+                    if (
+                        state.focusedCategory == null &&
+                        state.categories.none { section -> section.category.id == AppCategory.UNSORTED.id }
+                    ) {
                         item(key = "unsorted-empty") {
                             UnsortedEmptyState()
                         }
@@ -244,13 +258,45 @@ private fun OrganizerSearchField(query: String, onQueryChange: (String) -> Unit)
 }
 
 @Composable
+private fun CategoryDestinationState(
+    state: OrganizerShelfUiState,
+    onClear: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Row(
+            modifier = Modifier.padding(OrganizerDimens.spacingLarge),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text =
+                    state.focusedCategory?.let { category ->
+                        stringResource(R.string.category_destination_active, category.displayName)
+                    } ?: stringResource(R.string.category_destination_unavailable),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(onClick = onClear) {
+                Text(stringResource(R.string.show_all_categories))
+            }
+        }
+    }
+}
+
+@Composable
 private fun CategorySection(
     section: CategorySectionUiModel,
     availableCategories: List<CategoryDefinition>,
     onLaunchApp: (LaunchTargetId) -> Unit,
     onMoveApp: (LaunchTargetId, CategoryDefinition) -> Unit,
     onToggleFavourite: (LaunchTargetId) -> Unit,
-    onHideApp: (LaunchTargetId) -> Unit
+    onHideApp: (LaunchTargetId) -> Unit,
+    isFocused: Boolean
 ) {
     AppSection(
         title = section.category.displayName,
@@ -261,10 +307,10 @@ private fun CategorySection(
         onToggleFavourite = onToggleFavourite,
         onHideApp = onHideApp,
         emptyMessage =
-            if (section.category.id == AppCategory.UNSORTED.id) {
-                stringResource(R.string.unsorted_empty_body)
-            } else {
-                null
+            when {
+                section.category.id == AppCategory.UNSORTED.id -> stringResource(R.string.unsorted_empty_body)
+                isFocused -> stringResource(R.string.focused_category_empty_body)
+                else -> null
             }
     )
 }
