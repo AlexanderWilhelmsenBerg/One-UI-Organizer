@@ -125,10 +125,7 @@ class AndroidCategoryShortcutManager(context: Context) : CategoryShortcutManager
         return builder.build()
     }
 
-    private fun dynamicShortcutsMatch(
-        existing: List<ShortcutInfo>,
-        desired: List<ShortcutInfo>
-    ): Boolean {
+    private fun dynamicShortcutsMatch(existing: List<ShortcutInfo>, desired: List<ShortcutInfo>): Boolean {
         if (existing.size != desired.size) {
             return false
         }
