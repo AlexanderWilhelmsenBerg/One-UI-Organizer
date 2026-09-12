@@ -10,6 +10,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryShortcutDestination
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AppLauncher
@@ -43,6 +44,7 @@ class OrganizerViewModel(
     private val _showHiddenApps = MutableStateFlow(false)
     private val _showCategoryManagement = MutableStateFlow(false)
     private val categoryManagementError = MutableStateFlow<String?>(null)
+    private val categoryDestination = MutableStateFlow<CategoryShortcutDestination?>(null)
     private var refreshJob: Job? = null
 
     private val organizerState =
@@ -63,12 +65,14 @@ class OrganizerViewModel(
         combine(
             categorizedApps,
             organizerState,
-            query
-        ) { apps, state, currentQuery ->
+            query,
+            categoryDestination
+        ) { apps, state, currentQuery, destination ->
             ShelfInputs(
                 apps = apps,
                 organizerState = state,
-                query = currentQuery
+                query = currentQuery,
+                focusedCategoryId = destination?.categoryId
             )
         }
 
@@ -83,7 +87,8 @@ class OrganizerViewModel(
                 organizerState = inputs.organizerState,
                 query = inputs.query,
                 isLoading = loading,
-                error = currentError
+                error = currentError,
+                focusedCategoryId = inputs.focusedCategoryId
             )
         }.stateIn(
             scope = scope,
@@ -139,6 +144,17 @@ class OrganizerViewModel(
         if (error.value == ShelfErrorUiModel.LAUNCH_FAILED) {
             error.value = null
         }
+    }
+
+    fun openCategoryDestination(destination: CategoryShortcutDestination) {
+        _showHiddenApps.value = false
+        _showCategoryManagement.value = false
+        query.value = ""
+        categoryDestination.value = destination
+    }
+
+    fun clearCategoryDestination() {
+        categoryDestination.value = null
     }
 
     fun launch(target: LaunchTargetId): Boolean {
@@ -309,7 +325,8 @@ class OrganizerViewModel(
     private data class ShelfInputs(
         val apps: List<CategorizedApp>,
         val organizerState: OrganizerState,
-        val query: String
+        val query: String,
+        val focusedCategoryId: CategoryId?
     )
 
     private companion object {
