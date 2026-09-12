@@ -1,6 +1,6 @@
 # Product and Delivery Plan
 
-**Current status:** v0.1 and the classification-quality wave through Agent 70 / PR #14 are merged to `main`. Agents 80–82 of the user-owned category-management wave are also merged as PRs #15–#17. Agent 83 integrates those foundations in PR #18. The implementation/automated gate belongs to PR #18; the wave remains **pending physical Samsung upgrade/migration acceptance** and must not be marked complete or merged until that pass is recorded. See [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md).
+**Current status:** v0.1, classification quality through PR #14, and user-owned category management through PR #18 are merged to `main`. Local backup/import PR #19 and category-shortcut PR #20 are also merged. Agent 92 now owns their shared real-app integration and Samsung acceptance on `integration/portability-shortcuts`. See [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md), [`BACKUP_FORMAT_V1.md`](BACKUP_FORMAT_V1.md), and [`CATEGORY_SHORTCUTS.md`](CATEGORY_SHORTCUTS.md).
 
 Execution ownership and sequencing live in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md).
 
@@ -45,7 +45,7 @@ Current organization behavior includes:
 - reorder built-in and custom categories;
 - explicit delete-and-reassign or delete-and-return-to-automatic behavior.
 
-The custom-category lifecycle is integrated in Agent 83 / PR #18 but remains pending the mandatory physical Samsung migration acceptance before it is treated as shipped/merge-ready.
+The custom-category lifecycle is integrated and merged through Agent 83 / PR #18. Backup/import and category shortcuts now consume that accepted durable category identity rather than redefining it.
 
 ## 4. Automatic-classification taxonomy
 
@@ -101,7 +101,7 @@ InstalledAppSource
         v
 CategoryEngine <--- bundled deterministic rule packs
         |
-        +---- OrganizerStateStore
+        +---- OrganizerStateStore <---- DefaultOrganizerBackupRepository
         |            |
         v            v
        DefaultOrganizerRepository
@@ -117,7 +117,7 @@ OrganizerRepository   CategoryManagementRepository
           Jetpack Compose shelf
 ```
 
-`DefaultOrganizerRepository` is one state owner exposed through separate app-owned read/organizer and category-lifecycle contracts. Agent 83 does not create a second category repository or duplicate lifecycle validation in the ViewModel.
+`DefaultOrganizerRepository` is one state owner exposed through separate app-owned read/organizer and category-lifecycle contracts. `DefaultOrganizerBackupRepository` consumes the same `OrganizerStateStore`; it does not introduce another organizer/category state owner.
 
 Android framework objects, DataStore implementation types and Compose types remain at their respective boundaries.
 
@@ -149,7 +149,7 @@ Every built-in `AppCategory` has an explicit stable ID such as `builtin:work`. P
 
 ### Custom identity
 
-User-created categories use `custom:<opaque-id>` identities. The opaque portion is generated once when the category is created and remains unchanged across rename, process death, serialization and reorder. Display name is metadata, never the persisted key.
+User-created categories use `custom:<opaque-id>` identities. The opaque portion is generated once when the category is created and remains unchanged across rename, process death, serialization, reorder and backup/import. Display name is metadata, never the persisted key.
 
 ### Schema-v1 migration
 
@@ -192,7 +192,7 @@ Agent 70 / PR #14 integrated and accepted the wave. Owner-device evidence identi
 
 The accepted final Samsung report includes 123 `Unsorted`, 15 `Emulators`, 10 broad `Games`, 37 RPG, 249 bundled-rule classifications and 194 Android-declared classifications, with total target count unchanged at 566.
 
-## 8. Current development wave — user-owned category management
+## 8. Completed wave — user-owned category management
 
 Merge shape:
 
@@ -207,9 +207,7 @@ Merge shape:
         +--------+--------+
                  |
         83 Integration / acceptance
-             (PR #18)
-                 |
-      physical Samsung migration gate
+          (#18 merged)
 ```
 
 ### Agent 80 — merged
@@ -224,22 +222,29 @@ PR #16 added repository-owned creation, stable-ID rename, explicit deletion poli
 
 PR #17 added the Compose category-management surface, create/rename/delete/reorder interactions, accessibility semantics and UI tests without persistence duplication.
 
-### Agent 83 — integration/acceptance
+### Agent 83 — merged integration/acceptance
 
-PR #18 wires the real composition root, repository, ViewModel, shelf/picker and management surface. Management presentation is derived from persisted `OrganizerState`; assigned counts include retained hidden/uninstalled overrides; repository failures are mapped to safe presentation messages; Android back/dismiss returns to the shelf.
+PR #18 wires the real composition root, repository, ViewModel, shelf/picker and management surface and is merged. Management presentation is derived from persisted `OrganizerState`; assigned counts include retained hidden/uninstalled overrides; repository failures are mapped to safe presentation messages; Android back/dismiss returns to the shelf.
 
-Agent 83 must leave the PR unmerged until both the final automated lane and the physical Samsung upgrade/migration gate in [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md) pass.
+The Agent 80–83 wave is complete. Later consumers must build on these accepted contracts rather than reopen category identity or lifecycle ownership.
 
-## 9. Recommended next development wave
+## 9. Portability + category-shortcut integration wave
 
-After Agent 83 acceptance, the strongest next work is:
+PR #19 (Agent 90) and PR #20 (Agent 91) are merged to `main`. Agent 92 owns the shared integration branch `integration/portability-shortcuts`.
 
-1. **local backup/export/import** — versioned local portability of organizer-owned state, preserving stable custom IDs/order;
-2. **dynamic/pinned category shortcuts** — Android shortcuts that consume stable category IDs without redefining them.
+Agent 92 must:
 
-These two lanes can run in parallel from the accepted category-management baseline because they consume the same stable identity but own different product behavior. Integrate them only after both individual lanes are green.
+- wire backup/export/import through Android SAF to the same authoritative `OrganizerStateStore`;
+- keep import atomic so current state changes only after full validation and explicit confirmation;
+- synchronize dynamic shortcuts from current category definitions/order without a background service;
+- preserve pinned shortcut identity through custom-category rename, reorder and backup/import by using stable `CategoryId`;
+- prove stale shortcut deletion behavior is safe;
+- run the permanent CI lane and signed-debug Samsung acceptance;
+- document launcher-specific One UI limitations rather than hiding them.
 
-Optional F-Droid metadata enrichment and presentation polish remain independent later candidates. Performance work stays measurement-driven and should start only if a regression is observed.
+This lane must not add `INTERNET`, `QUERY_ALL_PACKAGES`, broad storage access, telemetry, accounts/cloud sync or a second organizer/category state owner.
+
+After Agent 92, reassess optional supported metadata enrichment and presentation polish. Performance work starts only if measurement identifies a concrete target.
 
 ## 10. Search and diagnostic reporting
 
@@ -281,9 +286,9 @@ Real Samsung acceptance remains mandatory for product-critical package discovery
 - no generic Samsung Internet/other-browser shortcut signature is established;
 - optional external metadata enrichment is not implemented;
 - the model remains one primary category per app;
-- local backup/import/export is not implemented;
-- dynamic/pinned category shortcuts are not implemented;
-- the Agent 80–83 category-management wave remains pending until the physical Samsung migration pass is recorded.
+- local backup/import/export is implemented in PR #19 and is being integrated/accepted by Agent 92;
+- dynamic/pinned category shortcuts are implemented in PR #20 and are being integrated/accepted by Agent 92;
+- Agent 92 still requires physical Samsung acceptance for the integrated backup/shortcut wave.
 
 ## 14. Explicit non-goals
 
