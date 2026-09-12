@@ -3,7 +3,9 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer
 import android.app.Application
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.CategoryManagementRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.DataStoreOrganizerStateStore
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.DefaultOrganizerBackupRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.DefaultOrganizerRepository
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.OrganizerBackupRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.data.OrganizerRepository
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.DefaultCategoryEngine
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.AndroidUiPlatformCapabilities
@@ -25,6 +27,9 @@ class OneUiOrganizerApplication : Application() {
     private lateinit var organizerRepository: OrganizerRepository
     private lateinit var categoryManagementRepository: CategoryManagementRepository
     private lateinit var appLauncher: AppLauncher
+
+    lateinit var organizerBackupRepository: OrganizerBackupRepository
+        private set
 
     lateinit var categoryShortcutManager: CategoryShortcutManager
         internal set
@@ -50,6 +55,7 @@ class OneUiOrganizerApplication : Application() {
 
         organizerRepository = defaultOrganizerRepository
         categoryManagementRepository = defaultOrganizerRepository
+        organizerBackupRepository = DefaultOrganizerBackupRepository(organizerStateStore)
         appLauncher = AndroidAppLauncher(this)
         categoryShortcutManager = AndroidCategoryShortcutManager(this)
         uiPlatformCapabilities = AndroidUiPlatformCapabilities.current()
