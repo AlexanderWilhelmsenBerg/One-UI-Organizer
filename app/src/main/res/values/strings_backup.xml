@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="backup_restore_title">Backup &amp; restore</string>
+    <string name="backup_restore_body">Export your organizer preferences to a local file, or restore a backup you previously created.</string>
+    <string name="backup_restore_done">Done</string>
+
+    <string name="backup_export_title">Export</string>
+    <string name="backup_export_body">Create a local JSON backup of categories, category order, overrides, favourites and hidden apps. App labels, icons and Android scan data are not included.</string>
+    <string name="backup_export_action">Export backup</string>
+
+    <string name="backup_import_title">Import</string>
+    <string name="backup_import_body">Choose a One UI Organizer backup. It will be fully checked before you are asked to replace your current organizer state.</string>
+    <string name="backup_import_action">Choose backup to import</string>
+
+    <string name="backup_problem_invalid">This file is not a valid One UI Organizer backup. Nothing was changed.</string>
+    <string name="backup_problem_unsupported">This backup was created with a format version this app does not support. Nothing was changed.</string>
+    <string name="backup_problem_read">The selected backup could not be read. Nothing was changed.</string>
+    <string name="backup_problem_write">The backup could not be written to the selected file.</string>
+    <string name="backup_problem_persistence">The organizer state could not be replaced. Your previous state remains unchanged.</string>
+    <string name="backup_notice_exported">Backup exported.</string>
+    <string name="backup_notice_imported">Backup imported.</string>
+
+    <string name="backup_confirm_title">Replace organizer state?</string>
+    <string name="backup_confirm_body">The selected backup contains:</string>
+    <plurals name="backup_summary_custom_categories">
+        <item quantity="one">%1$d custom category</item>
+        <item quantity="other">%1$d custom categories</item>
+    </plurals>
+    <plurals name="backup_summary_overrides">
+        <item quantity="one">%1$d category override</item>
+        <item quantity="other">%1$d category overrides</item>
+    </plurals>
+    <plurals name="backup_summary_favourites">
+        <item quantity="one">%1$d favourite</item>
+        <item quantity="other">%1$d favourites</item>
+    </plurals>
+    <plurals name="backup_summary_hidden">
+        <item quantity="one">%1$d hidden app</item>
+        <item quantity="other">%1$d hidden apps</item>
+    </plurals>
+    <string name="backup_confirm_warning">Import replaces all current organizer-owned preferences in one operation. Installed apps and Android system data are not changed.</string>
+    <string name="backup_confirm_action">Import and replace</string>
+</resources>
