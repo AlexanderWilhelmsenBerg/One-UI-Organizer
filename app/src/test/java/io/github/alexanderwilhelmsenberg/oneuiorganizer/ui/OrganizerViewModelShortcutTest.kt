@@ -76,6 +76,12 @@ class OrganizerViewModelShortcutTest {
         try {
             viewModel.openCategoryDestination(CategoryShortcutDestination(CategoryId.custom("deleted")))
 
+            // Do not declare a custom destination stale until the initial repository refresh has
+            // completed; persisted custom-category state may still be arriving during loading.
+            assertFalse(viewModel.uiState.value.categoryDestinationUnavailable)
+
+            viewModel.refresh()
+
             assertTrue(viewModel.uiState.value.categoryDestinationUnavailable)
             assertNull(viewModel.uiState.value.focusedCategory)
             assertEquals(0, repository.mutationCount)
