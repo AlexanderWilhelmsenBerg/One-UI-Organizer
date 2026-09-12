@@ -3,10 +3,10 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class CategoryShortcutPolicyTest {
     @Test
@@ -20,7 +20,11 @@ class CategoryShortcutPolicyTest {
             CategoryShortcutIdentity.shortcutId(afterRename.id)
         )
         assertEquals("category:custom:opaque-family-id", CategoryShortcutIdentity.shortcutId(id))
-        assertTrue(CategoryShortcutIdentity.isCategoryShortcutId(CategoryShortcutIdentity.shortcutId(id)))
+        assertTrue(
+            CategoryShortcutIdentity.isCategoryShortcutId(
+                CategoryShortcutIdentity.shortcutId(id)
+            )
+        )
         assertFalse(CategoryShortcutIdentity.isCategoryShortcutId("unrelated"))
     }
 
