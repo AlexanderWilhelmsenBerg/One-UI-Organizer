@@ -13,7 +13,8 @@ import kotlinx.coroutines.withContext
 
 class AndroidCategoryShortcutManager(context: Context) : CategoryShortcutManager {
     private val appContext = context.applicationContext
-    private val shortcutManager = appContext.getSystemService(ShortcutManager::class.java)
+    private val shortcutManager: ShortcutManager =
+        requireNotNull(appContext.getSystemService(ShortcutManager::class.java))
 
     override val isPinningSupported: Boolean
         get() = shortcutManager.isRequestPinShortcutSupported
@@ -111,8 +112,12 @@ class AndroidCategoryShortcutManager(context: Context) : CategoryShortcutManager
         val builder =
             ShortcutInfo.Builder(appContext, CategoryShortcutIdentity.shortcutId(category.id))
                 .setShortLabel(category.displayName)
-                .setLongLabel(appContext.getString(R.string.shortcut_category_long_label, category.displayName))
-                .setIcon(Icon.createWithResource(appContext, R.drawable.ic_launcher))
+                .setLongLabel(
+                    appContext.getString(
+                        R.string.shortcut_category_long_label,
+                        category.displayName
+                    )
+                ).setIcon(Icon.createWithResource(appContext, R.drawable.ic_launcher))
                 .setIntent(
                     CategoryShortcutIntents.create(
                         appContext,
