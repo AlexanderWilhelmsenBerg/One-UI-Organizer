@@ -1,14 +1,14 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.backup.OrganizerBackupSummary
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.backup.BackupRestore
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupRestoreUiState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OneUiOrganizerTheme
-import kotlin.test.assertTrue
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
