@@ -109,10 +109,9 @@ internal object OrganizerBackupJsonCodec {
             )
         }
 
-    private fun JsonObject.decodeCategoryOrder(): List<CategoryId> =
-        requiredArray(CATEGORY_ORDER).map { element ->
-            CategoryId(element.requiredStringValue(CATEGORY_ORDER))
-        }
+    private fun JsonObject.decodeCategoryOrder(): List<CategoryId> = requiredArray(CATEGORY_ORDER).map { element ->
+        CategoryId(element.requiredStringValue(CATEGORY_ORDER))
+    }
 
     private fun JsonObject.requiredArray(key: String): JsonArray =
         this[key] as? JsonArray ?: throw IllegalArgumentException("Missing or invalid $key.")

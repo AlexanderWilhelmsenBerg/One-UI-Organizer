@@ -184,8 +184,7 @@ object OrganizerBackupValidator {
         return null
     }
 
-    private fun AppId.isValidPortableAppId(): Boolean =
-        packageName.isNotBlank() && packageName == packageName.trim()
+    private fun AppId.isValidPortableAppId(): Boolean = packageName.isNotBlank() && packageName == packageName.trim()
 
     private fun CategoryId.isValidPortableCustomId(): Boolean =
         isCustom && value.removePrefix(CUSTOM_PREFIX).let { opaqueId ->

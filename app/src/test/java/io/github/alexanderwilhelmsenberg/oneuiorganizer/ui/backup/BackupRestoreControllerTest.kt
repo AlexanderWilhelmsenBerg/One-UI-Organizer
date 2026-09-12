@@ -135,19 +135,14 @@ class BackupRestoreControllerTest {
         }
     }
 
-    private class FakeBackupDocumentStore(
-        private val content: String = ""
-    ) : BackupDocumentStore {
+    private class FakeBackupDocumentStore(private val content: String = "") : BackupDocumentStore {
         var lastWrittenContent: String? = null
             private set
 
         override suspend fun read(documentId: BackupDocumentId): BackupDocumentReadResult =
             BackupDocumentReadResult.Success(content)
 
-        override suspend fun write(
-            documentId: BackupDocumentId,
-            content: String
-        ): BackupDocumentWriteResult {
+        override suspend fun write(documentId: BackupDocumentId, content: String): BackupDocumentWriteResult {
             lastWrittenContent = content
             return BackupDocumentWriteResult.Success
         }

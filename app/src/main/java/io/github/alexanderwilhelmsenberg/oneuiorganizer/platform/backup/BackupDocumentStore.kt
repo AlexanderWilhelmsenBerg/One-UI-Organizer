@@ -57,21 +57,19 @@ class AndroidBackupDocumentStore(
         }
     }
 
-    override suspend fun write(
-        documentId: BackupDocumentId,
-        content: String
-    ): BackupDocumentWriteResult = withContext(ioDispatcher) {
-        try {
-            val output = contentResolver.openOutputStream(Uri.parse(documentId.value), WRITE_MODE)
-                ?: return@withContext BackupDocumentWriteResult.Failure(BackupDocumentIoError.CANNOT_OPEN)
-            output.bufferedWriter(Charsets.UTF_8).use { writer -> writer.write(content) }
-            BackupDocumentWriteResult.Success
-        } catch (_: SecurityException) {
-            BackupDocumentWriteResult.Failure(BackupDocumentIoError.CANNOT_OPEN)
-        } catch (_: IOException) {
-            BackupDocumentWriteResult.Failure(BackupDocumentIoError.WRITE_FAILED)
+    override suspend fun write(documentId: BackupDocumentId, content: String): BackupDocumentWriteResult =
+        withContext(ioDispatcher) {
+            try {
+                val output = contentResolver.openOutputStream(Uri.parse(documentId.value), WRITE_MODE)
+                    ?: return@withContext BackupDocumentWriteResult.Failure(BackupDocumentIoError.CANNOT_OPEN)
+                output.bufferedWriter(Charsets.UTF_8).use { writer -> writer.write(content) }
+                BackupDocumentWriteResult.Success
+            } catch (_: SecurityException) {
+                BackupDocumentWriteResult.Failure(BackupDocumentIoError.CANNOT_OPEN)
+            } catch (_: IOException) {
+                BackupDocumentWriteResult.Failure(BackupDocumentIoError.WRITE_FAILED)
+            }
         }
-    }
 
     private companion object {
         const val WRITE_MODE = "wt"

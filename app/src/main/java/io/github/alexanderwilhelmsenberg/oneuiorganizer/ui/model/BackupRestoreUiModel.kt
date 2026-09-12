@@ -23,10 +23,7 @@ enum class BackupRestoreNotice {
 }
 
 sealed interface BackupDocumentRequest {
-    data class Create(
-        val suggestedFileName: String,
-        val mimeType: String
-    ) : BackupDocumentRequest
+    data class Create(val suggestedFileName: String, val mimeType: String) : BackupDocumentRequest
 
     data class Open(val mimeTypes: List<String>) : BackupDocumentRequest
 }

@@ -46,6 +46,7 @@ class BackupRestoreController(
             beginOperation()
             when (val result = backupRepository.exportOrganizerBackup()) {
                 is OrganizerBackupResult.Failure -> finishWithBackupError(result.error)
+
                 is OrganizerBackupResult.Success -> {
                     pendingExport = result.value
                     mutableUiState.value = BackupRestoreUiState()
@@ -113,6 +114,7 @@ class BackupRestoreController(
                 is BackupDocumentReadResult.Success -> {
                     when (val prepared = backupRepository.prepareOrganizerBackupImport(readResult.content)) {
                         is OrganizerBackupResult.Failure -> finishWithBackupError(prepared.error)
+
                         is OrganizerBackupResult.Success -> {
                             pendingImport = prepared.value
                             mutableUiState.value =
@@ -132,6 +134,7 @@ class BackupRestoreController(
             mutableUiState.value = BackupRestoreUiState(isBusy = true)
             when (val result = backupRepository.importOrganizerBackup(prepared)) {
                 is OrganizerBackupResult.Failure -> finishWithBackupError(result.error)
+
                 is OrganizerBackupResult.Success -> {
                     pendingImport = null
                     mutableUiState.value = BackupRestoreUiState(notice = BackupRestoreNotice.IMPORTED)
@@ -158,12 +161,11 @@ class BackupRestoreController(
         mutableUiState.value = BackupRestoreUiState(problem = error.toProblem())
     }
 
-    private fun OrganizerBackupError.toProblem(): BackupRestoreProblem =
-        when (this) {
-            is OrganizerBackupError.UnsupportedFormatVersion -> BackupRestoreProblem.UNSUPPORTED_BACKUP_VERSION
-            OrganizerBackupError.PersistenceFailure -> BackupRestoreProblem.PERSISTENCE_FAILED
-            else -> BackupRestoreProblem.INVALID_BACKUP
-        }
+    private fun OrganizerBackupError.toProblem(): BackupRestoreProblem = when (this) {
+        is OrganizerBackupError.UnsupportedFormatVersion -> BackupRestoreProblem.UNSUPPORTED_BACKUP_VERSION
+        OrganizerBackupError.PersistenceFailure -> BackupRestoreProblem.PERSISTENCE_FAILED
+        else -> BackupRestoreProblem.INVALID_BACKUP
+    }
 
     private fun BackupDocumentIoError.toReadProblem(): BackupRestoreProblem = BackupRestoreProblem.READ_FAILED
 

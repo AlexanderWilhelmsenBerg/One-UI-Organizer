@@ -139,17 +139,15 @@ class DefaultOrganizerBackupRepositoryTest {
         )
     }
 
-    private fun <T> assertSuccess(result: OrganizerBackupResult<T>): T =
-        when (result) {
-            is OrganizerBackupResult.Success -> result.value
-            is OrganizerBackupResult.Failure -> fail("Expected success but got ${result.error}.")
-        }
+    private fun <T> assertSuccess(result: OrganizerBackupResult<T>): T = when (result) {
+        is OrganizerBackupResult.Success -> result.value
+        is OrganizerBackupResult.Failure -> fail("Expected success but got ${result.error}.")
+    }
 
-    private fun assertFailure(result: OrganizerBackupResult<*>): OrganizerBackupError =
-        when (result) {
-            is OrganizerBackupResult.Failure -> result.error
-            is OrganizerBackupResult.Success -> fail("Expected failure but got ${result.value}.")
-        }
+    private fun assertFailure(result: OrganizerBackupResult<*>): OrganizerBackupError = when (result) {
+        is OrganizerBackupResult.Failure -> result.error
+        is OrganizerBackupResult.Success -> fail("Expected failure but got ${result.value}.")
+    }
 
     private class FakeOrganizerStateStore(initialState: OrganizerState) : OrganizerStateStore {
         private val mutableState = MutableStateFlow(initialState.normalized())

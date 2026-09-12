@@ -147,13 +147,7 @@ private fun BackupRestoreHeader(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun BackupActionCard(
-    title: String,
-    body: String,
-    actionLabel: String,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
+private fun BackupActionCard(title: String, body: String, actionLabel: String, enabled: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -210,11 +204,7 @@ private fun FeedbackSurface(message: String, isError: Boolean) {
 }
 
 @Composable
-private fun ImportConfirmationDialog(
-    summary: OrganizerBackupSummary,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
+private fun ImportConfirmationDialog(summary: OrganizerBackupSummary, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.backup_confirm_title)) },
@@ -269,22 +259,20 @@ private fun ImportConfirmationDialog(
 }
 
 @Composable
-private fun backupProblemMessage(problem: BackupRestoreProblem): String =
-    stringResource(
-        when (problem) {
-            BackupRestoreProblem.INVALID_BACKUP -> R.string.backup_problem_invalid
-            BackupRestoreProblem.UNSUPPORTED_BACKUP_VERSION -> R.string.backup_problem_unsupported
-            BackupRestoreProblem.READ_FAILED -> R.string.backup_problem_read
-            BackupRestoreProblem.WRITE_FAILED -> R.string.backup_problem_write
-            BackupRestoreProblem.PERSISTENCE_FAILED -> R.string.backup_problem_persistence
-        }
-    )
+private fun backupProblemMessage(problem: BackupRestoreProblem): String = stringResource(
+    when (problem) {
+        BackupRestoreProblem.INVALID_BACKUP -> R.string.backup_problem_invalid
+        BackupRestoreProblem.UNSUPPORTED_BACKUP_VERSION -> R.string.backup_problem_unsupported
+        BackupRestoreProblem.READ_FAILED -> R.string.backup_problem_read
+        BackupRestoreProblem.WRITE_FAILED -> R.string.backup_problem_write
+        BackupRestoreProblem.PERSISTENCE_FAILED -> R.string.backup_problem_persistence
+    }
+)
 
 @Composable
-private fun backupNoticeMessage(notice: BackupRestoreNotice): String =
-    stringResource(
-        when (notice) {
-            BackupRestoreNotice.EXPORTED -> R.string.backup_notice_exported
-            BackupRestoreNotice.IMPORTED -> R.string.backup_notice_imported
-        }
-    )
+private fun backupNoticeMessage(notice: BackupRestoreNotice): String = stringResource(
+    when (notice) {
+        BackupRestoreNotice.EXPORTED -> R.string.backup_notice_exported
+        BackupRestoreNotice.IMPORTED -> R.string.backup_notice_imported
+    }
+)

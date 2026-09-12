@@ -16,15 +16,9 @@ value class OrganizerBackupFormatVersion(val value: Int) {
     }
 }
 
-data class OrganizerBackupCategoryOverride(
-    val appId: AppId,
-    val categoryId: CategoryId
-)
+data class OrganizerBackupCategoryOverride(val appId: AppId, val categoryId: CategoryId)
 
-data class OrganizerBackupCustomCategory(
-    val categoryId: CategoryId,
-    val displayName: String
-)
+data class OrganizerBackupCustomCategory(val categoryId: CategoryId, val displayName: String)
 
 data class OrganizerBackupDocument(
     val formatVersion: OrganizerBackupFormatVersion,
@@ -86,10 +80,8 @@ sealed interface OrganizerBackupError {
 
     data class InvalidCategoryReference(val categoryId: CategoryId) : OrganizerBackupError
 
-    data class InvalidCategoryOrder(
-        val problem: OrganizerBackupOrderProblem,
-        val categoryId: CategoryId? = null
-    ) : OrganizerBackupError
+    data class InvalidCategoryOrder(val problem: OrganizerBackupOrderProblem, val categoryId: CategoryId? = null) :
+        OrganizerBackupError
 
     data object PersistenceFailure : OrganizerBackupError
 }

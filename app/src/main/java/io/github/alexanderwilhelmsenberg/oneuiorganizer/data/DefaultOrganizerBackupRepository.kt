@@ -17,9 +17,8 @@ import kotlinx.coroutines.flow.first
  * This repository has no independent state cache. Integration must give it the same [OrganizerStateStore] used by
  * the organizer repository so a successful import becomes the normal persisted source of truth immediately.
  */
-class DefaultOrganizerBackupRepository(
-    private val organizerStateStore: OrganizerStateStore
-) : OrganizerBackupRepository {
+class DefaultOrganizerBackupRepository(private val organizerStateStore: OrganizerStateStore) :
+    OrganizerBackupRepository {
     override suspend fun exportOrganizerBackup(): OrganizerBackupResult<OrganizerBackupExport> = try {
         val state = organizerStateStore.state.first()
         val document = OrganizerBackupMapper.fromState(state)
