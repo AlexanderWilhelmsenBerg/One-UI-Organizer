@@ -88,29 +88,22 @@ class OrganizerViewModelShortcutTest {
         scope: CoroutineScope,
         organizerState: OrganizerState,
         apps: List<CategorizedApp>
-    ): OrganizerViewModel =
-        OrganizerViewModel(
-            organizerRepository = ShortcutOrganizerRepository(organizerState, apps),
-            categoryManagementRepository = ShortcutCategoryManagementRepository(),
-            appLauncher = SuccessfulShortcutAppLauncher,
-            scope = scope
-        )
+    ): OrganizerViewModel = OrganizerViewModel(
+        organizerRepository = ShortcutOrganizerRepository(organizerState, apps),
+        categoryManagementRepository = ShortcutCategoryManagementRepository(),
+        appLauncher = SuccessfulShortcutAppLauncher,
+        scope = scope
+    )
 
-    private fun categorizedApp(
-        packageName: String,
-        category: CategoryDefinition
-    ): CategorizedApp =
-        CategorizedApp(
-            app = InstalledApp(AppId(packageName), LaunchTargetId(packageName, "MainActivity"), packageName),
-            category = category,
-            source = ClassificationSource.USER_OVERRIDE
-        )
+    private fun categorizedApp(packageName: String, category: CategoryDefinition): CategorizedApp = CategorizedApp(
+        app = InstalledApp(AppId(packageName), LaunchTargetId(packageName, "MainActivity"), packageName),
+        category = category,
+        source = ClassificationSource.USER_OVERRIDE
+    )
 }
 
-private class ShortcutOrganizerRepository(
-    initialState: OrganizerState,
-    initialApps: List<CategorizedApp>
-) : OrganizerRepository {
+private class ShortcutOrganizerRepository(initialState: OrganizerState, initialApps: List<CategorizedApp>) :
+    OrganizerRepository {
     override val apps: Flow<List<CategorizedApp>> = MutableStateFlow(initialApps)
     override val organizerState: Flow<OrganizerState> = MutableStateFlow(initialState)
     var mutationCount = 0
