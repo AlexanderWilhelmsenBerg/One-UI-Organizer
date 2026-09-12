@@ -110,6 +110,40 @@ class CategoryShortcutDestinationTest {
         assertEquals(1, result.currentCategoryAppCounts[AppCategory.WORK.id])
     }
 
+    @Test
+    fun dynamicEligibilityExcludesCategoriesWhoseCurrentAppsAreAllHidden() {
+        val family = CustomCategoryDefinition(CategoryId.custom("family"), "Family")
+        val hiddenAppId = AppId("hidden.family.app")
+        val state =
+            OrganizerState(
+                hiddenAppIds = setOf(hiddenAppId),
+                customCategories = listOf(family)
+            )
+        val hiddenFamilyApp =
+            CategorizedApp(
+                app =
+                    InstalledApp(
+                        id = hiddenAppId,
+                        launchTargetId = LaunchTargetId(hiddenAppId.packageName, "MainActivity"),
+                        label = "Hidden Family"
+                    ),
+                category = family,
+                source = ClassificationSource.USER_OVERRIDE
+            )
+
+        val result =
+            OrganizerUiStateMapper.map(
+                apps = listOf(hiddenFamilyApp),
+                organizerState = state,
+                query = "",
+                isLoading = false,
+                error = null
+            )
+
+        assertEquals(1, result.categoryAssignmentCounts[family.id])
+        assertFalse(family.id in result.currentCategoryAppCounts)
+    }
+
     private fun categorizedApp(
         packageName: String,
         category: CategoryDefinition
