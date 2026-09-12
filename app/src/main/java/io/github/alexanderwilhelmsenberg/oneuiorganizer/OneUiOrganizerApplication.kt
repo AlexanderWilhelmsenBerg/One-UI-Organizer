@@ -11,6 +11,8 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.UiPlatformCapab
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AndroidAppLauncher
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AndroidInstalledAppSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.AppLauncher
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.AndroidCategoryShortcutManager
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutManager
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.OrganizerViewModel
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +25,9 @@ class OneUiOrganizerApplication : Application() {
     private lateinit var organizerRepository: OrganizerRepository
     private lateinit var categoryManagementRepository: CategoryManagementRepository
     private lateinit var appLauncher: AppLauncher
+
+    lateinit var categoryShortcutManager: CategoryShortcutManager
+        internal set
 
     lateinit var uiPlatformCapabilities: UiPlatformCapabilities
         private set
@@ -46,6 +51,7 @@ class OneUiOrganizerApplication : Application() {
         organizerRepository = defaultOrganizerRepository
         categoryManagementRepository = defaultOrganizerRepository
         appLauncher = AndroidAppLauncher(this)
+        categoryShortcutManager = AndroidCategoryShortcutManager(this)
         uiPlatformCapabilities = AndroidUiPlatformCapabilities.current()
     }
 

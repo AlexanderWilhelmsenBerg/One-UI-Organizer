@@ -10,7 +10,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.AndroidCategoryShortcutManager
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutIntents
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutManager
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.OrganizerViewModel
@@ -32,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var presentationScope: CoroutineScope
     private lateinit var organizerViewModel: OrganizerViewModel
     private lateinit var categoryShortcutManager: CategoryShortcutManager
+    private var categoryDestinationCleared = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,10 +40,13 @@ class MainActivity : ComponentActivity() {
         val organizerApplication = application as OneUiOrganizerApplication
         presentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         organizerViewModel = organizerApplication.createOrganizerViewModel(presentationScope)
-        categoryShortcutManager = AndroidCategoryShortcutManager(this)
+        categoryShortcutManager = organizerApplication.categoryShortcutManager
         val supportsDynamicColor = organizerApplication.uiPlatformCapabilities.supportsDynamicColor
 
-        handleShortcutIntent(intent)
+        categoryDestinationCleared = savedInstanceState?.getBoolean(STATE_CATEGORY_DESTINATION_CLEARED) ?: false
+        if (!categoryDestinationCleared) {
+            handleShortcutIntent(intent)
+        }
         observeShortcutSynchronization()
 
         setContent {
@@ -89,7 +92,7 @@ class MainActivity : ComponentActivity() {
                             onHiddenAppsRequested = organizerViewModel::showHiddenApps,
                             onHiddenAppsDismissed = organizerViewModel::hideHiddenApps,
                             onCategoryManagementRequested = organizerViewModel::showCategoryManagement,
-                            onCategoryDestinationCleared = organizerViewModel::clearCategoryDestination
+                            onCategoryDestinationCleared = ::clearCategoryDestination
                         )
                     }
                 }
@@ -99,8 +102,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        categoryDestinationCleared = false
         setIntent(intent)
         handleShortcutIntent(intent)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(STATE_CATEGORY_DESTINATION_CLEARED, categoryDestinationCleared)
+        super.onSaveInstanceState(outState)
     }
 
     override fun onResume() {
@@ -117,6 +126,12 @@ class MainActivity : ComponentActivity() {
         val destination = CategoryShortcutIntents.destinationFrom(sourceIntent) ?: return
         organizerViewModel.openCategoryDestination(destination)
         categoryShortcutManager.reportShortcutUsed(destination.categoryId)
+    }
+
+    private fun clearCategoryDestination() {
+        organizerViewModel.clearCategoryDestination()
+        categoryDestinationCleared = true
+        setIntent(Intent(this, MainActivity::class.java))
     }
 
     private fun observeShortcutSynchronization() {
@@ -160,4 +175,8 @@ class MainActivity : ComponentActivity() {
         val orderedCategories: List<CategoryDefinition>,
         val currentCategoryAppCounts: Map<CategoryId, Int>
     )
+
+    private companion object {
+        const val STATE_CATEGORY_DESTINATION_CLEARED = "category-destination-cleared"
+    }
 }
