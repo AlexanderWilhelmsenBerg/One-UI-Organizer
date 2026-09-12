@@ -19,12 +19,11 @@ data class CategoryShortcutDescriptor(
     val destination: CategoryShortcutDestination
 ) {
     companion object {
-        fun from(category: CategoryDefinition): CategoryShortcutDescriptor =
-            CategoryShortcutDescriptor(
-                shortcutId = CategoryShortcutIdentity.shortcutId(category.id),
-                label = category.displayName,
-                destination = CategoryShortcutDestination(category.id)
-            )
+        fun from(category: CategoryDefinition): CategoryShortcutDescriptor = CategoryShortcutDescriptor(
+            shortcutId = CategoryShortcutIdentity.shortcutId(category.id),
+            label = category.displayName,
+            destination = CategoryShortcutDestination(category.id)
+        )
     }
 }
 
