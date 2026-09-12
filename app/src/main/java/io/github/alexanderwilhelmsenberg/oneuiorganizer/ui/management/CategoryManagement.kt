@@ -4,17 +4,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.weight
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -32,9 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
@@ -299,57 +305,51 @@ private fun CategoryManagementRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(
+                        enabled = canMoveUp,
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription = moveUpDescription
+                            },
+                        onClick = onMoveUp
+                    ) {
+                        Text("↑")
+                    }
+                    TextButton(
+                        enabled = canMoveDown,
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription = moveDownDescription
+                            },
+                        onClick = onMoveDown
+                    ) {
+                        Text("↓")
+                    }
+                }
             }
+
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingExtraSmall)
             ) {
                 TextButton(
-                    enabled = canMoveUp,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .semantics { testTag = "move-up-${item.category.id.value}" },
-                    onClick = onMoveUp
+                    enabled = pinningSupported,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onPin
                 ) {
-                    Text(moveUpDescription)
-                }
-                TextButton(
-                    enabled = canMoveDown,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .semantics { testTag = "move-down-${item.category.id.value}" },
-                    onClick = onMoveDown
-                ) {
-                    Text(moveDownDescription)
-                }
-                if (pinningSupported) {
-                    TextButton(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .semantics { testTag = "pin-${item.category.id.value}" },
-                        onClick = onPin
-                    ) {
-                        Text(stringResource(R.string.pin_category_shortcut))
-                    }
+                    Text(stringResource(R.string.pin_category_to_home_screen))
                 }
                 if (item.isCustom) {
                     TextButton(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .semantics { testTag = "rename-${item.category.id.value}" },
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = onRename
                     ) {
                         Text(stringResource(R.string.rename_category))
                     }
                     TextButton(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .semantics { testTag = "delete-${item.category.id.value}" },
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = onDelete
                     ) {
                         Text(stringResource(R.string.delete_category))
@@ -369,28 +369,51 @@ private fun CategoryNameDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
+    var draft by rememberSaveable(title, initialName) { mutableStateOf(initialName) }
+    var localError by rememberSaveable(title, initialName) { mutableStateOf<String?>(null) }
+    val emptyNameError = stringResource(R.string.category_name_required)
+    val fieldDescription = stringResource(R.string.category_name_content_description)
+    val submit = {
+        val normalized = draft.trim()
+        if (normalized.isEmpty()) {
+            localError = emptyNameError
+        } else {
+            localError = null
+            onConfirm(normalized)
+        }
+    }
+    val displayedError = localError ?: externalError
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingSmall)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.category_name_label)) },
-                    singleLine = true,
-                    isError = externalError != null,
-                    supportingText = externalError?.let { error -> { Text(error) } },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { onConfirm(name) })
-                )
-            }
+            OutlinedTextField(
+                value = draft,
+                onValueChange = {
+                    draft = it
+                    localError = null
+                },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = fieldDescription
+                        },
+                singleLine = true,
+                label = { Text(stringResource(R.string.category_name_label)) },
+                isError = displayedError != null,
+                supportingText = displayedError?.let { error -> { Text(error) } },
+                keyboardOptions =
+                    KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Done
+                    ),
+                keyboardActions = KeyboardActions(onDone = { submit() })
+            )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name) }) {
+            TextButton(onClick = submit) {
                 Text(confirmLabel)
             }
         },
@@ -432,58 +455,72 @@ private fun PopulatedCategoryDeleteDialog(
     onDismiss: () -> Unit,
     onDelete: (CategoryDeletionChoiceUiModel) -> Unit
 ) {
-    var selectedMode by rememberSaveable { mutableStateOf(DeleteMode.AUTOMATIC) }
-    var reassignTargetId by rememberSaveable { mutableStateOf(reassignTargets.firstOrNull()?.category?.id?.value) }
+    var reassignTargetId by rememberSaveable(item.category.id.value) { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.delete_category_title, item.category.displayName)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingSmall)) {
+            Column(
+                modifier =
+                    Modifier
+                        .heightIn(max = OrganizerDimens.moveDialogMaxHeight)
+                        .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingSmall)
+            ) {
                 Text(
-                    pluralStringResource(
-                        R.plurals.delete_populated_category_body,
-                        item.assignedAppCount,
-                        item.assignedAppCount
-                    )
+                    text =
+                        pluralStringResource(
+                            R.plurals.delete_populated_category_body,
+                            item.assignedAppCount,
+                            item.assignedAppCount
+                        ),
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 DeleteChoiceRow(
-                    label = stringResource(R.string.delete_category_return_automatic),
-                    selected = selectedMode == DeleteMode.AUTOMATIC,
-                    onClick = { selectedMode = DeleteMode.AUTOMATIC }
+                    selected = reassignTargetId == null,
+                    label = stringResource(R.string.delete_category_automatic_option),
+                    description = stringResource(R.string.delete_category_automatic_body),
+                    onClick = { reassignTargetId = null }
                 )
+
                 if (reassignTargets.isNotEmpty()) {
-                    DeleteChoiceRow(
-                        label = stringResource(R.string.delete_category_reassign),
-                        selected = selectedMode == DeleteMode.REASSIGN,
-                        onClick = { selectedMode = DeleteMode.REASSIGN }
+                    Spacer(modifier = Modifier.size(OrganizerDimens.spacingExtraSmall))
+                    Text(
+                        text = stringResource(R.string.delete_category_reassign_heading),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (selectedMode == DeleteMode.REASSIGN) {
-                        reassignTargets.forEach { target ->
-                            DeleteChoiceRow(
-                                label = target.category.displayName,
-                                selected = reassignTargetId == target.category.id.value,
-                                onClick = { reassignTargetId = target.category.id.value },
-                                indent = true
-                            )
-                        }
+                    reassignTargets.forEach { target ->
+                        DeleteChoiceRow(
+                            selected = reassignTargetId == target.category.id.value,
+                            label =
+                                stringResource(
+                                    R.string.delete_category_reassign_option,
+                                    target.category.displayName
+                                ),
+                            description =
+                                stringResource(
+                                    R.string.delete_category_reassign_body,
+                                    target.category.displayName
+                                ),
+                            onClick = { reassignTargetId = target.category.id.value }
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(
-                enabled = selectedMode != DeleteMode.REASSIGN || reassignTargetId != null,
                 onClick = {
-                    val choice =
-                        when (selectedMode) {
-                            DeleteMode.AUTOMATIC -> CategoryDeletionChoiceUiModel.AutomaticClassification
-                            DeleteMode.REASSIGN -> {
-                                val targetId = reassignTargetId ?: return@TextButton
-                                CategoryDeletionChoiceUiModel.ReassignTo(CategoryId(targetId))
-                            }
+                    val targetId = reassignTargetId
+                    onDelete(
+                        if (targetId == null) {
+                            CategoryDeletionChoiceUiModel.AutomaticClassification
+                        } else {
+                            CategoryDeletionChoiceUiModel.Reassign(CategoryId(targetId))
                         }
-                    onDelete(choice)
+                    )
                 }
             ) {
                 Text(stringResource(R.string.delete_category_confirm))
@@ -498,33 +535,33 @@ private fun PopulatedCategoryDeleteDialog(
 }
 
 @Composable
-private fun DeleteChoiceRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    indent: Boolean = false
-) {
+private fun DeleteChoiceRow(selected: Boolean, label: String, description: String, onClick: () -> Unit) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(start = if (indent) OrganizerDimens.spacingLarge else OrganizerDimens.spacingNone)
-                .semantics(mergeDescendants = true) { testTag = "delete-choice-$label" },
+                .selectable(
+                    selected = selected,
+                    onClick = onClick,
+                    role = Role.RadioButton
+                ).padding(vertical = OrganizerDimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
             selected = selected,
-            onClick = onClick
+            onClick = null
         )
-        Text(
-            text = label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Spacer(modifier = Modifier.size(OrganizerDimens.spacingSmall))
+        Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingExtraSmall)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
-}
-
-private enum class DeleteMode {
-    AUTOMATIC,
-    REASSIGN
 }
