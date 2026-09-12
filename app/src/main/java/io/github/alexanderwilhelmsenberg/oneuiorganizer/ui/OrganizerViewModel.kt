@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -48,11 +49,13 @@ class OrganizerViewModel(
     private var refreshJob: Job? = null
 
     private val organizerState =
-        organizerRepository.organizerState.stateIn(
-            scope = scope,
-            started = SharingStarted.Eagerly,
-            initialValue = OrganizerState()
-        )
+        organizerRepository.organizerState
+            .map { state -> OrganizerStateSnapshot(state = state, isReady = true) }
+            .stateIn(
+                scope = scope,
+                started = SharingStarted.Eagerly,
+                initialValue = OrganizerStateSnapshot(state = OrganizerState(), isReady = false)
+            )
 
     private val categorizedApps =
         organizerRepository.apps.stateIn(
@@ -70,7 +73,8 @@ class OrganizerViewModel(
         ) { apps, state, currentQuery, destination ->
             ShelfInputs(
                 apps = apps,
-                organizerState = state,
+                organizerState = state.state,
+                isOrganizerStateReady = state.isReady,
                 query = currentQuery,
                 focusedCategoryId = destination?.categoryId
             )
@@ -86,7 +90,7 @@ class OrganizerViewModel(
                 apps = inputs.apps,
                 organizerState = inputs.organizerState,
                 query = inputs.query,
-                isLoading = loading,
+                isLoading = loading || !inputs.isOrganizerStateReady,
                 error = currentError,
                 focusedCategoryId = inputs.focusedCategoryId
             )
@@ -104,7 +108,7 @@ class OrganizerViewModel(
         ) { shelfState, state, operationError ->
             CategoryManagementUiStateMapper.map(
                 categoryAssignmentCounts = shelfState.categoryAssignmentCounts,
-                organizerState = state,
+                organizerState = state.state,
                 operationError = operationError
             )
         }.stateIn(
@@ -171,7 +175,7 @@ class OrganizerViewModel(
 
     fun toggleFavourite(target: LaunchTargetId) {
         val appId = target.toAppId()
-        val isFavourite = appId in organizerState.value.favouriteAppIds
+        val isFavourite = appId in organizerState.value.state.favouriteAppIds
         updateOrganizerState {
             organizerRepository.setFavourite(appId, !isFavourite)
         }
@@ -233,7 +237,7 @@ class OrganizerViewModel(
     }
 
     fun moveCategory(categoryId: CategoryId, direction: CategoryMoveDirectionUiModel) {
-        val orderedIds = organizerState.value.orderedCategories().map { category -> category.id }.toMutableList()
+        val orderedIds = organizerState.value.state.orderedCategories().map { category -> category.id }.toMutableList()
         val currentIndex = orderedIds.indexOf(categoryId)
         if (currentIndex < 0) {
             categoryManagementError.value = CATEGORY_UNAVAILABLE_MESSAGE
@@ -325,8 +329,14 @@ class OrganizerViewModel(
     private data class ShelfInputs(
         val apps: List<CategorizedApp>,
         val organizerState: OrganizerState,
+        val isOrganizerStateReady: Boolean,
         val query: String,
         val focusedCategoryId: CategoryId?
+    )
+
+    private data class OrganizerStateSnapshot(
+        val state: OrganizerState,
+        val isReady: Boolean
     )
 
     private companion object {

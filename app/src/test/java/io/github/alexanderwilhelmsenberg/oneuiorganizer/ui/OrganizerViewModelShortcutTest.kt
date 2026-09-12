@@ -26,7 +26,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 
 class OrganizerViewModelShortcutTest {
     @Test
@@ -52,6 +54,37 @@ class OrganizerViewModelShortcutTest {
 
             assertNull(viewModel.uiState.value.focusedCategory)
             assertTrue(viewModel.uiState.value.categories.any { it.category.id == AppCategory.WORK.id })
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `persisted organizer state must arrive before shortcut synchronization is considered ready`() {
+        val persistedStates = MutableSharedFlow<OrganizerState>()
+        val repository =
+            DelayedStateShortcutOrganizerRepository(
+                organizerState = persistedStates,
+                initialApps = listOf(categorizedApp("work.app", AppCategory.WORK))
+            )
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val viewModel =
+            OrganizerViewModel(
+                organizerRepository = repository,
+                categoryManagementRepository = ShortcutCategoryManagementRepository(),
+                appLauncher = SuccessfulShortcutAppLauncher,
+                scope = scope
+            )
+
+        try {
+            viewModel.refresh()
+            assertTrue(viewModel.uiState.value.isLoading)
+
+            runBlocking {
+                persistedStates.emit(OrganizerState())
+            }
+
+            assertFalse(viewModel.uiState.value.isLoading)
         } finally {
             scope.cancel()
         }
@@ -128,6 +161,21 @@ private class ShortcutOrganizerRepository(initialState: OrganizerState, initialA
     override suspend fun setHidden(appId: AppId, isHidden: Boolean) {
         mutationCount += 1
     }
+}
+
+private class DelayedStateShortcutOrganizerRepository(
+    override val organizerState: Flow<OrganizerState>,
+    initialApps: List<CategorizedApp>
+) : OrganizerRepository {
+    override val apps: Flow<List<CategorizedApp>> = MutableStateFlow(initialApps)
+
+    override suspend fun refresh() = Unit
+
+    override suspend fun setCategoryOverride(appId: AppId, categoryId: CategoryId?) = Unit
+
+    override suspend fun setFavourite(appId: AppId, isFavourite: Boolean) = Unit
+
+    override suspend fun setHidden(appId: AppId, isHidden: Boolean) = Unit
 }
 
 private class ShortcutCategoryManagementRepository : CategoryManagementRepository {
