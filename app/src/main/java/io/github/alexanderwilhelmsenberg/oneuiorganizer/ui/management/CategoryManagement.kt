@@ -193,11 +193,7 @@ fun CategoryManagement(
 }
 
 @Composable
-private fun ManagementHeader(
-    onCreate: () -> Unit,
-    onDismiss: () -> Unit,
-    pinningSupported: Boolean
-) {
+private fun ManagementHeader(onCreate: () -> Unit, onDismiss: () -> Unit, pinningSupported: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingSmall)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
