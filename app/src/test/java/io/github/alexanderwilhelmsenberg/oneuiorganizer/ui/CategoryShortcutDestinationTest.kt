@@ -3,6 +3,7 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefinition
@@ -10,11 +11,11 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.OrganizerUiStateMapper
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class CategoryShortcutDestinationTest {
     @Test
@@ -44,7 +45,10 @@ class CategoryShortcutDestinationTest {
         assertEquals(family, result.focusedCategory)
         assertFalse(result.categoryDestinationUnavailable)
         assertEquals(listOf(family.id), result.categories.map { section -> section.category.id })
-        assertEquals(listOf("family.app"), result.categories.single().apps.map { app -> app.launchTargetId.packageName })
+        assertEquals(
+            listOf("family.app"),
+            result.categories.single().apps.map { app -> app.launchTargetId.packageName }
+        )
         assertTrue(result.favourites.isEmpty())
     }
 
@@ -108,7 +112,7 @@ class CategoryShortcutDestinationTest {
 
     private fun categorizedApp(
         packageName: String,
-        category: io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+        category: CategoryDefinition
     ): CategorizedApp =
         CategorizedApp(
             app =
