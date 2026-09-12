@@ -15,8 +15,9 @@ object OrganizerUiStateMapper {
         focusedCategoryId: CategoryId? = null
     ): OrganizerShelfUiState {
         val currentAppIds = apps.mapTo(mutableSetOf()) { categorizedApp -> categorizedApp.app.id }
-        val currentCategoryAppCounts = apps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount()
-        val categoryAssignmentCounts = currentCategoryAppCounts.toMutableMap()
+        val currentCategoryAssignmentCounts =
+            apps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount()
+        val categoryAssignmentCounts = currentCategoryAssignmentCounts.toMutableMap()
         organizerState.categoryOverrides.forEach { (appId, categoryId) ->
             if (appId !in currentAppIds) {
                 categoryAssignmentCounts[categoryId] = (categoryAssignmentCounts[categoryId] ?: 0) + 1
@@ -34,6 +35,8 @@ object OrganizerUiStateMapper {
         val focusedCategory = focusedCategoryId?.let(organizerState::categoryDefinition)
         val visibleApps =
             apps.filterNot { categorizedApp -> categorizedApp.app.id in organizerState.hiddenAppIds }
+        val currentCategoryAppCounts =
+            visibleApps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount()
         val categoryScopedApps =
             if (focusedCategory == null) {
                 visibleApps
