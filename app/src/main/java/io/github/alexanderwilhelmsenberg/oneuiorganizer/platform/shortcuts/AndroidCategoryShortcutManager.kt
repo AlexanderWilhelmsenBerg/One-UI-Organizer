@@ -7,7 +7,6 @@ import android.graphics.drawable.Icon
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
-import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryShortcutDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -109,21 +108,17 @@ class AndroidCategoryShortcutManager(context: Context) : CategoryShortcutManager
     }
 
     private fun buildShortcut(category: CategoryDefinition, rank: Int? = null): ShortcutInfo {
+        val descriptor = CategoryShortcutDescriptor.from(category)
         val builder =
-            ShortcutInfo.Builder(appContext, CategoryShortcutIdentity.shortcutId(category.id))
-                .setShortLabel(category.displayName)
+            ShortcutInfo.Builder(appContext, descriptor.shortcutId)
+                .setShortLabel(descriptor.label)
                 .setLongLabel(
                     appContext.getString(
                         R.string.shortcut_category_long_label,
-                        category.displayName
+                        descriptor.label
                     )
                 ).setIcon(Icon.createWithResource(appContext, R.drawable.ic_launcher))
-                .setIntent(
-                    CategoryShortcutIntents.create(
-                        appContext,
-                        CategoryShortcutDestination(category.id)
-                    )
-                )
+                .setIntent(CategoryShortcutIntents.create(appContext, descriptor.destination))
         if (rank != null) {
             builder.setRank(rank)
         }
