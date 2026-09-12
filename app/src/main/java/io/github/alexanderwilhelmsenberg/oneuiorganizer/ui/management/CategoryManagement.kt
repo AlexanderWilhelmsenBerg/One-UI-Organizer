@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryDeletionChoiceUiModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.CategoryManagementItemUiModel
@@ -57,7 +58,9 @@ fun CategoryManagement(
     onDeleteCategory: (CategoryId, CategoryDeletionChoiceUiModel) -> Unit,
     onMoveCategory: (CategoryId, CategoryMoveDirectionUiModel) -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    pinningSupported: Boolean = true,
+    onPinCategory: (CategoryDefinition) -> Unit = {}
 ) {
     var createDialogVisible by rememberSaveable { mutableStateOf(false) }
     var renameCategoryId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -84,7 +87,8 @@ fun CategoryManagement(
             item(key = "category-management-header") {
                 ManagementHeader(
                     onCreate = { createDialogVisible = true },
-                    onDismiss = onDismiss
+                    onDismiss = onDismiss,
+                    pinningSupported = pinningSupported
                 )
             }
 
@@ -113,12 +117,14 @@ fun CategoryManagement(
                     item = item,
                     canMoveUp = index > 0,
                     canMoveDown = index < state.categories.lastIndex,
+                    pinningSupported = pinningSupported,
                     onMoveUp = {
                         onMoveCategory(item.category.id, CategoryMoveDirectionUiModel.UP)
                     },
                     onMoveDown = {
                         onMoveCategory(item.category.id, CategoryMoveDirectionUiModel.DOWN)
                     },
+                    onPin = { onPinCategory(item.category) },
                     onRename = { renameCategoryId = item.category.id.value },
                     onDelete = { deleteCategoryId = item.category.id.value }
                 )
@@ -187,7 +193,7 @@ fun CategoryManagement(
 }
 
 @Composable
-private fun ManagementHeader(onCreate: () -> Unit, onDismiss: () -> Unit) {
+private fun ManagementHeader(onCreate: () -> Unit, onDismiss: () -> Unit, pinningSupported: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingSmall)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -207,6 +213,13 @@ private fun ManagementHeader(onCreate: () -> Unit, onDismiss: () -> Unit) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (!pinningSupported) {
+            Text(
+                text = stringResource(R.string.category_pinning_unsupported),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         TextButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = onCreate
@@ -221,8 +234,10 @@ private fun CategoryManagementRow(
     item: CategoryManagementItemUiModel,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    pinningSupported: Boolean,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
+    onPin: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -300,15 +315,28 @@ private fun CategoryManagementRow(
                 }
             }
 
-            if (item.isCustom) {
-                Row(
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingExtraSmall)
+            ) {
+                TextButton(
+                    enabled = pinningSupported,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    onClick = onPin
                 ) {
-                    TextButton(onClick = onRename) {
+                    Text(stringResource(R.string.pin_category_to_home_screen))
+                }
+                if (item.isCustom) {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onRename
+                    ) {
                         Text(stringResource(R.string.rename_category))
                     }
-                    TextButton(onClick = onDelete) {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onDelete
+                    ) {
                         Text(stringResource(R.string.delete_category))
                     }
                 }

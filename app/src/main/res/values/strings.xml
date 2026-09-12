@@ -102,4 +102,13 @@
     <string name="delete_category_reassign_heading">Or reassign apps</string>
     <string name="delete_category_reassign_option">Move to %1$s</string>
     <string name="delete_category_reassign_body">Move the assigned apps to %1$s before deleting this category.</string>
+
+    <string name="pin_category_to_home_screen">Pin to Home screen</string>
+    <string name="category_pinning_unsupported">The current launcher does not support in-app Home screen shortcut pinning.</string>
+    <string name="shortcut_category_long_label">Open %1$s in Organizer</string>
+    <string name="shortcut_category_deleted_disabled_message">This category no longer exists in One UI Organizer.</string>
+    <string name="category_destination_active">Showing only %1$s.</string>
+    <string name="category_destination_unavailable">That shortcut points to a category that no longer exists. Showing all categories instead.</string>
+    <string name="show_all_categories">Show all</string>
+    <string name="focused_category_empty_body">No visible apps are currently assigned to this category.</string>
 </resources>
