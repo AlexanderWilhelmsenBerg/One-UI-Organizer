@@ -10,21 +10,20 @@ import kotlin.test.assertTrue
 
 class CategoryShortcutPolicyTest {
     @Test
-    fun shortcutIdentityUsesStableCategoryIdInsteadOfLabelOrPosition() {
+    fun shortcutIdentityUsesStableCategoryIdWhileRenameUpdatesLabel() {
         val id = CategoryId.custom("opaque-family-id")
         val beforeRename = CustomCategoryDefinition(id, "Family")
         val afterRename = CustomCategoryDefinition(id, "Household")
+        val beforeDescriptor = CategoryShortcutDescriptor.from(beforeRename)
+        val afterDescriptor = CategoryShortcutDescriptor.from(afterRename)
 
-        assertEquals(
-            CategoryShortcutIdentity.shortcutId(beforeRename.id),
-            CategoryShortcutIdentity.shortcutId(afterRename.id)
-        )
-        assertEquals("category:custom:opaque-family-id", CategoryShortcutIdentity.shortcutId(id))
-        assertTrue(
-            CategoryShortcutIdentity.isCategoryShortcutId(
-                CategoryShortcutIdentity.shortcutId(id)
-            )
-        )
+        assertEquals(beforeDescriptor.shortcutId, afterDescriptor.shortcutId)
+        assertEquals("category:custom:opaque-family-id", beforeDescriptor.shortcutId)
+        assertEquals("Family", beforeDescriptor.label)
+        assertEquals("Household", afterDescriptor.label)
+        assertEquals(id, beforeDescriptor.destination.categoryId)
+        assertEquals(id, afterDescriptor.destination.categoryId)
+        assertTrue(CategoryShortcutIdentity.isCategoryShortcutId(beforeDescriptor.shortcutId))
         assertFalse(CategoryShortcutIdentity.isCategoryShortcutId("unrelated"))
     }
 
