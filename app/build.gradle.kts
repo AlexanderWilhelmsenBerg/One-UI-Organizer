@@ -98,6 +98,7 @@ val java17Launcher = javaToolchains.launcherFor {
 dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.runtime.saveable)
