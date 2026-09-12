@@ -24,7 +24,9 @@ object CategoryShortcutIntents {
         if (intent?.action != ACTION_OPEN_CATEGORY) {
             return null
         }
-        val rawCategoryId = intent.getStringExtra(EXTRA_CATEGORY_ID)?.takeIf(String::isNotBlank) ?: return null
+        val rawCategoryId =
+            intent.getStringExtra(EXTRA_CATEGORY_ID)?.takeIf(String::isNotBlank)
+                ?: return null
         return CategoryShortcutDestination(CategoryId(rawCategoryId))
     }
 }
