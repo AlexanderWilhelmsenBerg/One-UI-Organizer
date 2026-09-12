@@ -315,21 +315,28 @@ private fun CategoryManagementRow(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingExtraSmall)
             ) {
                 TextButton(
                     enabled = pinningSupported,
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = onPin
                 ) {
                     Text(stringResource(R.string.pin_category_to_home_screen))
                 }
                 if (item.isCustom) {
-                    TextButton(onClick = onRename) {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onRename
+                    ) {
                         Text(stringResource(R.string.rename_category))
                     }
-                    TextButton(onClick = onDelete) {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onDelete
+                    ) {
                         Text(stringResource(R.string.delete_category))
                     }
                 }
