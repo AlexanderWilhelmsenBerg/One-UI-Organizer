@@ -2,6 +2,7 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.LocalAppSearch
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 
 object OrganizerUiStateMapper {
@@ -10,11 +11,12 @@ object OrganizerUiStateMapper {
         organizerState: OrganizerState,
         query: String,
         isLoading: Boolean,
-        error: ShelfErrorUiModel?
+        error: ShelfErrorUiModel?,
+        focusedCategoryId: CategoryId? = null
     ): OrganizerShelfUiState {
         val currentAppIds = apps.mapTo(mutableSetOf()) { categorizedApp -> categorizedApp.app.id }
-        val categoryAssignmentCounts =
-            apps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount().toMutableMap()
+        val currentCategoryAppCounts = apps.groupingBy { categorizedApp -> categorizedApp.category.id }.eachCount()
+        val categoryAssignmentCounts = currentCategoryAppCounts.toMutableMap()
         organizerState.categoryOverrides.forEach { (appId, categoryId) ->
             if (appId !in currentAppIds) {
                 categoryAssignmentCounts[categoryId] = (categoryAssignmentCounts[categoryId] ?: 0) + 1
@@ -28,30 +30,50 @@ object OrganizerUiStateMapper {
                     query = ""
                 ).map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
 
+        val orderedCategories = organizerState.orderedCategories()
+        val focusedCategory = focusedCategoryId?.let(organizerState::categoryDefinition)
         val visibleApps =
             apps.filterNot { categorizedApp -> categorizedApp.app.id in organizerState.hiddenAppIds }
-        val filteredApps = LocalAppSearch.filter(visibleApps, query)
+        val categoryScopedApps =
+            if (focusedCategory == null) {
+                visibleApps
+            } else {
+                visibleApps.filter { categorizedApp -> categorizedApp.category.id == focusedCategory.id }
+            }
+        val filteredApps = LocalAppSearch.filter(categoryScopedApps, query)
 
         val favourites =
-            filteredApps
-                .filter { categorizedApp -> categorizedApp.app.id in organizerState.favouriteAppIds }
-                .map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
+            if (focusedCategory == null) {
+                filteredApps
+                    .filter { categorizedApp -> categorizedApp.app.id in organizerState.favouriteAppIds }
+                    .map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
+            } else {
+                emptyList()
+            }
 
-        val orderedCategories = organizerState.orderedCategories()
         val categories =
-            orderedCategories.mapNotNull { category ->
-                val categoryApps =
-                    filteredApps
-                        .filter { categorizedApp -> categorizedApp.category.id == category.id }
-                        .map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
-                categoryApps
-                    .takeIf(List<ShelfAppUiModel>::isNotEmpty)
-                    ?.let { appsInCategory ->
-                        CategorySectionUiModel(
-                            category = category,
-                            apps = appsInCategory
-                        )
-                    }
+            if (focusedCategory != null) {
+                listOf(
+                    CategorySectionUiModel(
+                        category = focusedCategory,
+                        apps = filteredApps.map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
+                    )
+                )
+            } else {
+                orderedCategories.mapNotNull { category ->
+                    val categoryApps =
+                        filteredApps
+                            .filter { categorizedApp -> categorizedApp.category.id == category.id }
+                            .map { categorizedApp -> categorizedApp.toUiModel(organizerState) }
+                    categoryApps
+                        .takeIf(List<ShelfAppUiModel>::isNotEmpty)
+                        ?.let { appsInCategory ->
+                            CategorySectionUiModel(
+                                category = category,
+                                apps = appsInCategory
+                            )
+                        }
+                }
             }
 
         return OrganizerShelfUiState(
@@ -62,6 +84,10 @@ object OrganizerUiStateMapper {
             hiddenApps = hiddenApps,
             availableCategories = orderedCategories,
             categoryAssignmentCounts = categoryAssignmentCounts.toMap(),
+            currentCategoryAppCounts = currentCategoryAppCounts,
+            focusedCategory = focusedCategory,
+            categoryDestinationUnavailable =
+                focusedCategoryId != null && focusedCategory == null && !isLoading,
             error = error,
             currentAppCount = apps.size
         )
