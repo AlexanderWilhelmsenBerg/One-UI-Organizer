@@ -7,10 +7,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 interface CategoryShortcutManager {
     val isPinningSupported: Boolean
 
-    suspend fun synchronize(
-        orderedCategories: List<CategoryDefinition>,
-        currentCategoryAppCounts: Map<CategoryId, Int>
-    )
+    suspend fun synchronize(orderedCategories: List<CategoryDefinition>, currentCategoryAppCounts: Map<CategoryId, Int>)
 
     fun requestPinShortcut(category: CategoryDefinition): Boolean
 
