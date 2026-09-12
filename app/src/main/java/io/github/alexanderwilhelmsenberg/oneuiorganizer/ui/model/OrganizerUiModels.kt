@@ -43,6 +43,9 @@ data class OrganizerShelfUiState(
     val hiddenApps: List<ShelfAppUiModel> = emptyList(),
     val availableCategories: List<CategoryDefinition> = emptyList(),
     val categoryAssignmentCounts: Map<CategoryId, Int> = emptyMap(),
+    val currentCategoryAppCounts: Map<CategoryId, Int> = emptyMap(),
+    val focusedCategory: CategoryDefinition? = null,
+    val categoryDestinationUnavailable: Boolean = false,
     val error: ShelfErrorUiModel? = null,
     val currentAppCount: Int = 0
 ) {
@@ -59,6 +62,7 @@ data class OrganizerShelfUiState(
                 hasVisibleApps -> ShelfContentMode.CONTENT
                 error != null -> ShelfContentMode.ERROR
                 query.isNotBlank() -> ShelfContentMode.NO_RESULTS
+                focusedCategory != null -> ShelfContentMode.CONTENT
                 else -> ShelfContentMode.EMPTY
             }
 }
