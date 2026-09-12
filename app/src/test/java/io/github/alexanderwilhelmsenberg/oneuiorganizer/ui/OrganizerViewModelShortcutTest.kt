@@ -7,6 +7,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryManagemen
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryShortcutDestination
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.ClassificationSource
@@ -34,8 +35,8 @@ class OrganizerViewModelShortcutTest {
         val organizerState = OrganizerState(customCategories = listOf(family))
         val apps =
             listOf(
-                categorizedApp("family.app", family.id, family),
-                categorizedApp("work.app", AppCategory.WORK.id, AppCategory.WORK)
+                categorizedApp("family.app", family),
+                categorizedApp("work.app", AppCategory.WORK)
             )
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val viewModel = viewModel(scope, organizerState, apps)
@@ -58,7 +59,11 @@ class OrganizerViewModelShortcutTest {
 
     @Test
     fun `deleted category shortcut never mutates repository state and falls back safely`() {
-        val repository = ShortcutOrganizerRepository(OrganizerState(), listOf(categorizedApp("work.app", AppCategory.WORK.id, AppCategory.WORK)))
+        val repository =
+            ShortcutOrganizerRepository(
+                OrganizerState(),
+                listOf(categorizedApp("work.app", AppCategory.WORK))
+            )
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val viewModel =
             OrganizerViewModel(
@@ -93,13 +98,12 @@ class OrganizerViewModelShortcutTest {
 
     private fun categorizedApp(
         packageName: String,
-        categoryId: CategoryId,
-        category: io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+        category: CategoryDefinition
     ): CategorizedApp =
         CategorizedApp(
             app = InstalledApp(AppId(packageName), LaunchTargetId(packageName, "MainActivity"), packageName),
             category = category,
-            source = if (categoryId == AppCategory.WORK.id) ClassificationSource.KNOWN_APP_RULE else ClassificationSource.USER_OVERRIDE
+            source = ClassificationSource.USER_OVERRIDE
         )
 }
 
