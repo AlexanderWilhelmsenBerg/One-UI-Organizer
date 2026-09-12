@@ -44,14 +44,14 @@ Dynamic category shortcuts are synchronized from the current organizer projectio
 Selection is deterministic:
 
 1. start with `OrganizerState.orderedCategories()` through the existing shelf projection;
-2. retain only categories containing at least one currently installed app;
+2. retain only categories containing at least one currently installed, non-hidden app visible on the normal shelf;
 3. preserve the persisted category order;
 4. cap the result at the smaller of:
    - Android's device-reported `ShortcutManager.maxShortcutCountPerActivity`; and
    - the product launcher-menu cap of four categories, matching Android's current launcher presentation guidance;
 5. assign shortcut ranks in that selected order.
 
-Retained overrides for currently uninstalled apps continue to count for category-management deletion semantics, but they do **not** make a category eligible for a dynamic launcher shortcut. This prevents shortcut publication from turning retained persistence references into apparently useful launcher destinations.
+Retained overrides for currently uninstalled apps and currently hidden apps continue to count for category-management/persistence semantics, but neither makes a category eligible for a dynamic launcher shortcut by itself. This prevents shortcut publication from turning retained or deliberately hidden state into apparently useful launcher destinations.
 
 `setDynamicShortcuts()` replaces the dynamic set when the desired IDs, labels, or ranks differ. As a result, deleted categories and categories that stop qualifying are removed from the dynamic set. Existing dynamic shortcuts are inspected first so a no-op foreground refresh does not spend rate-limit budget.
 
@@ -61,7 +61,7 @@ If the launcher reports active shortcut rate limiting, publication is deferred u
 
 There is no background shortcut worker.
 
-`MainActivity` observes the existing organizer presentation state while it is alive. Synchronization occurs after a successful foreground refresh and whenever the authoritative category/order/current-app projection changes while the activity is active. The Android adapter performs potentially slow shortcut-manager inspection/publication on `Dispatchers.IO`.
+`MainActivity` observes the existing organizer presentation state while it is alive. Synchronization occurs after a successful foreground refresh and whenever the authoritative category/order/current-visible-app projection changes while the activity is active. The Android adapter performs potentially slow shortcut-manager inspection/publication on `Dispatchers.IO`.
 
 This foreground policy also re-checks dynamic shortcuts after app launch, which is required because dynamic shortcuts are not guaranteed to survive device restore.
 
@@ -138,15 +138,16 @@ The only authoritative category state remains the existing `OrganizerState`/repo
 Permanent tests cover:
 
 - stable `CategoryId` to shortcut-ID mapping;
-- rename identity stability;
+- rename identity stability and current-label projection;
 - reorder identity stability and deterministic order;
-- current/non-empty dynamic filtering;
+- current visible/non-empty dynamic filtering;
+- retained-uninstalled and hidden-only category exclusion from dynamic eligibility;
 - platform/product maximum enforcement;
 - built-in and custom categories;
 - deleted-category removal from dynamic selection;
 - exact valid category focus;
 - stale/deleted category destination fallback;
-- separation between retained persisted overrides and current dynamic eligibility;
+- separation between retained persisted overrides and shortcut eligibility;
 - category-management pin actions and unsupported-launcher presentation.
 
 Android framework publication itself remains a platform/device acceptance concern rather than introducing Robolectric or another test dependency.
@@ -161,7 +162,7 @@ On the project Samsung test device, verify all of the following before this feat
 4. Pin both one built-in and one custom category from category management; confirm One UI displays its normal confirmation flow and creates shortcuts only after user approval.
 5. Launch each pinned shortcut and confirm Organizer opens directly in the correct category context; launch an app from that context and confirm Organizer dismisses back to One UI normally.
 6. Delete a custom category that has a pinned shortcut, synchronize by returning to Organizer, and confirm One UI disables/handles the stale pinned shortcut sensibly. Also verify a stale intent delivered to Organizer falls back to the full shelf with the explanatory message.
-7. Remove enough category contents to change the dynamic qualifying set and confirm obsolete dynamic shortcuts disappear on the next successful foreground synchronization.
+7. Remove or hide enough category contents to change the dynamic qualifying set and confirm obsolete dynamic shortcuts disappear on the next successful foreground synchronization.
 8. Reboot/restore-style test as practical and confirm reopening Organizer republishes missing dynamic shortcuts.
 
 ## Agent 92 integration expectation
