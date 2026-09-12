@@ -334,10 +334,7 @@ class OrganizerViewModel(
         val focusedCategoryId: CategoryId?
     )
 
-    private data class OrganizerStateSnapshot(
-        val state: OrganizerState,
-        val isReady: Boolean
-    )
+    private data class OrganizerStateSnapshot(val state: OrganizerState, val isReady: Boolean)
 
     private companion object {
         const val CATEGORY_UNAVAILABLE_MESSAGE = "That category is no longer available. Try again."
