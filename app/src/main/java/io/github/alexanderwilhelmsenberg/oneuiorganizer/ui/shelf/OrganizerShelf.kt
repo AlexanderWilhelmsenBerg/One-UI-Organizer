@@ -258,10 +258,7 @@ private fun OrganizerSearchField(query: String, onQueryChange: (String) -> Unit)
 }
 
 @Composable
-private fun CategoryDestinationState(
-    state: OrganizerShelfUiState,
-    onClear: () -> Unit
-) {
+private fun CategoryDestinationState(state: OrganizerShelfUiState, onClear: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
