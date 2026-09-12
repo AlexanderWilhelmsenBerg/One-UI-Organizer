@@ -148,9 +148,10 @@ Permanent tests cover:
 - exact valid category focus;
 - stale/deleted category destination fallback;
 - separation between retained persisted overrides and shortcut eligibility;
-- category-management pin actions and unsupported-launcher presentation.
+- category-management pin actions and unsupported-launcher presentation;
+- Android instrumentation coverage for valid, unrelated and malformed shortcut intent payload decoding.
 
-Android framework publication itself remains a platform/device acceptance concern rather than introducing Robolectric or another test dependency.
+Android framework shortcut publication itself remains a platform/device acceptance concern rather than introducing Robolectric or another test dependency.
 
 ## Samsung / One UI acceptance still required
 
