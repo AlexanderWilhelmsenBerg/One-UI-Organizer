@@ -1,8 +1,8 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.backup
 
 import android.content.ContentResolver
-import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.backup.OrganizerBackupExport
 import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -46,7 +46,7 @@ class AndroidBackupDocumentStore(
 ) : BackupDocumentStore {
     override suspend fun read(documentId: BackupDocumentId): BackupDocumentReadResult = withContext(ioDispatcher) {
         try {
-            val input = contentResolver.openInputStream(Uri.parse(documentId.value))
+            val input = contentResolver.openInputStream(documentId.value.toUri())
                 ?: return@withContext BackupDocumentReadResult.Failure(BackupDocumentIoError.CANNOT_OPEN)
             val content = input.bufferedReader(Charsets.UTF_8).use { reader -> reader.readText() }
             BackupDocumentReadResult.Success(content)
@@ -60,7 +60,7 @@ class AndroidBackupDocumentStore(
     override suspend fun write(documentId: BackupDocumentId, content: String): BackupDocumentWriteResult =
         withContext(ioDispatcher) {
             try {
-                val output = contentResolver.openOutputStream(Uri.parse(documentId.value), WRITE_MODE)
+                val output = contentResolver.openOutputStream(documentId.value.toUri(), WRITE_MODE)
                     ?: return@withContext BackupDocumentWriteResult.Failure(BackupDocumentIoError.CANNOT_OPEN)
                 output.bufferedWriter(Charsets.UTF_8).use { writer -> writer.write(content) }
                 BackupDocumentWriteResult.Success
