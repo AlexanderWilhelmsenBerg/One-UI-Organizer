@@ -2,6 +2,7 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryShortcutDestination
 
 /** Stable platform shortcut identity derived only from the app-owned durable category identity. */
 object CategoryShortcutIdentity {
@@ -10,6 +11,21 @@ object CategoryShortcutIdentity {
     fun shortcutId(categoryId: CategoryId): String = "$ID_PREFIX${categoryId.value}"
 
     fun isCategoryShortcutId(shortcutId: String): Boolean = shortcutId.startsWith(ID_PREFIX)
+}
+
+data class CategoryShortcutDescriptor(
+    val shortcutId: String,
+    val label: String,
+    val destination: CategoryShortcutDestination
+) {
+    companion object {
+        fun from(category: CategoryDefinition): CategoryShortcutDescriptor =
+            CategoryShortcutDescriptor(
+                shortcutId = CategoryShortcutIdentity.shortcutId(category.id),
+                label = category.displayName,
+                destination = CategoryShortcutDestination(category.id)
+            )
+    }
 }
 
 /**
