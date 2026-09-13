@@ -4,11 +4,11 @@ This document records the integrated user-owned category-management design and t
 
 ## Status
 
-Agents 80, 81 and 82 are merged to `main` as PRs #15, #16 and #17. Agent 83 integrates those lanes in PR #18 on `integration/category-management`.
+Agents 80, 81 and 82 merged as PRs #15, #16 and #17. Agent 83 completed the integration lane in PR #18, which merged to `main` on 2026-09-11. This document is retained as acceptance history rather than an active merge gate.
 
 The owner-device lifecycle/migration exercise passed all requested behavior except the category-assignment count shown by **Manage categories**. The first correction changed the management mapper from persisted overrides to the live classified-app stream, but a signed-debug retest from exact head `f642b570...` still showed only explicit/manual assignments: built-in automatic categories remained at zero, while `Video` showed the previously moved app and custom test categories showed their manual assignments. That first correction is therefore not considered physically validated.
 
-The follow-up hardening removes the parallel count pipeline. Effective category-assignment counts are now computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. Automated code acceptance passed on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253, and the final acceptance-record branch head also passed the complete quality lane in CI run #258. PR #18 remains non-merge-ready until this hardened count path passes the targeted Samsung retest.
+The follow-up hardening removed the parallel count pipeline. Effective category-assignment counts are computed once in the same unfiltered organizer inventory mapping that powers the shelf and are then consumed by category management. Automated code acceptance passed on hardened implementation head `7af810328fb89a91fffd2762b8e5fdf4cc105364` in CI run #253, and the final acceptance-record branch head passed the complete quality lane in CI run #258. The targeted Samsung retest subsequently passed and PR #18 merged on 2026-09-11.
 
 ## Final category model
 
@@ -126,7 +126,7 @@ The hardened count regression set specifically proves:
 - search filtering does not change the shared assignment counts; and
 - the ViewModel exposes the same effective count to category management that the shelf inventory contains.
 
-## Physical Samsung migration gate — targeted retest pending
+## Physical Samsung migration gate — historical record
 
 Use the repository `Build APK` workflow with the **debug** variant on the Agent 83 branch. That workflow uses the permanent distribution keystore, verifies the signature and publishes the signed debug APK. Install it over the existing application; do not clear data.
 
@@ -177,9 +177,9 @@ The follow-up correction removes the independent management count derivation. `O
 
 This deliberately ties the count shown in **Manage categories** to the same presentation inventory that proves category membership on the shelf.
 
-### Required targeted retest after the hardened fix
+### Targeted retest after the hardened fix — completed
 
-Build a new signed debug APK from the current `integration/category-management` head, install it over the current test installation without clearing data, open **Manage categories**, and verify:
+The final signed-debug targeted retest verified:
 
 1. populated automatic built-in categories show nonzero counts consistent with their effective shelf membership;
 2. `Video` still includes the previously exercised manual override in its count;
@@ -187,7 +187,7 @@ Build a new signed debug APK from the current `integration/category-management` 
 4. the previously exercised user override remains present after the over-install;
 5. no obvious category-management layout or interaction regression is introduced.
 
-No repetition of the full lifecycle/migration checklist is required unless one of those checks fails.
+No repetition of the full lifecycle/migration checklist was required because the targeted checks passed.
 
 ## Permission/privacy gate
 
@@ -195,18 +195,13 @@ Category management requires no network or broad package permission. The integra
 
 ## Completion rule
 
-The Agent 80–83 wave is complete only when:
-
-1. PR #18 final automated CI is green on the current head; and
-2. the targeted physical count retest above passes and its generalized result is recorded.
-
-Until both are true, keep PR #18 unmerged and keep the category-management wave marked as pending physical acceptance.
+The Agent 80–83 wave is complete and PR #18 is merged. Later waves must consume its stable category identity/state contracts rather than reopening category ownership.
 
 ## Recommended next wave
 
-After this wave is accepted, the strongest parallel candidates are:
+The next parallel wave was:
 
 - local versioned backup/export/import of organizer-owned state; and
 - dynamic/pinned category shortcuts.
 
-Both can consume the now-stable category IDs without owning or redefining category lifecycle behavior. Optional F-Droid metadata enrichment and presentation polish remain independent later candidates. Performance work remains measurement-driven.
+Both shipped as PR #19 and PR #20 and consume the stable category IDs without owning or redefining category lifecycle behavior. Agent 92 now owns their shared integration and Samsung acceptance. Optional supported metadata enrichment and presentation polish remain independent later candidates. Performance work remains measurement-driven.

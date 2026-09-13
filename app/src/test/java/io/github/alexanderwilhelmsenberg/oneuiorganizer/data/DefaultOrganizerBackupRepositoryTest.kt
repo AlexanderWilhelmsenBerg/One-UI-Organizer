@@ -9,6 +9,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefi
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.backup.OrganizerBackupError
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.backup.OrganizerBackupResult
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutIdentity
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -118,6 +119,10 @@ class DefaultOrganizerBackupRepositoryTest {
             assertEquals(customId, recreated.categoryOverrides[AppId("example.uninstalled")])
             assertEquals(customId, recreated.customCategories.single().id)
             assertEquals(customId, recreated.categoryOrder.first())
+            assertEquals(
+                CategoryShortcutIdentity.shortcutId(customId),
+                CategoryShortcutIdentity.shortcutId(recreated.customCategories.single().id)
+            )
         } finally {
             secondJob.cancelAndJoin()
             directory.toFile().deleteRecursively()

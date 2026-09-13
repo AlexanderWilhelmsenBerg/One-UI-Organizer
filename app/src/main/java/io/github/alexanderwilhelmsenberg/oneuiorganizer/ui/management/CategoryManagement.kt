@@ -60,7 +60,8 @@ fun CategoryManagement(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     pinningSupported: Boolean = true,
-    onPinCategory: (CategoryDefinition) -> Unit = {}
+    onPinCategory: (CategoryDefinition) -> Unit = {},
+    onBackupRestoreRequested: (() -> Unit)? = null
 ) {
     var createDialogVisible by rememberSaveable { mutableStateOf(false) }
     var renameCategoryId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -88,7 +89,8 @@ fun CategoryManagement(
                 ManagementHeader(
                     onCreate = { createDialogVisible = true },
                     onDismiss = onDismiss,
-                    pinningSupported = pinningSupported
+                    pinningSupported = pinningSupported,
+                    onBackupRestoreRequested = onBackupRestoreRequested
                 )
             }
 
@@ -193,7 +195,12 @@ fun CategoryManagement(
 }
 
 @Composable
-private fun ManagementHeader(onCreate: () -> Unit, onDismiss: () -> Unit, pinningSupported: Boolean) {
+private fun ManagementHeader(
+    onCreate: () -> Unit,
+    onDismiss: () -> Unit,
+    pinningSupported: Boolean,
+    onBackupRestoreRequested: (() -> Unit)?
+) {
     Column(verticalArrangement = Arrangement.spacedBy(OrganizerDimens.spacingSmall)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -225,6 +232,14 @@ private fun ManagementHeader(onCreate: () -> Unit, onDismiss: () -> Unit, pinnin
             onClick = onCreate
         ) {
             Text(stringResource(R.string.create_category))
+        }
+        onBackupRestoreRequested?.let { onBackupRestore ->
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onBackupRestore
+            ) {
+                Text(stringResource(R.string.backup_restore_title))
+            }
         }
     }
 }
