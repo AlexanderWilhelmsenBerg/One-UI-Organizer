@@ -1,6 +1,6 @@
 # Product and Delivery Plan
 
-**Current status:** v0.1, classification quality through PR #14, user-owned category management through PR #18, local backup/import PR #19 and category shortcuts PR #20 are merged to `main`. Agent 92 integration is complete on PR #21 / `integration/portability-shortcuts`: the permanent CI lane and signed-debug build are green, and the owner intends to merge it. Physical Samsung / One UI observations remain an explicit acceptance record to capture. After PR #21 merges, the recommended next wave is supported metadata enrichment plus presentation polish, integrated by Agent 102. See [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md), [`BACKUP_FORMAT_V1.md`](BACKUP_FORMAT_V1.md), and [`CATEGORY_SHORTCUTS.md`](CATEGORY_SHORTCUTS.md).
+**Current status:** v0.1, classification quality through PR #14, user-owned category management through PR #18, local backup/import PR #19 and category shortcuts PR #20 are merged to `main`. Agent 92 integration is complete in PR #21 / `integration/portability-shortcuts`: the permanent CI lane and signed-debug build are green. Physical Samsung / One UI observations remain an explicit acceptance record to capture. The recommended following wave begins from `main` after PR #21 is merged: supported metadata enrichment plus presentation polish, integrated by Agent 102. See [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md), [`BACKUP_FORMAT_V1.md`](BACKUP_FORMAT_V1.md), and [`CATEGORY_SHORTCUTS.md`](CATEGORY_SHORTCUTS.md).
 
 Execution ownership and sequencing live in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md).
 
@@ -230,7 +230,7 @@ The Agent 80–83 wave is complete. Later consumers must build on these accepted
 
 ## 9. Portability + category-shortcut integration wave
 
-PR #19 (Agent 90) and PR #20 (Agent 91) are merged to `main`. Agent 92 integrates them on PR #21 / `integration/portability-shortcuts`; implementation and automated acceptance are complete and the owner controls the merge.
+PR #19 (Agent 90) and PR #20 (Agent 91) are merged to `main`. Agent 92 integrates them in PR #21 / `integration/portability-shortcuts`; implementation and automated acceptance are complete. The next wave must not branch until PR #21 is present on current `main`.
 
 Agent 92 scope:
 
@@ -244,7 +244,7 @@ Agent 92 scope:
 
 This lane must not add `INTERNET`, `QUERY_ALL_PACKAGES`, broad storage access, telemetry, accounts/cloud sync or a second organizer/category state owner.
 
-Agent 92 implementation and automated acceptance are complete on PR #21. The owner controls the merge. Physical Samsung / One UI behavior remains to be recorded honestly rather than inferred from automated tests.
+Agent 92 implementation and automated acceptance are complete in PR #21. Physical Samsung / One UI behavior remains to be recorded honestly rather than inferred from automated tests.
 
 ## 10. Recommended following wave — supported metadata + presentation refinement
 
@@ -360,7 +360,7 @@ Real Samsung acceptance remains mandatory for product-critical package discovery
 - standard TWA wrappers are not generically classified;
 - no generic Samsung Internet/other-browser shortcut signature is established;
 - the model remains one primary category per app;
-- local backup/import/export and dynamic/pinned category shortcuts are integrated on PR #21 and await owner merge to `main`;
+- local backup/import/export and dynamic/pinned category shortcuts are integrated in PR #21; the following wave starts only from `main` containing that integration;
 - physical Samsung / One UI observations for the Agent-92 wave still need to be recorded;
 - supported network metadata enrichment is not yet implemented;
 - presentation refinement beyond the accepted functional UI remains the next planned wave.
