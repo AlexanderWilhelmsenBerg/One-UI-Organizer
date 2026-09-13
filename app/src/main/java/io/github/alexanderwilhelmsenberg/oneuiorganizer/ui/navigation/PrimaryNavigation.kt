@@ -1,7 +1,6 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.navigation
 
 import androidx.activity.compose.BackHandler
-import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +26,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 
 enum class PrimaryDestination(
     val savedValue: String,
-    @StringRes val labelResId: Int
+    val labelResId: Int
 ) {
     ORGANIZER(
         savedValue = "organizer",
