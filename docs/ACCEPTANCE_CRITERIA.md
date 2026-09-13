@@ -40,7 +40,8 @@ For every app, primary-category selection follows this exact precedence:
 1. user override;
 2. bundled known-app rule;
 3. mapped Android application category;
-4. `Unsorted` fallback.
+4. supported external metadata when it maps explicitly to an existing built-in category;
+5. `Unsorted` fallback.
 
 Unit tests must prove each precedence boundary. A user override may resolve to either a built-in or user-created category and retains `ClassificationSource.USER_OVERRIDE` in both cases.
 
@@ -122,9 +123,9 @@ Shelf composables are not coupled to Samsung-only blur/window APIs. Presentation
 
 ## F. Privacy and permissions
 
-### F1 — No speculative Internet permission
+### F1 — Audited Internet permission
 
-The current product and category-management wave do not request `android.permission.INTERNET`. A future supported network feature may add it only with the documented provider implementation and privacy/cache behavior.
+Agent 100 adds `android.permission.INTERNET` only for the documented F-Droid metadata provider. No other Android permission is added by this lane. CI requires the intentional `INTERNET` permission and fails on any other declared Android permission; `QUERY_ALL_PACKAGES` remains explicitly forbidden. Provider, cache, refresh and privacy behavior are documented in `METADATA_ENRICHMENT.md`.
 
 ### F2 — No broad package-query permission
 
@@ -136,7 +137,11 @@ The app contains no analytics SDK, advertising SDK, telemetry backend, account s
 
 ### F4 — Minimal local persistence
 
-Persist only organizer state required for product behavior. Installed-app labels/icons remain Android-sourced rather than long-lived authoritative copies unless a later measured performance need justifies caching.
+Persist only organizer state required for product behavior plus explicitly documented derived caches. Installed-app labels/icons remain Android-sourced rather than long-lived authoritative copies unless a later measured performance need justifies caching. Supported metadata cache state is derived/rebuildable, remains separate from user-owned organizer state and is excluded from backup/export.
+
+### F5 — Supported metadata privacy
+
+Supported metadata refresh may request the documented public F-Droid repository index. Organizer does not send search text, favourites, hidden state, category overrides, custom categories or organizer backup state to the provider. The first provider downloads the public bulk index rather than sending the installed package list as per-package lookup requests. No telemetry, analytics, account or cloud-sync system is introduced.
 
 ## G. Architecture and maintainability
 
@@ -241,7 +246,7 @@ Built-in category-name search remains correct. The shared representation support
 
 ### K8 — Rule compatibility
 
-Existing known-app, game, Web/PWA and emulator rule behavior remains unchanged. Precedence remains user override > bundled rule > Android category > `Unsorted`.
+Existing known-app, game, Web/PWA and emulator rule behavior remains unchanged. With Agent 100, precedence is user override > bundled rule > Android category > supported metadata > `Unsorted`; metadata therefore only resolves entries that would otherwise remain `Unsorted`.
 
 ### K9 — Scope boundary
 
