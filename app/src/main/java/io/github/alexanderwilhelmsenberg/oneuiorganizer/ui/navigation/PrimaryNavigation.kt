@@ -1,21 +1,25 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.navigation
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -160,43 +164,53 @@ fun PrimaryNavigationShell(
 @Composable
 private fun PrimaryDestinationIcon(destination: PrimaryDestination) {
     val color = LocalContentColor.current
-    Canvas(
+    Box(
         modifier =
             Modifier
                 .size(24.dp)
-                .clearAndSetSemantics { }
+                .clearAndSetSemantics { },
+        contentAlignment = Alignment.Center
     ) {
         when (destination) {
             PrimaryDestination.ORGANIZER -> {
-                val radius = size.minDimension * 0.105f
-                val positions =
-                    listOf(
-                        Offset(size.width * 0.32f, size.height * 0.32f),
-                        Offset(size.width * 0.68f, size.height * 0.32f),
-                        Offset(size.width * 0.32f, size.height * 0.68f),
-                        Offset(size.width * 0.68f, size.height * 0.68f)
-                    )
-                positions.forEach { center ->
-                    drawCircle(color = color, radius = radius, center = center)
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    repeat(2) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            repeat(2) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(6.dp)
+                                            .background(color = color, shape = CircleShape)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
             PrimaryDestination.CATEGORIES -> {
-                val strokeWidth = size.minDimension * 0.09f
-                listOf(0.28f, 0.5f, 0.72f).forEach { fraction ->
-                    val y = size.height * fraction
-                    drawCircle(
-                        color = color,
-                        radius = strokeWidth * 0.65f,
-                        center = Offset(size.width * 0.23f, y)
-                    )
-                    drawLine(
-                        color = color,
-                        start = Offset(size.width * 0.39f, y),
-                        end = Offset(size.width * 0.78f, y),
-                        strokeWidth = strokeWidth,
-                        cap = StrokeCap.Round
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    repeat(3) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(4.dp)
+                                        .background(color = color, shape = CircleShape)
+                            )
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .width(12.dp)
+                                        .height(3.dp)
+                                        .background(color = color, shape = CircleShape)
+                            )
+                        }
+                    }
                 }
             }
         }
