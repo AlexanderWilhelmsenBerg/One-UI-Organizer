@@ -51,7 +51,11 @@ class DefaultOrganizerRepository(
     override val organizerState: Flow<OrganizerState> = organizerStateStore.state
 
     override val apps: Flow<List<CategorizedApp>> =
-        combine(installedApps, organizerStateStore.state, supportedMetadataRepository.metadata) { currentApps, state, metadata ->
+        combine(
+            installedApps,
+            organizerStateStore.state,
+            supportedMetadataRepository.metadata
+        ) { currentApps, state, metadata ->
             currentApps.map { app ->
                 val override = state.categoryOverrides[app.id]?.let(state::categoryDefinition)
                 val supportedMetadataCategory = metadata[app.id]?.let(SupportedMetadataCategoryMapper::categoryFor)

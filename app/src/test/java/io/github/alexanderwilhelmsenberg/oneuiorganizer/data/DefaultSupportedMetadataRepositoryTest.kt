@@ -92,25 +92,21 @@ class DefaultSupportedMetadataRepositoryTest {
         refreshIntervalMillis = interval
     )
 
-    private fun snapshot(now: Long, appId: AppId, category: String) =
-        SupportedMetadataCacheSnapshot(
-            provider = SupportedMetadataProvider.F_DROID,
-            refreshedAtEpochMillis = now,
-            checkedAppIds = setOf(appId),
-            metadataByAppId = mapOf(appId to metadata(appId, category, now))
-        )
+    private fun snapshot(now: Long, appId: AppId, category: String) = SupportedMetadataCacheSnapshot(
+        provider = SupportedMetadataProvider.F_DROID,
+        refreshedAtEpochMillis = now,
+        checkedAppIds = setOf(appId),
+        metadataByAppId = mapOf(appId to metadata(appId, category, now))
+    )
 
-    private fun metadata(appId: AppId, category: String, fetchedAt: Long) =
-        SupportedAppMetadata(
-            appId = appId,
-            provider = SupportedMetadataProvider.F_DROID,
-            categories = setOf(category),
-            fetchedAtEpochMillis = fetchedAt
-        )
+    private fun metadata(appId: AppId, category: String, fetchedAt: Long) = SupportedAppMetadata(
+        appId = appId,
+        provider = SupportedMetadataProvider.F_DROID,
+        categories = setOf(category),
+        fetchedAtEpochMillis = fetchedAt
+    )
 
-    private class FakeProvider(
-        private val result: SupportedMetadataLookupResult
-    ) : SupportedAppMetadataProvider {
+    private class FakeProvider(private val result: SupportedMetadataLookupResult) : SupportedAppMetadataProvider {
         override val provider = SupportedMetadataProvider.F_DROID
         var calls = 0
 
@@ -120,9 +116,7 @@ class DefaultSupportedMetadataRepositoryTest {
         }
     }
 
-    private class FakeCache(
-        private val initial: SupportedMetadataCacheSnapshot?
-    ) : SupportedMetadataCache {
+    private class FakeCache(private val initial: SupportedMetadataCacheSnapshot?) : SupportedMetadataCache {
         var written: SupportedMetadataCacheSnapshot? = null
 
         override suspend fun read(): SupportedMetadataCacheSnapshot? = initial

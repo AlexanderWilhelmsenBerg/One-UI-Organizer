@@ -59,11 +59,10 @@ class FdroidMetadataProviderTest {
         assertIs<SupportedMetadataLookupResult.Failure>(provider.lookup(setOf(AppId("org.example.reader"))))
     }
 
-    private fun providerWith(document: String, now: Long = 99L) =
-        FdroidMetadataProvider(
-            documentSource = FdroidIndexDocumentSource { document },
-            nowEpochMillis = { now }
-        )
+    private fun providerWith(document: String, now: Long = 99L) = FdroidMetadataProvider(
+        documentSource = FdroidIndexDocumentSource { document },
+        nowEpochMillis = { now }
+    )
 
     private companion object {
         val INDEX =

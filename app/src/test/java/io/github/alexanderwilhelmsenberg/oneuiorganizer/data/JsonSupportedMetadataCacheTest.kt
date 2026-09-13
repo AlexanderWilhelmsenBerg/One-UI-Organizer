@@ -60,11 +60,10 @@ class JsonSupportedMetadataCacheTest {
         )
     }
 
-    private fun metadata(appId: AppId, categories: Set<String>, fetchedAt: Long) =
-        SupportedAppMetadata(
-            appId = appId,
-            provider = SupportedMetadataProvider.F_DROID,
-            categories = categories,
-            fetchedAtEpochMillis = fetchedAt
-        )
+    private fun metadata(appId: AppId, categories: Set<String>, fetchedAt: Long) = SupportedAppMetadata(
+        appId = appId,
+        provider = SupportedMetadataProvider.F_DROID,
+        categories = categories,
+        fetchedAtEpochMillis = fetchedAt
+    )
 }
