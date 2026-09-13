@@ -1,6 +1,6 @@
 # MoSCoW Scope Analysis
 
-This document separates the shipped core from the highest-value follow-up work. v0.1, classification quality through PR #14, category management through PR #18, local backup/import PR #19 and category shortcuts PR #20 are merged. Agent 92 integration is complete on PR #21 with green permanent CI and signed-debug build; the owner intends to merge it, while physical Samsung / One UI observations remain an explicit acceptance record. The recommended following wave is Agents 100–102: supported metadata enrichment and presentation polish in parallel, followed by integration/acceptance.
+This document separates the shipped core from the highest-value follow-up work. v0.1, classification quality through PR #14, category management through PR #18, local backup/import PR #19 and category shortcuts PR #20 are merged. Agent 92 integration is complete in PR #21 with green permanent CI and signed-debug build; physical Samsung / One UI observations remain an explicit acceptance record. The recommended following wave starts from `main` after PR #21 is merged: Agents 100–102, with supported metadata enrichment and presentation polish in parallel followed by integration/acceptance.
 
 Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Classification acceptance is recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md); category-management acceptance is recorded in [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md).
 
@@ -116,7 +116,7 @@ Agents 80–83 / PRs #15–#18 delivered durable built-in/custom category identi
 
 ### Local backup + category shortcuts — implementation merged, Agent 92 integration ready
 
-PR #19 delivered versioned local export/import using user-selected Android documents and atomic validated replacement. PR #20 delivered dynamic and user-requested pinned category shortcuts using stable `CategoryId`. Agent 92 integrates both on PR #21 using the same authoritative `OrganizerStateStore`; permanent CI and the signed-debug build are green. Owner merge is pending, and physical One UI observations remain to be recorded.
+PR #19 delivered versioned local export/import using user-selected Android documents and atomic validated replacement. PR #20 delivered dynamic and user-requested pinned category shortcuts using stable `CategoryId`. Agent 92 integrates both in PR #21 using the same authoritative `OrganizerStateStore`; permanent CI and the signed-debug build are green. The following wave starts only from `main` containing PR #21, and physical One UI observations remain to be recorded.
 
 ## Should have — recommended following wave
 
