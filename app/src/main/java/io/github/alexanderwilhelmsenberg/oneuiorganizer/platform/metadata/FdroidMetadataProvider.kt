@@ -91,10 +91,7 @@ class FdroidMetadataProvider(
         }
     }
 
-    internal fun parseLookup(
-        document: String,
-        appIds: Set<AppId>
-    ): SupportedMetadataLookupResult {
+    internal fun parseLookup(document: String, appIds: Set<AppId>): SupportedMetadataLookupResult {
         val root = Json.parseToJsonElement(document) as? JsonObject
             ?: return SupportedMetadataLookupResult.Failure
         val packages = root["packages"] as? JsonObject
@@ -111,7 +108,11 @@ class FdroidMetadataProvider(
                 categoriesArray
                     ?.mapNotNull { element ->
                         val primitive = element as? JsonPrimitive
-                        primitive?.takeIf { it.isString }?.content?.trim()?.takeIf(String::isNotEmpty)
+                        primitive
+                            ?.takeIf { it.isString }
+                            ?.content
+                            ?.trim()
+                            ?.takeIf(String::isNotEmpty)
                     }
                     ?.toSortedSet()
                     .orEmpty()

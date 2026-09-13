@@ -6,10 +6,9 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.SupportedMetadataP
 import java.util.Locale
 
 object SupportedMetadataCategoryMapper {
-    fun categoryFor(metadata: SupportedAppMetadata): AppCategory? =
-        when (metadata.provider) {
-            SupportedMetadataProvider.F_DROID -> categoryForFdroid(metadata.categories)
-        }
+    fun categoryFor(metadata: SupportedAppMetadata): AppCategory? = when (metadata.provider) {
+        SupportedMetadataProvider.F_DROID -> categoryForFdroid(metadata.categories)
+    }
 
     internal fun categoryForFdroid(categories: Set<String>): AppCategory? {
         val mapped = categories.mapNotNull { category -> FDROID_CATEGORY_MAPPING[category.normalized()] }.toSet()

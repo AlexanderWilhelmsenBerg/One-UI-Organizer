@@ -17,9 +17,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
-class JsonSupportedMetadataCache(
-    private val file: File
-) : SupportedMetadataCache {
+class JsonSupportedMetadataCache(private val file: File) : SupportedMetadataCache {
     override suspend fun read(): SupportedMetadataCacheSnapshot? = withContext(Dispatchers.IO) {
         if (!file.isFile) return@withContext null
         try {
