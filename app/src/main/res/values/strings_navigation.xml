@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="primary_destination_organizer">Organizer</string>
+    <string name="primary_destination_categories">Categories</string>
+    <string name="categories_overview_body">Review your category order and app assignments, then open the existing management tools when you want to make changes.</string>
+    <string name="category_tools_title">Category tools</string>
+    <string name="category_tools_body">Manage category names and order, or export and import your organizer data.</string>
+    <string name="categories_overview_empty">Your categories will appear when organizer state is ready.</string>
+</resources>
