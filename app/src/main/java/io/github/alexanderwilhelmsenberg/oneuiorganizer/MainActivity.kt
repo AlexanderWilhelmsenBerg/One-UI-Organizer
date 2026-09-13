@@ -3,7 +3,6 @@ package io.github.alexanderwilhelmsenberg.oneuiorganizer
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
@@ -20,10 +19,13 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.Categ
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.OrganizerViewModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.backup.BackupRestore
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.backup.BackupRestoreController
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.categories.CategoriesOverview
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.management.CategoryManagement
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupDocumentRequest
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupRestoreNotice
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.ShelfErrorUiModel
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.navigation.PrimaryDestination
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.navigation.PrimaryNavigationHost
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.shelf.OrganizerSheetHost
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.shelf.OrganizerShelf
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.theme.OneUiOrganizerTheme
@@ -43,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var categoryShortcutManager: CategoryShortcutManager
     private lateinit var backupRestoreController: BackupRestoreController
     private var categoryDestinationCleared = false
+    private var primaryDestination by mutableStateOf(PrimaryDestination.ORGANIZER)
     private var showBackupRestore by mutableStateOf(false)
 
     private val createBackupDocumentLauncher =
@@ -75,6 +78,10 @@ class MainActivity : ComponentActivity() {
             )
         val supportsDynamicColor = organizerApplication.uiPlatformCapabilities.supportsDynamicColor
 
+        primaryDestination =
+            PrimaryDestination.fromSavedValue(
+                savedInstanceState?.getString(STATE_PRIMARY_DESTINATION)
+            )
         categoryDestinationCleared = savedInstanceState?.getBoolean(STATE_CATEGORY_DESTINATION_CLEARED) ?: false
         if (!categoryDestinationCleared) {
             handleShortcutIntent(intent)
@@ -90,59 +97,73 @@ class MainActivity : ComponentActivity() {
             val categoryManagementState by organizerViewModel.categoryManagementUiState.collectAsState()
             val backupRestoreState by backupRestoreController.uiState.collectAsState()
 
-            BackHandler(enabled = showBackupRestore) {
-                dismissBackupRestore()
-            }
-            BackHandler(enabled = showCategoryManagement && !showBackupRestore) {
-                organizerViewModel.hideCategoryManagement()
-            }
-
             OneUiOrganizerTheme(supportsDynamicColor = supportsDynamicColor) {
                 OrganizerSheetHost {
-                    if (showBackupRestore) {
-                        BackupRestore(
-                            state = backupRestoreState,
-                            onExportRequested = backupRestoreController::requestExport,
-                            onImportRequested = backupRestoreController::requestImport,
-                            onConfirmImport = backupRestoreController::confirmImport,
-                            onCancelImport = backupRestoreController::cancelImport,
-                            onDismiss = ::dismissBackupRestore
-                        )
-                    } else if (showCategoryManagement) {
-                        CategoryManagement(
-                            state = categoryManagementState,
-                            onCreateCategory = organizerViewModel::createCustomCategory,
-                            onRenameCategory = organizerViewModel::renameCustomCategory,
-                            onDeleteCategory = organizerViewModel::deleteCustomCategory,
-                            onMoveCategory = organizerViewModel::moveCategory,
-                            onDismiss = organizerViewModel::hideCategoryManagement,
-                            pinningSupported = categoryShortcutManager.isPinningSupported,
-                            onPinCategory = { category ->
-                                categoryShortcutManager.requestPinShortcut(category)
-                            },
-                            onBackupRestoreRequested = { showBackupRestore = true }
-                        )
-                    } else {
-                        OrganizerShelf(
-                            state = state,
-                            showHiddenApps = showHiddenApps,
-                            onQueryChange = organizerViewModel::updateQuery,
-                            onLaunchApp = { target ->
-                                if (organizerViewModel.launch(target)) {
-                                    finish()
-                                }
-                            },
-                            onMoveApp = organizerViewModel::moveApp,
-                            onToggleFavourite = organizerViewModel::toggleFavourite,
-                            onHideApp = organizerViewModel::hideApp,
-                            onRestoreApp = organizerViewModel::restoreApp,
-                            onClassificationReportRequested = ::shareClassificationReport,
-                            onHiddenAppsRequested = organizerViewModel::showHiddenApps,
-                            onHiddenAppsDismissed = organizerViewModel::hideHiddenApps,
-                            onCategoryManagementRequested = organizerViewModel::showCategoryManagement,
-                            onCategoryDestinationCleared = ::clearCategoryDestination
-                        )
-                    }
+                    PrimaryNavigationHost(
+                        selectedDestination = primaryDestination,
+                        onDestinationSelected = { destination ->
+                            primaryDestination = destination
+                        },
+                        showHiddenApps = showHiddenApps,
+                        showCategoryManagement = showCategoryManagement,
+                        showBackupRestore = showBackupRestore,
+                        onDismissHiddenApps = organizerViewModel::hideHiddenApps,
+                        onDismissCategoryManagement = organizerViewModel::hideCategoryManagement,
+                        onDismissBackupRestore = ::dismissBackupRestore,
+                        organizerContent = { hiddenAppsVisible ->
+                            OrganizerShelf(
+                                state = state,
+                                showHiddenApps = hiddenAppsVisible,
+                                onQueryChange = organizerViewModel::updateQuery,
+                                onLaunchApp = { target ->
+                                    if (organizerViewModel.launch(target)) {
+                                        finish()
+                                    }
+                                },
+                                onMoveApp = organizerViewModel::moveApp,
+                                onToggleFavourite = organizerViewModel::toggleFavourite,
+                                onHideApp = organizerViewModel::hideApp,
+                                onRestoreApp = organizerViewModel::restoreApp,
+                                onClassificationReportRequested = ::shareClassificationReport,
+                                onHiddenAppsRequested = organizerViewModel::showHiddenApps,
+                                onHiddenAppsDismissed = organizerViewModel::hideHiddenApps,
+                                onCategoryManagementRequested = ::openCategoryManagement,
+                                onCategoryDestinationCleared = ::clearCategoryDestination
+                            )
+                        },
+                        categoriesContent = {
+                            CategoriesOverview(
+                                state = categoryManagementState,
+                                onManageCategories = ::openCategoryManagement,
+                                onBackupRestoreRequested = ::openBackupRestore
+                            )
+                        },
+                        categoryManagementContent = {
+                            CategoryManagement(
+                                state = categoryManagementState,
+                                onCreateCategory = organizerViewModel::createCustomCategory,
+                                onRenameCategory = organizerViewModel::renameCustomCategory,
+                                onDeleteCategory = organizerViewModel::deleteCustomCategory,
+                                onMoveCategory = organizerViewModel::moveCategory,
+                                onDismiss = organizerViewModel::hideCategoryManagement,
+                                pinningSupported = categoryShortcutManager.isPinningSupported,
+                                onPinCategory = { category ->
+                                    categoryShortcutManager.requestPinShortcut(category)
+                                },
+                                onBackupRestoreRequested = ::openBackupRestore
+                            )
+                        },
+                        backupRestoreContent = {
+                            BackupRestore(
+                                state = backupRestoreState,
+                                onExportRequested = backupRestoreController::requestExport,
+                                onImportRequested = backupRestoreController::requestImport,
+                                onConfirmImport = backupRestoreController::confirmImport,
+                                onCancelImport = backupRestoreController::cancelImport,
+                                onDismiss = ::dismissBackupRestore
+                            )
+                        }
+                    )
                 }
             }
         }
@@ -157,6 +178,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean(STATE_CATEGORY_DESTINATION_CLEARED, categoryDestinationCleared)
+        outState.putString(STATE_PRIMARY_DESTINATION, primaryDestination.savedValue)
         super.onSaveInstanceState(outState)
     }
 
@@ -172,8 +194,20 @@ class MainActivity : ComponentActivity() {
 
     private fun handleShortcutIntent(sourceIntent: Intent?) {
         val destination = CategoryShortcutIntents.destinationFrom(sourceIntent) ?: return
+        showBackupRestore = false
+        primaryDestination = PrimaryDestination.forCategoryShortcut()
         organizerViewModel.openCategoryDestination(destination)
         categoryShortcutManager.reportShortcutUsed(destination.categoryId)
+    }
+
+    private fun openCategoryManagement() {
+        primaryDestination = PrimaryDestination.CATEGORIES
+        organizerViewModel.showCategoryManagement()
+    }
+
+    private fun openBackupRestore() {
+        primaryDestination = PrimaryDestination.CATEGORIES
+        showBackupRestore = true
     }
 
     private fun clearCategoryDestination() {
@@ -258,5 +292,6 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val STATE_CATEGORY_DESTINATION_CLEARED = "category-destination-cleared"
+        const val STATE_PRIMARY_DESTINATION = "primary-destination"
     }
 }
