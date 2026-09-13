@@ -1,6 +1,6 @@
 # MoSCoW Scope Analysis
 
-This document separates the shipped core from the highest-value follow-up work. v0.1 and the classification-quality wave through Agent 70 / PR #14 are merged. Agents 80–82 of the user-owned category-management wave are merged as PRs #15–#17; Agent 83 integrates them in PR #18. The category-management wave remains pending the mandatory physical Samsung upgrade/migration acceptance before PR #18 can be considered merge-ready.
+This document separates the shipped core from the highest-value follow-up work. v0.1, classification quality through PR #14, category management through PR #18, local backup/import PR #19 and category shortcuts PR #20 are merged. Agent 92 integration is complete on PR #21 with green permanent CI and signed-debug build; the owner intends to merge it, while physical Samsung / One UI observations remain an explicit acceptance record. The recommended following wave is Agents 100–102: supported metadata enrichment and presentation polish in parallel, followed by integration/acceptance.
 
 Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Classification acceptance is recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md); category-management acceptance is recorded in [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md).
 
@@ -77,7 +77,7 @@ The schema-v2 category contract is the current integrated model:
 - No unnecessary background service.
 - Network access, if introduced, must serve an explicit supported feature and remain behind an app-owned boundary.
 
-The category-management implementation still has no `INTERNET` permission. Optional metadata enrichment remains a future separate feature.
+The current Agent-92 baseline has no `INTERNET` permission. Agent 100 may add `INTERNET` only together with the supported metadata provider implementation and its documented privacy/cache policy.
 
 ### Engineering baseline
 
@@ -98,7 +98,8 @@ The category-management implementation still has no `INTERNET` permission. Optio
 - Compose semantics/interaction tests for critical UI behavior.
 - Instrumented/system tests where Android behavior requires them.
 - Physical Samsung acceptance for One UI/platform-critical behavior.
-- Physical over-install migration proof for the category-management schema wave.
+- Physical over-install migration proof for persisted schema/category waves.
+- Online/offline physical acceptance when supported metadata is introduced.
 - Performance is measured before optimization.
 
 ## Completed post-v0.1 work
@@ -109,92 +110,53 @@ The classification wave delivered evidence-driven general rules, narrow Chromium
 
 Agent 70 / PR #14 repaired the Eden/Yuzu package ambiguity using exact-component evidence and completed owner Samsung acceptance. The accepted 566-target report contains 123 `Unsorted`, 15 `Emulators`, 10 broad `Games`, 37 RPG, 249 bundled-rule and 194 Android-declared classifications. PR #14 is merged.
 
-## Should have — current high-value wave
+### User-owned category management — complete and merged
 
-### Custom categories and category order — integrated, physical acceptance pending
+Agents 80–83 / PRs #15–#18 delivered durable built-in/custom category identity, schema-v2 migration, lifecycle/reorder repository behavior, Compose management UI, real-app integration and Samsung migration/count acceptance. Later features consume this state/identity contract rather than redefining it.
 
-Agent 80 / PR #15 delivered the identity/persistence foundation:
+### Local backup + category shortcuts — implementation merged, Agent 92 integration ready
 
-- durable built-in/custom category identities;
-- schema-v2 migration from literal schema-v1 payloads;
-- persisted custom definitions;
-- persisted deterministic category order;
-- shared category representation across repository/search/report/UI-state mapping.
+PR #19 delivered versioned local export/import using user-selected Android documents and atomic validated replacement. PR #20 delivered dynamic and user-requested pinned category shortcuts using stable `CategoryId`. Agent 92 integrates both on PR #21 using the same authoritative `OrganizerStateStore`; permanent CI and the signed-debug build are green. Owner merge is pending, and physical One UI observations remain to be recorded.
 
-Agent 81 / PR #16 delivered lifecycle/domain behavior:
+## Should have — recommended following wave
 
-- create custom categories and generate the opaque ID once;
-- rename without changing identity;
-- delete with explicit reassignment/automatic policy;
-- strict reorder mutation;
-- app-owned failures and atomic repository behavior;
-- persistence/recreation regression tests.
+### Agent 100 — supported metadata enrichment
 
-Agent 82 / PR #17 delivered presentation:
-
-- create/rename/delete/reorder UI;
-- dedicated category-management surface;
-- accessible Compose behavior/tests;
-- no persistence or classifier duplication in UI.
-
-Agent 83 / PR #18 owns integration/acceptance:
-
-- one real repository instance through app-owned organizer/lifecycle contracts;
-- real ViewModel/shelf/picker/management wiring;
-- sanitized failure presentation;
-- retained hidden/uninstalled override counts for safe deletion decisions;
-- Android back/dismiss behavior;
-- complete automated quality lane;
-- physical over-install Samsung migration/behavior proof.
-
-Do not mark this wave complete or merge PR #18 until the physical checklist in `CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md` passes.
-
-### Local backup / portability — next candidate
-
-- Export organizer-owned state to a local file.
-- Import a previously exported local file.
-- Version the export format from its first release.
-- Preserve stable custom category identity/order.
-- Validate imported state before replacing current state.
-
-Backup consumes the accepted category lifecycle/identity contract and must not redefine it.
-
-### Shortcuts — next candidate
-
-- Android dynamic shortcuts for useful categories.
-- Request a pinned home-screen shortcut for a selected category.
-- Resolve shortcuts through stable category IDs so category rename does not break identity.
-
-Shortcuts consume stable category identity and must not redefine it.
-
-Backup and shortcuts are suitable for parallel development after Agent 83 acceptance because they consume the same stable IDs but own different behavior.
-
-### Optional metadata enrichment
-
-Internet-backed metadata may be used only when it materially improves classification and must:
+Internet-backed metadata is now the next classification-quality candidate, but only where it materially improves unresolved entries. The first rollout must:
 
 - use a supported/documented source rather than brittle Google Play scraping;
 - define an app-owned metadata/provider contract;
 - keep network/provider types at the adapter boundary;
-- cache locally and make lookup best-effort/non-blocking;
-- map provider categories/tags explicitly into organizer built-ins;
-- preserve user override and bundled-rule precedence;
-- expose metadata-derived classification distinctly if it can decide category;
-- add `INTERNET` only in the provider implementation PR.
+- use a bounded local cache and make lookup best-effort/non-blocking;
+- map provider categories/tags explicitly into existing built-ins;
+- preserve first-rollout precedence as user override > bundled rule > Android-declared category > supported metadata > `Unsorted`;
+- therefore only resolve packages that would otherwise remain `Unsorted`;
+- expose metadata-derived classification distinctly when it decides category;
+- add `INTERNET` only in the provider implementation PR and document privacy/cache behavior;
+- prove no-network/provider failure leaves the local shelf and launch flow fully usable.
 
-F-Droid's documented metadata remains a plausible source for its subset of apps.
+F-Droid's documented indexes/metadata are the preferred first candidate for the subset of apps they cover.
 
-### Presentation polish
+### Agent 101 — presentation polish
 
-- More complete One UI-inspired spacing/motion tokens.
-- Smoother transition between home and Organizer.
-- Optional blur only where reliable.
-- Layout refinements only when they preserve accessibility and device behavior.
+Run in parallel with Agent 100 while staying presentation-only:
 
-### Performance hardening
+- stronger One UI-inspired hierarchy, spacing and motion;
+- clearer shelf/category-management/Backup & restore navigation and action hierarchy;
+- improved loading, empty, error, confirmation and shortcut-pin feedback states;
+- large-font/scaled-text, touch-target, semantics and contrast review;
+- smoother transition/back/dismiss behavior;
+- optional blur only where reliable.
 
-- Add benchmark/profile infrastructure only when measured regressions or stable historical baselines justify it.
-- Baseline profiles only when the stable plugin line cleanly supports the selected toolchain.
+No repository/schema/classifier/network/toolchain redesign belongs in this lane.
+
+### Agent 102 — integration / acceptance
+
+After Agents 100 and 101 are individually green, merge Agent 100 first, rebase/merge Agent 101, then integrate from current `main`. Agent 102 must prove no regression in existing classifications/state/features, record exactly which formerly `Unsorted` entries improve, audit false positives, verify offline behavior, run full CI, perform Samsung acceptance and re-audit permissions/privacy.
+
+### Performance hardening — evidence-triggered only
+
+Do not schedule performance work merely because the feature set is larger. Add benchmark/profile infrastructure only when Agent-102 measurements or later evidence identify a concrete regression or stable target. Baseline profiles remain conditional on the stable plugin/toolchain line.
 
 ## Could have
 
