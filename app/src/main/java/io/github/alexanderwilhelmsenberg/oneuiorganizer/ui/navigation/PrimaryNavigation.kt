@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.NavigationBar
@@ -24,10 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
 
-enum class PrimaryDestination(
-    val savedValue: String,
-    val labelResId: Int
-) {
+enum class PrimaryDestination(val savedValue: String, val labelResId: Int) {
     ORGANIZER(
         savedValue = "organizer",
         labelResId = R.string.primary_destination_organizer
@@ -60,13 +56,12 @@ internal fun primaryBackAction(
     showBackupRestore: Boolean,
     showCategoryManagement: Boolean,
     showHiddenApps: Boolean
-): PrimaryBackAction =
-    when {
-        showBackupRestore -> PrimaryBackAction.DISMISS_BACKUP_RESTORE
-        showCategoryManagement -> PrimaryBackAction.DISMISS_CATEGORY_MANAGEMENT
-        showHiddenApps -> PrimaryBackAction.DISMISS_HIDDEN_APPS
-        else -> PrimaryBackAction.SYSTEM
-    }
+): PrimaryBackAction = when {
+    showBackupRestore -> PrimaryBackAction.DISMISS_BACKUP_RESTORE
+    showCategoryManagement -> PrimaryBackAction.DISMISS_CATEGORY_MANAGEMENT
+    showHiddenApps -> PrimaryBackAction.DISMISS_HIDDEN_APPS
+    else -> PrimaryBackAction.SYSTEM
+}
 
 @Composable
 fun PrimaryNavigationHost(
@@ -104,8 +99,11 @@ fun PrimaryNavigationHost(
     Box(modifier = modifier.fillMaxSize()) {
         when {
             showBackupRestore -> backupRestoreContent()
+
             showCategoryManagement -> categoryManagementContent()
+
             showHiddenApps -> organizerContent(true)
+
             else -> {
                 PrimaryNavigationShell(
                     selectedDestination = selectedDestination,
