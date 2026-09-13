@@ -11,6 +11,9 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.BundledKnownAppRul
 class DefaultCategoryEngine(
     private val knownAppCategory: (InstalledApp) -> AppCategory? = BundledKnownAppRules::categoryFor
 ) : CategoryEngine {
+    override fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp =
+        categorize(app, userOverride, supportedMetadataCategory = null)
+
     override fun categorize(
         app: InstalledApp,
         userOverride: CategoryDefinition?,

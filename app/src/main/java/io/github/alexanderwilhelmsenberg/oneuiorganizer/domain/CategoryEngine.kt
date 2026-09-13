@@ -6,9 +6,11 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 
 interface CategoryEngine {
+    fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp
+
     fun categorize(
         app: InstalledApp,
         userOverride: CategoryDefinition?,
-        supportedMetadataCategory: AppCategory? = null
-    ): CategorizedApp
+        supportedMetadataCategory: AppCategory?
+    ): CategorizedApp = categorize(app, userOverride)
 }
