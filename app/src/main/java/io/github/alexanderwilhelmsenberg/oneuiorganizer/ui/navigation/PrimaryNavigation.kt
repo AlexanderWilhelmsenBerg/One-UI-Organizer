@@ -42,6 +42,10 @@ enum class PrimaryDestination(
             entries.firstOrNull { destination -> destination.savedValue == value } ?: ORGANIZER
 
         fun forCategoryShortcut(): PrimaryDestination = ORGANIZER
+
+        fun forCategoryManagement(): PrimaryDestination = CATEGORIES
+
+        fun forBackupRestore(): PrimaryDestination = CATEGORIES
     }
 }
 

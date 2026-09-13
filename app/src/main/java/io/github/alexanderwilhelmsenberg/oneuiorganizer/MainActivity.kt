@@ -201,12 +201,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openCategoryManagement() {
-        primaryDestination = PrimaryDestination.CATEGORIES
+        primaryDestination = PrimaryDestination.forCategoryManagement()
         organizerViewModel.showCategoryManagement()
     }
 
     private fun openBackupRestore() {
-        primaryDestination = PrimaryDestination.CATEGORIES
+        primaryDestination = PrimaryDestination.forBackupRestore()
         showBackupRestore = true
     }
 

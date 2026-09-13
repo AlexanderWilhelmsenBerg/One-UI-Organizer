@@ -24,6 +24,12 @@ class PrimaryNavigationTest {
     }
 
     @Test
+    fun contextualCategoryFlowsReturnToCategoriesPrimaryDestination() {
+        assertEquals(PrimaryDestination.CATEGORIES, PrimaryDestination.forCategoryManagement())
+        assertEquals(PrimaryDestination.CATEGORIES, PrimaryDestination.forBackupRestore())
+    }
+
+    @Test
     fun backPriorityClosesNestedPresentationBeforeSystemBack() {
         assertEquals(
             PrimaryBackAction.DISMISS_BACKUP_RESTORE,
