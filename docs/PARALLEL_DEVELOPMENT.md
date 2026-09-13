@@ -128,7 +128,7 @@ Later lanes consume those stable contracts and must not reopen category identity
 
 PR #19 delivered versioned local backup/export/import and PR #20 delivered dynamic/pinned category shortcuts. Both are merged. Agent 92 integrates them on PR #21 / `integration/portability-shortcuts`.
 
-The integrated design keeps one `OrganizerStateStore`, uses Android SAF for user-selected backup files, preserves stable custom `CategoryId` across backup/import, and resolves shortcut destinations by stable category identity. Permanent CI and signed-debug build are green on the integration head. The owner controls the PR #21 merge; physical Samsung / One UI observations remain an explicit acceptance record to capture.
+The integrated design keeps one `OrganizerStateStore`, uses Android SAF for user-selected backup files, preserves stable custom `CategoryId` across backup/import, and resolves shortcut destinations by stable category identity. Permanent CI and signed-debug build are green on the integration head. The next wave starts only from `main` containing PR #21; physical Samsung / One UI observations remain an explicit acceptance record to capture.
 
 Historical merge shape:
 
