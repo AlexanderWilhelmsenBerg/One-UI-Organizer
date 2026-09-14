@@ -1,6 +1,6 @@
 # MoSCoW Scope Analysis
 
-This document separates the shipped core from the highest-value follow-up work. v0.1, classification quality through PR #14, category management through PR #18, local backup/import PR #19 and category shortcuts PR #20 are merged. Agent 92 integration is complete in PR #21 with green permanent CI and signed-debug build; physical Samsung / One UI observations remain an explicit acceptance record. The recommended following wave starts from `main` after PR #21 is merged: Agents 100–102, with supported metadata enrichment and presentation polish in parallel followed by integration/acceptance.
+This document separates the shipped core from the highest-value follow-up work. v0.1, classification quality through PR #14, category management through PR #18, portability/shortcuts through accepted PR #21, presentation/navigation PR #22 and supported-metadata PR #23 are merged to `main`. Agent 102 is the current integration/acceptance lane for the combined metadata + two-destination presentation; automated CI and physical Samsung online/offline acceptance remain the final gate.
 
 Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md). Classification acceptance is recorded in [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md); category-management acceptance is recorded in [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md).
 
@@ -10,6 +10,9 @@ Execution sequencing is defined in [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPM
 
 - One UI Home remains the default launcher.
 - Organizer is a separate companion activity/shelf.
+- Primary application navigation contains exactly `Organizer` and `Categories`.
+- Phones use a One UI-style bottom navigation treatment; Backup & restore, diagnostics and settings remain contextual rather than additional primary destinations.
+- Feature screens remain independent of the primary-navigation chrome so a future large-screen/foldable shell can use a navigation rail without rewriting Organizer/Categories.
 - Dismiss/back returns to the existing home experience.
 
 ### Supported app discovery
@@ -26,7 +29,8 @@ Classification precedence remains:
 1. user override;
 2. bundled known-app rule;
 3. Android-declared category mapping;
-4. `Unsorted`.
+4. supported metadata when explicitly mapped to an existing built-in category;
+5. `Unsorted`.
 
 Requirements:
 
@@ -77,7 +81,7 @@ The schema-v2 category contract is the current integrated model:
 - No unnecessary background service.
 - Network access, if introduced, must serve an explicit supported feature and remain behind an app-owned boundary.
 
-The current Agent-92 baseline has no `INTERNET` permission. Agent 100 may add `INTERNET` only together with the supported metadata provider implementation and its documented privacy/cache policy.
+The current app declares `INTERNET` only for the merged Agent-100 / PR-23 F-Droid metadata provider and its documented privacy/cache policy. `QUERY_ALL_PACKAGES`, broad storage permissions, telemetry, accounts/cloud sync and background services remain absent.
 
 ### Engineering baseline
 
@@ -114,15 +118,15 @@ Agent 70 / PR #14 repaired the Eden/Yuzu package ambiguity using exact-component
 
 Agents 80–83 / PRs #15–#18 delivered durable built-in/custom category identity, schema-v2 migration, lifecycle/reorder repository behavior, Compose management UI, real-app integration and Samsung migration/count acceptance. Later features consume this state/identity contract rather than redefining it.
 
-### Local backup + category shortcuts — implementation merged, Agent 92 integration ready
+### Local backup + category shortcuts — complete, merged and Samsung-accepted
 
-PR #19 delivered versioned local export/import using user-selected Android documents and atomic validated replacement. PR #20 delivered dynamic and user-requested pinned category shortcuts using stable `CategoryId`. Agent 92 integrates both in PR #21 using the same authoritative `OrganizerStateStore`; permanent CI and the signed-debug build are green. The following wave starts only from `main` containing PR #21, and physical One UI observations remain to be recorded.
+PR #19 delivered versioned local export/import using user-selected Android documents and atomic validated replacement. PR #20 delivered dynamic and user-requested pinned category shortcuts using stable `CategoryId`. Agent 92 integrated both in PR #21 using the same authoritative `OrganizerStateStore`; permanent CI, signed-debug build and owner Samsung / One UI acceptance are complete. Agent 102 treats this as the accepted regression baseline.
 
-## Should have — recommended following wave
+## Current integration wave
 
-### Agent 100 — supported metadata enrichment
+### Agent 100 — supported metadata enrichment — merged in PR #23
 
-Internet-backed metadata is now the next classification-quality candidate, but only where it materially improves unresolved entries. The first rollout must:
+Internet-backed metadata is implemented for the subset where it materially improves unresolved entries. The merged first rollout:
 
 - use a supported/documented source rather than brittle Google Play scraping;
 - define an app-owned metadata/provider contract;
@@ -135,12 +139,14 @@ Internet-backed metadata is now the next classification-quality candidate, but o
 - add `INTERNET` only in the provider implementation PR and document privacy/cache behavior;
 - prove no-network/provider failure leaves the local shelf and launch flow fully usable.
 
-F-Droid's documented indexes/metadata are the preferred first candidate for the subset of apps they cover.
+F-Droid's documented index v2 is the implemented first provider for the subset of apps it covers.
 
-### Agent 101 — presentation polish
+### Agent 101 — presentation polish / primary navigation — merged in PR #22
 
-Run in parallel with Agent 100 while staying presentation-only:
+The merged presentation lane remains presentation-only:
 
+- exactly two primary destinations: `Organizer` and `Categories`;
+- One UI-style bottom navigation on phones with an adaptable shell boundary for later rail/large-screen treatment;
 - stronger One UI-inspired hierarchy, spacing and motion;
 - clearer shelf/category-management/Backup & restore navigation and action hierarchy;
 - improved loading, empty, error, confirmation and shortcut-pin feedback states;
@@ -150,9 +156,9 @@ Run in parallel with Agent 100 while staying presentation-only:
 
 No repository/schema/classifier/network/toolchain redesign belongs in this lane.
 
-### Agent 102 — integration / acceptance
+### Agent 102 — metadata + presentation integration / acceptance — current
 
-After Agents 100 and 101 are individually green, merge Agent 100 first, rebase/merge Agent 101, then integrate from current `main`. Agent 102 must prove no regression in existing classifications/state/features, record exactly which formerly `Unsorted` entries improve, audit false positives, verify offline behavior, run full CI, perform Samsung acceptance and re-audit permissions/privacy.
+PR #22 and PR #23 are already merged on current `main`; actual merge history is authoritative even though the earlier plan preferred metadata first. Agent 102 integrates from that real combined baseline and must prove no regression in existing classifications/state/features, record exactly which formerly `Unsorted` entries improve, audit false positives, verify offline behavior, run full CI, perform Samsung acceptance and re-audit permissions/privacy. The lane does not replay or reorder already-merged history.
 
 ### Performance hardening — evidence-triggered only
 
