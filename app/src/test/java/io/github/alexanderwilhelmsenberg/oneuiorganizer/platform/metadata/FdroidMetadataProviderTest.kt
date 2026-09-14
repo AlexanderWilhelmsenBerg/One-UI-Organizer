@@ -35,10 +35,12 @@ class FdroidMetadataProviderTest {
     }
 
     @Test
-    fun malformedRootIsFailure() = runBlocking {
-        val provider = providerWith("{\"repo\":{}}")
+    fun malformedRootIsFailure() {
+        runBlocking {
+            val provider = providerWith("{\"repo\":{}}")
 
-        assertIs<SupportedMetadataLookupResult.Failure>(provider.lookup(setOf(AppId("org.example.reader"))))
+            assertIs<SupportedMetadataLookupResult.Failure>(provider.lookup(setOf(AppId("org.example.reader"))))
+        }
     }
 
     @Test
@@ -53,10 +55,12 @@ class FdroidMetadataProviderTest {
     }
 
     @Test
-    fun networkFailureDoesNotLeakException() = runBlocking {
-        val provider = FdroidMetadataProvider(FdroidIndexDocumentSource { error("offline") })
+    fun networkFailureDoesNotLeakException() {
+        runBlocking {
+            val provider = FdroidMetadataProvider(FdroidIndexDocumentSource { error("offline") })
 
-        assertIs<SupportedMetadataLookupResult.Failure>(provider.lookup(setOf(AppId("org.example.reader"))))
+            assertIs<SupportedMetadataLookupResult.Failure>(provider.lookup(setOf(AppId("org.example.reader"))))
+        }
     }
 
     private fun providerWith(document: String, now: Long = 99L) = FdroidMetadataProvider(
