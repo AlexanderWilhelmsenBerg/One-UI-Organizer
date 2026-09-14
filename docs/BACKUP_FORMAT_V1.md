@@ -156,7 +156,7 @@ A backup contains personal organization preferences and package identifiers. Tre
 - no automatic upload;
 - no logging of full backup contents;
 - no raw personal backup fixture committed to the repository;
-- no `INTERNET` permission;
+- the backup path performs no network transmission and requires no additional network permission; the app-level `INTERNET` permission exists only for the separately documented F-Droid metadata provider;
 - no `QUERY_ALL_PACKAGES` permission.
 
 Only the user-selected SAF destination/source is accessed.
