@@ -11,10 +11,8 @@ interface SupportedAppMetadataProvider {
 }
 
 sealed interface SupportedMetadataLookupResult {
-    data class Success(
-        val metadataByAppId: Map<AppId, SupportedAppMetadata>,
-        val missingAppIds: Set<AppId>
-    ) : SupportedMetadataLookupResult
+    data class Success(val metadataByAppId: Map<AppId, SupportedAppMetadata>, val missingAppIds: Set<AppId>) :
+        SupportedMetadataLookupResult
 
     data object Failure : SupportedMetadataLookupResult
 }

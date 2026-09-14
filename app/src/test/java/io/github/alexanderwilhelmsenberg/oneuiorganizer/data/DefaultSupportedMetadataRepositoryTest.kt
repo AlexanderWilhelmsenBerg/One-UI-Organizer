@@ -80,17 +80,13 @@ class DefaultSupportedMetadataRepositoryTest {
         assertEquals(mapOf(currentId to fresh), cache.written?.metadataByAppId)
     }
 
-    private fun repository(
-        provider: FakeProvider,
-        cache: FakeCache,
-        now: Long,
-        interval: Long
-    ) = DefaultSupportedMetadataRepository(
-        provider = provider,
-        cache = cache,
-        nowEpochMillis = { now },
-        refreshIntervalMillis = interval
-    )
+    private fun repository(provider: FakeProvider, cache: FakeCache, now: Long, interval: Long) =
+        DefaultSupportedMetadataRepository(
+            provider = provider,
+            cache = cache,
+            nowEpochMillis = { now },
+            refreshIntervalMillis = interval
+        )
 
     private fun snapshot(now: Long, appId: AppId, category: String) = SupportedMetadataCacheSnapshot(
         provider = SupportedMetadataProvider.F_DROID,
