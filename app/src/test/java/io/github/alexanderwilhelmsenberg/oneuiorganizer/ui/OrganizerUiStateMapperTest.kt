@@ -75,6 +75,12 @@ class OrganizerUiStateMapperTest {
                     source = ClassificationSource.ANDROID_DECLARED_CATEGORY
                 ),
                 categorizedApp(
+                    "example.metadata",
+                    "Metadata",
+                    AppCategory.READING,
+                    source = ClassificationSource.SUPPORTED_METADATA
+                ),
+                categorizedApp(
                     "example.unsorted",
                     "Unsorted",
                     AppCategory.UNSORTED,
@@ -98,6 +104,7 @@ class OrganizerUiStateMapperTest {
         assertEquals(ClassificationSource.USER_OVERRIDE, sourceByLabel["Override"])
         assertEquals(ClassificationSource.KNOWN_APP_RULE, sourceByLabel["Rule"])
         assertEquals(ClassificationSource.ANDROID_DECLARED_CATEGORY, sourceByLabel["Android"])
+        assertEquals(ClassificationSource.SUPPORTED_METADATA, sourceByLabel["Metadata"])
         assertEquals(ClassificationSource.UNSORTED_FALLBACK, sourceByLabel["Unsorted"])
     }
 
