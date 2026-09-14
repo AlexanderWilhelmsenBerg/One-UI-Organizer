@@ -262,9 +262,8 @@ class DefaultOrganizerRepositoryTest {
         }
     }
 
-    private class FakeSupportedMetadataRepository(
-        initialMetadata: Map<AppId, SupportedAppMetadata>
-    ) : SupportedMetadataRepository {
+    private class FakeSupportedMetadataRepository(initialMetadata: Map<AppId, SupportedAppMetadata>) :
+        SupportedMetadataRepository {
         override val metadata: Flow<Map<AppId, SupportedAppMetadata>> = MutableStateFlow(initialMetadata)
 
         override suspend fun refreshIfNeeded(appIds: Set<AppId>) = Unit
