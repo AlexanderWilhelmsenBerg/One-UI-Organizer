@@ -73,5 +73,6 @@ fun ClassificationSource.displayName(): String = when (this) {
     ClassificationSource.USER_OVERRIDE -> "Your category"
     ClassificationSource.KNOWN_APP_RULE -> "Known app rule"
     ClassificationSource.ANDROID_DECLARED_CATEGORY -> "Android category"
+    ClassificationSource.SUPPORTED_METADATA -> "Supported metadata"
     ClassificationSource.UNSORTED_FALLBACK -> "Needs sorting"
 }

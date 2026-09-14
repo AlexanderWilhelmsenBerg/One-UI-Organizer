@@ -112,10 +112,22 @@ jobs:
             2>&1 | tee "${RUNNER_TEMP}/configuration-cache-reuse.log"
           grep -F "Reusing configuration cache." "${RUNNER_TEMP}/configuration-cache-reuse.log"
 
-      - name: Verify forbidden permissions remain absent
+      - name: Enforce permission audit
         shell: bash
         run: |
-          if grep -Eq 'android\.permission\.(INTERNET|QUERY_ALL_PACKAGES)' app/src/main/AndroidManifest.xml; then
-            echo "Forbidden v0.1 permission found in AndroidManifest.xml"
+          set -euo pipefail
+          mapfile -t permissions < <(grep -oE 'android:name="android\.permission\.[A-Z0-9_]+"' app/src/main/AndroidManifest.xml | sed -E 's/.*"(android\.permission\.[A-Z0-9_]+)"/\1/' || true)
+          if ! printf '%s\n' "${permissions[@]}" | grep -Fxq 'android.permission.INTERNET'; then
+            echo "Metadata enrichment requires the audited INTERNET permission." >&2
+            exit 1
+          fi
+          unexpected=$(printf '%s\n' "${permissions[@]}" | grep -Fxv 'android.permission.INTERNET' || true)
+          if [[ -n "$unexpected" ]]; then
+            echo "Unexpected Android permission(s) found in manifest:" >&2
+            printf '%s\n' "$unexpected" >&2
+            exit 1
+          fi
+          if grep -Fq 'android.permission.QUERY_ALL_PACKAGES' app/src/main/AndroidManifest.xml; then
+            echo "QUERY_ALL_PACKAGES remains forbidden." >&2
             exit 1
           fi

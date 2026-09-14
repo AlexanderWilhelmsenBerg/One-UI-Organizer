@@ -7,6 +7,8 @@
         </intent>
     </queries>
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".OneUiOrganizerApplication"
         android:allowBackup="false"

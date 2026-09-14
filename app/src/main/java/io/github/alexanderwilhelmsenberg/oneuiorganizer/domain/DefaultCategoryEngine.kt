@@ -11,7 +11,14 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.rules.BundledKnownAppRul
 class DefaultCategoryEngine(
     private val knownAppCategory: (InstalledApp) -> AppCategory? = BundledKnownAppRules::categoryFor
 ) : CategoryEngine {
-    override fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp {
+    override fun categorize(app: InstalledApp, userOverride: CategoryDefinition?): CategorizedApp =
+        categorize(app, userOverride, supportedMetadataCategory = null)
+
+    override fun categorize(
+        app: InstalledApp,
+        userOverride: CategoryDefinition?,
+        supportedMetadataCategory: AppCategory?
+    ): CategorizedApp {
         if (userOverride != null) {
             return CategorizedApp(
                 app = app,
@@ -35,6 +42,14 @@ class DefaultCategoryEngine(
                 app = app,
                 category = platformCategory,
                 source = ClassificationSource.ANDROID_DECLARED_CATEGORY
+            )
+        }
+
+        if (supportedMetadataCategory != null) {
+            return CategorizedApp(
+                app = app,
+                category = supportedMetadataCategory,
+                source = ClassificationSource.SUPPORTED_METADATA
             )
         }
 

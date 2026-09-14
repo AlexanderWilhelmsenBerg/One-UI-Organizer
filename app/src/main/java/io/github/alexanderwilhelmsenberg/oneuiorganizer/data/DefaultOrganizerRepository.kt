@@ -7,6 +7,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryManagemen
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryNamePolicy
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryOrderProblem
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CustomCategoryIdGenerator
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.SupportedMetadataCategoryMapper
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.UuidCustomCategoryIdGenerator
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
@@ -17,9 +18,11 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.InstalledAppSource
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -37,7 +40,9 @@ class DefaultOrganizerRepository(
     private val installedAppSource: InstalledAppSource,
     private val organizerStateStore: OrganizerStateStore,
     private val categoryEngine: CategoryEngine,
-    private val customCategoryIdGenerator: CustomCategoryIdGenerator = UuidCustomCategoryIdGenerator
+    private val customCategoryIdGenerator: CustomCategoryIdGenerator = UuidCustomCategoryIdGenerator,
+    private val supportedMetadataRepository: SupportedMetadataRepository = EmptySupportedMetadataRepository,
+    private val metadataRefreshScope: CoroutineScope? = null
 ) : OrganizerRepository,
     CategoryManagementRepository {
     private val refreshMutex = Mutex()
@@ -46,16 +51,27 @@ class DefaultOrganizerRepository(
     override val organizerState: Flow<OrganizerState> = organizerStateStore.state
 
     override val apps: Flow<List<CategorizedApp>> =
-        combine(installedApps, organizerStateStore.state) { currentApps, state ->
+        combine(
+            installedApps,
+            organizerStateStore.state,
+            supportedMetadataRepository.metadata
+        ) { currentApps, state, metadata ->
             currentApps.map { app ->
                 val override = state.categoryOverrides[app.id]?.let(state::categoryDefinition)
-                categoryEngine.categorize(app, override)
+                val supportedMetadataCategory = metadata[app.id]?.let(SupportedMetadataCategoryMapper::categoryFor)
+                categoryEngine.categorize(app, override, supportedMetadataCategory)
             }
         }
 
     override suspend fun refresh() {
-        refreshMutex.withLock {
-            installedApps.value = installedAppSource.loadInstalledApps().toList()
+        val currentApps =
+            refreshMutex.withLock {
+                installedAppSource.loadInstalledApps().toList().also { apps ->
+                    installedApps.value = apps
+                }
+            }
+        metadataRefreshScope?.launch {
+            supportedMetadataRepository.refreshIfNeeded(currentApps.mapTo(linkedSetOf()) { app -> app.id })
         }
     }
 

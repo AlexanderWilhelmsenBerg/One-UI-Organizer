@@ -124,6 +124,83 @@ class DefaultCategoryEngineTest {
     }
 
     @Test
+    fun userOverrideBeatsSupportedMetadata() {
+        val app = installedApp("example.override", platformCategory = PlatformAppCategory.UNDEFINED)
+
+        val result =
+            DefaultCategoryEngine(knownAppCategory = { null }).categorize(
+                app = app,
+                userOverride = AppCategory.FINANCE,
+                supportedMetadataCategory = AppCategory.GAMES
+            )
+
+        assertEquals(AppCategory.FINANCE, result.category)
+        assertEquals(ClassificationSource.USER_OVERRIDE, result.source)
+    }
+
+    @Test
+    fun knownAppRuleBeatsSupportedMetadata() {
+        val app = installedApp("com.termux", platformCategory = PlatformAppCategory.UNDEFINED)
+
+        val result =
+            DefaultCategoryEngine().categorize(
+                app = app,
+                userOverride = null,
+                supportedMetadataCategory = AppCategory.GAMES
+            )
+
+        assertEquals(AppCategory.DEVELOPMENT, result.category)
+        assertEquals(ClassificationSource.KNOWN_APP_RULE, result.source)
+    }
+
+    @Test
+    fun androidCategoryBeatsSupportedMetadata() {
+        val app = installedApp("example.social-metadata", platformCategory = PlatformAppCategory.SOCIAL)
+
+        val result =
+            DefaultCategoryEngine(knownAppCategory = { null }).categorize(
+                app = app,
+                userOverride = null,
+                supportedMetadataCategory = AppCategory.FINANCE
+            )
+
+        assertEquals(AppCategory.SOCIAL, result.category)
+        assertEquals(ClassificationSource.ANDROID_DECLARED_CATEGORY, result.source)
+    }
+
+    @Test
+    fun supportedMetadataBeatsUnsortedFallback() {
+        val app = installedApp("example.fdroid", platformCategory = PlatformAppCategory.UNDEFINED)
+
+        val result =
+            DefaultCategoryEngine(knownAppCategory = { null }).categorize(
+                app = app,
+                userOverride = null,
+                supportedMetadataCategory = AppCategory.READING
+            )
+
+        assertEquals(AppCategory.READING, result.category)
+        assertEquals(ClassificationSource.SUPPORTED_METADATA, result.source)
+    }
+
+    @Test
+    fun customOverrideBeatsSupportedMetadataWithoutIdentityMutation() {
+        val app = installedApp("example.custom-metadata", platformCategory = PlatformAppCategory.UNDEFINED)
+        val custom = CustomCategoryDefinition(CategoryId.custom("family"), "Family")
+
+        val result =
+            DefaultCategoryEngine(knownAppCategory = { null }).categorize(
+                app = app,
+                userOverride = custom,
+                supportedMetadataCategory = AppCategory.SOCIAL
+            )
+
+        assertEquals(custom, result.category)
+        assertEquals(custom.id, result.category.id)
+        assertEquals(ClassificationSource.USER_OVERRIDE, result.source)
+    }
+
+    @Test
     fun allSupportedPlatformCategoriesMapDeterministically() {
         val expected = mapOf(
             PlatformAppCategory.ACCESSIBILITY to AppCategory.TOOLS,

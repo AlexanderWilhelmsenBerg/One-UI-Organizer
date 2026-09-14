@@ -1,16 +1,16 @@
 # Local Classification Report
 
-The classification report is an explicit owner diagnostic for tuning deterministic rules from real launcher evidence. It is not telemetry and is not authoritative organizer state.
+The classification report is an explicit owner diagnostic for tuning deterministic rules and reviewing effective classification evidence from real launcher results. It is not telemetry and is not authoritative organizer state.
 
 ## Generate on the Samsung owner device
 
-1. Install/run a debug APK containing the Agent 60 classification foundation.
+1. Install/run a debug APK containing the current classification implementation.
 2. Open One UI Organizer and allow the normal launcher scan to finish.
 3. Scroll to the bottom of the shelf and tap **Share classification report**.
 4. Choose a private/local destination in the Android share chooser, or share directly into the private agent conversation used for analysis.
 5. Supply that report privately for taxonomy/rule review. Do **not** commit it, attach it to a GitHub issue/PR, or add it as a test fixture.
 
-The action is disabled until the organizer has current launcher results. Generating the report performs no additional package scan, does not write organizer state, and adds no network permission or background collection.
+The action is disabled until the organizer has current launcher results. Generating the report itself performs no additional package scan, does not write organizer state, does not initiate metadata refresh, and adds no background collection. A normal Organizer foreground refresh may independently perform the documented best-effort supported-metadata refresh described in `METADATA_ENRICHMENT.md`.
 
 ## Format
 
@@ -19,7 +19,7 @@ The current plain-text format starts with `formatVersion=1` and contains determi
 Aggregate sections:
 
 - organizer category counts, emitted in `AppCategory.entries` order and including zero counts;
-- classification source counts, emitted in `ClassificationSource.entries` order and including zero counts.
+- classification source counts, emitted in `ClassificationSource.entries` order and including zero counts, including `SUPPORTED_METADATA` when present.
 
 Each target row contains tab-separated:
 
@@ -38,4 +38,4 @@ Rows are ordered by package name, exact component class name, then label. Tabs a
 
 A report can disclose the owner's installed launcher inventory and therefore remains private diagnostic material. Repository history should contain only generalized decisions, aggregate before/after counts where useful, reusable deterministic selectors/rules, regression tests and sanitized documentation.
 
-The app itself has no report upload endpoint. Android's standard share chooser is invoked only after the user taps the diagnostic action; the destination is selected by the user.
+The app itself has no report upload endpoint. Android's standard share chooser is invoked only after the user taps the diagnostic action; the destination is selected by the user. Supported metadata enrichment does not upload the report, search text, favourites, hidden state, category overrides or custom-category state.
