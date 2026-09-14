@@ -1,33 +1,58 @@
-# Documentation Index
+# One UI Organizer Documentation Index
 
-This directory contains the product, engineering, acceptance and delivery documentation for One UI Organizer.
+This directory is the project source of truth for product scope, engineering policy and parallel implementation.
 
-## Authoritative product / engineering docs
+## Read order for implementation
 
-- [`PLAN.md`](PLAN.md) — product direction and delivery plan.
-- [`MOSCOW.md`](MOSCOW.md) — scope and priority contract.
-- [`ACCEPTANCE_CRITERIA.md`](ACCEPTANCE_CRITERIA.md) — acceptance contract.
-- [`STABLE_BASELINE.md`](STABLE_BASELINE.md) — exact stable toolchain/dependency baseline.
-- [`ENGINEERING_BASELINE.md`](ENGINEERING_BASELINE.md) — engineering, test, dependency and performance rules.
-- [`TECH_STACK.md`](TECH_STACK.md) — technology and architecture decisions.
-- [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md) — agent ownership, sequencing and merge rules.
+1. [`../AGENTS.md`](../AGENTS.md) — repository-wide mandatory coding rules.
+2. [`STABLE_BASELINE.md`](STABLE_BASELINE.md) — authoritative exact tool/library versions.
+3. [`ENGINEERING_BASELINE.md`](ENGINEERING_BASELINE.md) — toolchains, build, testing, benchmarking, dependency and upgrade rules.
+4. [`TECH_STACK.md`](TECH_STACK.md) — architecture/framework decisions and dependency boundaries.
+5. [`PLAN.md`](PLAN.md) — product architecture and delivery milestones.
+6. [`ACCEPTANCE_CRITERIA.md`](ACCEPTANCE_CRITERIA.md) — final product/quality acceptance contract.
+7. [`MOSCOW.md`](MOSCOW.md) — priority/scope boundary.
+8. [`PARALLEL_DEVELOPMENT.md`](PARALLEL_DEVELOPMENT.md) — coding-agent ownership, sequencing and merge plan.
+9. [`METADATA_PRESENTATION_INTEGRATION_ACCEPTANCE.md`](METADATA_PRESENTATION_INTEGRATION_ACCEPTANCE.md) — current Agent-102 combined metadata/presentation acceptance record.
+10. [`agents/README.md`](agents/README.md) — copy/paste prompts for coding lanes.
 
-## Feature / integration records
+## Authority map
 
-- [`PLATFORM_APPS_SPIKE.md`](PLATFORM_APPS_SPIKE.md) — supported Android launcher-discovery and launch findings.
-- [`CLASSIFICATION_ROADMAP.md`](CLASSIFICATION_ROADMAP.md) — classification-quality roadmap.
-- [`CLASSIFICATION_INTEGRATION_ACCEPTANCE.md`](CLASSIFICATION_INTEGRATION_ACCEPTANCE.md) — classification integration/device acceptance record.
-- [`CLASSIFICATION_REPORT.md`](CLASSIFICATION_REPORT.md) — private local classification-report workflow and format.
-- [`GAME_CLASSIFICATION_RESULT.md`](GAME_CLASSIFICATION_RESULT.md) — evidence-backed game/emulator classification result.
-- [`WEB_SHORTCUT_CLASSIFICATION.md`](WEB_SHORTCUT_CLASSIFICATION.md) — Chromium WebAPK classification policy.
-- [`CATEGORY_MANAGEMENT_DOMAIN.md`](CATEGORY_MANAGEMENT_DOMAIN.md) — durable category identity/lifecycle domain contract.
-- [`CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md`](CATEGORY_MANAGEMENT_INTEGRATION_ACCEPTANCE.md) — category-management integration/device acceptance.
-- [`BACKUP_FORMAT_V1.md`](BACKUP_FORMAT_V1.md) — portable local backup/import contract.
-- [`CATEGORY_SHORTCUTS.md`](CATEGORY_SHORTCUTS.md) — dynamic/pinned category-shortcut contract.
-- [`METADATA_ENRICHMENT.md`](METADATA_ENRICHMENT.md) — supported F-Droid metadata provider/cache/classification contract.
-- [`METADATA_PRESENTATION_INTEGRATION_ACCEPTANCE.md`](METADATA_PRESENTATION_INTEGRATION_ACCEPTANCE.md) — Agent-102 combined metadata + two-destination presentation acceptance record.
-- [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md) — CI and signed APK workflow documentation.
+When documents overlap, use this precedence:
 
-## Agent lane prompts
+| Question | Authoritative document |
+|---|---|
+| Which exact JDK/Kotlin/AGP/Gradle/library version? | `STABLE_BASELINE.md` |
+| How must tools/libraries be configured and isolated? | `ENGINEERING_BASELINE.md` |
+| Why Kotlin/Compose/DataStore/manual DI? | `TECH_STACK.md` |
+| What product are we building and in what milestones? | `PLAN.md` |
+| What must pass before a wave is accepted? | `ACCEPTANCE_CRITERIA.md` |
+| What is Must/Should/Could/Won't? | `MOSCOW.md` |
+| Which coding agent owns which files and when can it start? | `PARALLEL_DEVELOPMENT.md` |
+| What should a specific coding agent be told? | `agents/<lane>.md` or the current owner-provided lane prompt |
+| What rules apply to every coding agent? | root `AGENTS.md` |
 
-See [`agents/README.md`](agents/README.md) and the lane files under [`agents/`](agents/).
+If an implementation discovers a contradiction, do not silently choose whichever document is convenient. Resolve the contradiction in documentation in the same PR and explain why.
+
+## Current state
+
+As of 2026-09-14:
+
+- v0.1 and the classification/category-management waves are merged;
+- Agent 92 / PR #21 portability + category-shortcut integration is merged and owner Samsung-accepted;
+- Agent 101 / PR #22 adds the two-destination `Organizer` / `Categories` presentation shell;
+- Agent 100 / PR #23 adds supported best-effort F-Droid metadata enrichment;
+- Agent 102 is the current integration/acceptance lane on `integration/metadata-presentation`;
+- physical Samsung online/offline acceptance remains required before the metadata/presentation wave is accepted.
+
+## Coding agent prompts
+
+- [`agents/00-foundation-scaffold.md`](agents/00-foundation-scaffold.md)
+- [`agents/10-platform-apps.md`](agents/10-platform-apps.md)
+- [`agents/20-category-domain.md`](agents/20-category-domain.md)
+- [`agents/30-state-repository.md`](agents/30-state-repository.md)
+- [`agents/40-compose-ui.md`](agents/40-compose-ui.md)
+- [`agents/50-integration-acceptance.md`](agents/50-integration-acceptance.md)
+
+Later waves may be driven by explicit owner prompts even when a dedicated `docs/agents/` file has not been added. Repository state and `PARALLEL_DEVELOPMENT.md` remain authoritative.
+
+Coding agents must leave PRs unmerged unless the project owner explicitly instructs otherwise.
