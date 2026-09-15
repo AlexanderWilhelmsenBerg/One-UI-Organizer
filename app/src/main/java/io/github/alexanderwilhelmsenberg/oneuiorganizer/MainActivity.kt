@@ -9,10 +9,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.backup.AndroidBackupDocumentStore
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.backup.BackupDocumentId
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.backup.BackupDocumentPicker
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutIntents
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.shortcuts.CategoryShortcutManager
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.OrganizerViewModel
@@ -32,13 +33,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    private val presentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private lateinit var presentationScope: CoroutineScope
     private lateinit var organizerViewModel: OrganizerViewModel
     private lateinit var categoryShortcutManager: CategoryShortcutManager
     private lateinit var backupRestoreController: BackupRestoreController
@@ -47,13 +49,17 @@ class MainActivity : ComponentActivity() {
     private var showBackupRestore by mutableStateOf(false)
 
     private val createBackupDocumentLauncher =
-        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
-            backupRestoreController.onExportDocumentSelected(uri?.let(::io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.backup.BackupDocumentId))
+        registerForActivityResult(BackupDocumentPicker.createDocumentContract()) { uri ->
+            backupRestoreController.onExportDocumentSelected(
+                uri?.let { BackupDocumentId(it.toString()) }
+            )
         }
 
     private val openBackupDocumentLauncher =
-        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
-            backupRestoreController.onImportDocumentSelected(uri?.let(::io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.backup.BackupDocumentId))
+        registerForActivityResult(BackupDocumentPicker.openDocumentContract()) { uri ->
+            backupRestoreController.onImportDocumentSelected(
+                uri?.let { BackupDocumentId(it.toString()) }
+            )
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +67,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val organizerApplication = application as OneUiOrganizerApplication
-        organizerViewModel = organizerApplication.createOrganizerViewModel()
+        presentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        organizerViewModel = organizerApplication.createOrganizerViewModel(presentationScope)
         categoryShortcutManager = organizerApplication.categoryShortcutManager
         backupRestoreController =
             BackupRestoreController(
@@ -242,32 +249,46 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun observeShortcutSynchronization() {
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                organizerViewModel.uiState.collectLatest { state ->
-                    if (!state.isLoading && state.error != ShelfErrorUiModel.SCAN_FAILED) {
-                        categoryShortcutManager.synchronizeDynamicShortcuts(
-                            state.categories.map { category -> category.category }
+        presentationScope.launch {
+            organizerViewModel.uiState
+                .map { state ->
+                    CategoryShortcutSyncSnapshot(
+                        canSynchronize = !state.isLoading && state.error != ShelfErrorUiModel.SCAN_FAILED,
+                        orderedCategories = state.availableCategories,
+                        currentCategoryAppCounts = state.currentCategoryAppCounts
+                    )
+                }.distinctUntilChanged()
+                .collectLatest { snapshot ->
+                    if (snapshot.canSynchronize) {
+                        categoryShortcutManager.synchronize(
+                            orderedCategories = snapshot.orderedCategories,
+                            currentCategoryAppCounts = snapshot.currentCategoryAppCounts
                         )
                     }
                 }
-            }
         }
     }
 
     private fun shareClassificationReport() {
-        val report = organizerViewModel.classificationReport() ?: return
+        val sendIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.classification_report_subject))
+                putExtra(Intent.EXTRA_TEXT, organizerViewModel.classificationReport())
+            }
         startActivity(
             Intent.createChooser(
-                Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, getString(R.string.classification_report_subject))
-                    putExtra(Intent.EXTRA_TEXT, report)
-                },
-                getString(R.string.classification_report_share_title)
+                sendIntent,
+                getString(R.string.classification_report_chooser_title)
             )
         )
     }
+
+    private data class CategoryShortcutSyncSnapshot(
+        val canSynchronize: Boolean,
+        val orderedCategories: List<CategoryDefinition>,
+        val currentCategoryAppCounts: Map<CategoryId, Int>
+    )
 
     private companion object {
         const val STATE_CATEGORY_DESTINATION_CLEARED = "category-destination-cleared"
