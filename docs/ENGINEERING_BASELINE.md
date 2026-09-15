@@ -1,20 +1,18 @@
 # Engineering Baseline
 
-**Policy date:** 2026-09-08
+## 1. Purpose
 
 This document defines how One UI Organizer is built, tested, analyzed, benchmarked and kept upgradeable. Exact versions live in [`STABLE_BASELINE.md`](STABLE_BASELINE.md); if a version here ever differs, `STABLE_BASELINE.md` wins.
 
-## 1. Engineering goals
-
 The engineering baseline exists to make upgrades boring rather than heroic.
 
-Principles:
+Core principles:
 
-1. **Separate runtime roles.** Gradle's JVM, Android bytecode level, device API level and Kotlin language/compiler version are different concerns.
-2. **Prefer official stable tooling.** Maven artifacts, libraries, Kotlin, AGP, Gradle, Android Studio and Gradle plugins stay stable; the only preview exception is the compile-SDK platform rule defined below.
-3. **Pin what changes the build.** Toolchains and direct dependencies must be reproducible.
-4. **Own boundaries, not frameworks.** Domain/application contracts belong to this app; external libraries stay behind narrow adapters.
-5. **Tests follow boundaries.** Pure logic is tested without Android; Android integration is tested only where Android behavior matters.
+1. **Compatibility beats novelty.** Use the newest stable version inside documented compatibility ranges.
+2. **Centralize versions.** Exact versions belong in the version catalog, wrapper or committed toolchain criteria.
+3. **One owner per concern.** Avoid parallel state/config implementations.
+4. **Adapters contain volatility.** Android/platform/provider details stay at the edge.
+5. **Tests prove behavior at the cheapest valid layer.**
 6. **Warnings are migration signals.** Greenfield warnings are fixed, not normalized.
 7. **Performance is measured.** Add benchmark machinery when there is a stable flow worth measuring.
 
@@ -22,13 +20,15 @@ Principles:
 
 ### 2.1 Gradle daemon JDK
 
-Run Gradle itself on **Eclipse Temurin / Adoptium JDK 26.0.2.1+1**.
+Run Gradle with JDK **26**.
 
 Commit Gradle Daemon JVM criteria so a clean checkout does not silently use whatever JDK happens to launch the wrapper:
 
 ```text
-./gradlew updateDaemonJvm --jvm-version=26 --jvm-vendor=adoptium
+gradle/gradle-daemon-jvm.properties
 ```
+
+Prefer Eclipse Temurin / Adoptium for reproducibility.
 
 Use stable Foojay Toolchains Resolver Convention **1.0.0** in `settings.gradle.kts` to allow Gradle to provision missing JDK toolchains.
 
@@ -36,96 +36,72 @@ Use stable Foojay Toolchains Resolver Convention **1.0.0** in `settings.gradle.k
 
 Use an explicit **Java 17 compile/test toolchain** for Android production code and local JVM tests until Android officially documents and supports a newer Java bytecode/language baseline for the app's supported API range.
 
-This is deliberately independent of the JDK 26 Gradle daemon.
+The build therefore intentionally separates:
 
-Why:
+```text
+Gradle daemon: JDK 26
+Android/Kotlin compilation: Java 17
+JVM unit tests: Java 17
+ktlint CLI: Java 17
+```
 
-- it prevents Android code from accidentally compiling against newer JDK APIs unavailable on Android;
-- it keeps Java/Kotlin bytecode expectations explicit;
-- it prevents machine-specific JDK defaults from changing output;
-- moving Android bytecode from 17 to a later level becomes a single deliberate migration rather than a side effect of installing a new JDK.
+Do not “simplify” this by moving everything to JDK 26 unless the Android/Kotlin/AGP compatibility evidence changes.
 
-Configure all of the following from one central convention:
+### 2.3 Kotlin JVM target
+
+Use JVM target **17**.
 
 ```text
 Java toolchain: 17
-sourceCompatibility: 17
-targetCompatibility: 17
-Kotlin JVM target: 17
+Kotlin jvmTarget: 17
 ```
 
-Kotlin 2.4.20 and AGP built-in Kotlin must not be allowed to infer a JVM target from the daemon JDK.
-
-### 2.3 Toolchain rule
-
-Never use `JAVA_HOME` as the project's source of truth.
+### 2.4 JAVA_HOME
 
 `JAVA_HOME` may bootstrap Gradle, but the committed Daemon JVM criteria and explicit compile/tool execution toolchains define the build.
 
 ## 3. Build system baseline
 
-Use:
+### 3.1 Gradle / AGP / Kotlin
 
-- Kotlin **2.4.20**;
-- Compose compiler plugin **2.4.20**;
-- Android Gradle Plugin **9.3.1**;
-- Gradle Wrapper **9.7.0**;
-- JDK 26 daemon;
-- Java 17 Android compilation target;
-- `compileSdk = 37` with `compileSdkMinor = 0`;
-- `targetSdk 36` until Android 17/API 37 is final and device acceptance is complete;
-- AGP-managed Build Tools rather than unnecessary manual Build Tools pinning;
-- no NDK unless native code becomes a real requirement.
+Use the exact versions from `STABLE_BASELINE.md`.
+
+The supported combination is intentionally conservative around compatibility rather than choosing the individually newest stable component in isolation.
 
 Kotlin 2.4.20 documents full compatibility through Gradle 9.7.0 and AGP 9.3.1. AGP 9.4.0 is stable but remains outside that fully-supported Kotlin range on the policy date, so 9.3.1 is the correct baseline under this project's compatibility rule.
 
-### 3.1 Narrow preview compile-SDK exception
+### 3.2 Android SDK policy
 
-The stable-only policy applies to Maven dependencies, AndroidX libraries, Kotlin, AGP, Gradle, Android Studio and Gradle plugins. A preview **Android SDK platform** is permitted only when the selected current stable AndroidX/Compose line requires that compile API and the final SDK platform is not yet available.
+`minSdk`, `targetSdk`, and compile SDK are product/toolchain decisions, not cleanup knobs.
 
 For the current baseline, stable Compose BOM **2026.08.00 / Compose 1.12** requires API 37, while Android API **37.0** is still distributed as the **Cinnamon Bun Preview** SDK. CI therefore uses stable Android command-line tools build **15859902** and its non-deprecated `android` CLI to install only `platforms/android-37.0@2.0.0` from the beta SDK channel. AGP 9.3 models the actual SDK minor version with `compileSdk = 37` plus `compileSdkMinor = 0`.
 
-Rules for this exception:
-
-- do not install unrelated beta/canary SDK packages;
-- keep Build Tools AGP-managed unless a concrete build failure proves a specific Build Tools package is necessary;
-- keep `targetSdk = 36` until Android 17 is final and explicitly approved;
-- do not use Android-17-only product APIs or behavior merely because API 37.0 is available at compile time;
-- do not extend the exception to preview Kotlin, AGP, Gradle, Android Studio, Maven libraries, plugins, emulator images, or other runtime/tooling inputs.
-
-The compile SDK answers what symbols the compiler can see. It does not by itself opt the app into Android 17 runtime behavior.
-
-## 4. Build configuration principles
-
-### 4.1 Kotlin DSL only
-
-Use `settings.gradle.kts` and `build.gradle.kts`. Do not mix Groovy and Kotlin build scripts.
-
-### 4.2 Version catalog
-
-Use `gradle/libs.versions.toml` from the first implementation commit.
-
 Rules:
 
-- exact versions only;
-- group related first-party artifacts with BOMs when the vendor provides a stable BOM;
-- Compose uses the stable Compose BOM;
-- aliases describe the library role, not implementation trivia;
-- prefer the canonical current artifact when compatibility-only forwarding/empty artifacts exist (for example AndroidX Core 1.19 uses `androidx.core:core`, not the now-empty `core-ktx` compatibility artifact);
-- no version strings in feature source sets or module build files unless a Gradle API requires it;
-- plugin versions also live centrally where Gradle permits it.
+- preview Android SDK platforms are allowed only when a selected latest-stable AndroidX/Compose release requires that compile API and no final SDK exists;
+- the exception is compile-time only;
+- do not extend the exception to preview Kotlin, AGP, Gradle, Android Studio, Maven libraries, plugins, emulator images, or other runtime/tooling inputs.
 
-### 4.3 Dependency verification
+### 3.3 Gradle configuration cache
 
-Enable Gradle dependency verification and commit `gradle/verification-metadata.xml` once the initial dependency graph is established.
+The project must remain configuration-cache compatible.
 
-Use SHA-256 verification for downloaded artifacts. Updating a dependency must update verification metadata in the same dependency-upgrade change.
+CI runs with:
 
-### 4.4 Repositories
+```text
+--configuration-cache
+--configuration-cache-problems=fail
+```
 
-Repository declarations belong in `settings.gradle.kts` with repository mode that prevents subprojects from adding arbitrary repositories.
+and explicitly verifies reuse.
 
-Expected normal repositories:
+### 3.4 Build cache
+
+Use Gradle build caching where appropriate. Do not add custom remote caches without a separate infrastructure decision.
+
+### 3.5 Repositories
+
+Use only:
 
 - Google Maven;
 - Maven Central;
@@ -133,17 +109,17 @@ Expected normal repositories:
 
 Do not add JitPack or custom repositories unless a documented dependency decision justifies them.
 
-### 4.5 Configuration/build cache
+### 4.3 Dependency verification
 
-Keep Gradle configuration cache and build cache compatible from the beginning. A plugin that prevents configuration-cache use needs a documented reason or a replacement.
+Enable Gradle dependency verification and commit `gradle/verification-metadata.xml` once the initial dependency graph is established.
 
-Do not depend on task names/internal AGP classes from feature code or ad-hoc Gradle scripts.
+Use SHA-256 verification for downloaded artifacts. Updating a dependency must update verification metadata in the same dependency-upgrade change.
 
 ## 5. Compiler and warning policy
 
 ### Kotlin
 
-Project Kotlin compiler warnings are errors in CI.
+Kotlin compiler warnings are errors in CI.
 
 Do not suppress warnings globally. A local suppression must:
 
@@ -176,6 +152,8 @@ Policy:
 - no checked-in lint baseline for a greenfield project;
 - do not disable checks globally to make CI green;
 - suppress a check only at the narrowest valid scope with a reason.
+
+`NewerVersionAvailable` is the one deliberate CI-policy exception: dependency freshness is time-dependent external state, not a property of the PR source. It is excluded from deterministic Android Lint and is instead reported by the scheduled/manual `Dependency freshness` workflow using the stable-only `dependencyUpdates` policy. Actual upgrades remain dedicated reviewed changes and must still satisfy the full upgrade checklist.
 
 A lint baseline may only be introduced later by an explicit debt decision if importing legacy/generated code makes immediate cleanup impractical.
 
@@ -277,18 +255,20 @@ Use Android Test Orchestrator only if isolation becomes useful; do not add it to
 
 ### 8.5 Test execution discipline
 
-Every PR should run the cheap verification lane:
+Every PR runs the deterministic verification lane:
 
 ```text
+debug + release assembly
 unit tests
-Android Lint
+Android Lint (source/semantic checks; dependency freshness is separate)
 ktlint
 buildHealth
 Gradle warning/deprecation check
-configuration-cache smoke
+configuration-cache reuse
+built-APK merged-manifest/privacy audit
 ```
 
-Run instrumentation when a PR touches Android integration/UI behavior.
+The application now has stable Compose/navigation/backup/shortcut flows, so permanent PR CI also executes the existing Android instrumentation suite on a stable API-36 emulator. Compiling `assembleDebugAndroidTest` is not acceptance by itself. Instrumentation artifacts are retained for diagnosis. Physical Samsung acceptance remains required where One UI or real package/launcher behavior matters.
 
 Run physical-device acceptance when a PR changes:
 
@@ -343,30 +323,19 @@ Track regressions relative to the measured baseline. A noisy benchmark is adviso
 
 The goal is to make dependency upgrades local.
 
-### 10.1 App-owned models at boundaries
+### 10.1 Prefer official stable APIs
 
-Do not expose external implementation types in domain/application contracts.
+Prefer AndroidX/platform APIs over third-party wrappers when the official API is adequate.
 
-Examples:
+### 10.2 Stable interfaces at boundaries
 
-- scanner adapter converts `ApplicationInfo`/`ResolveInfo` to `InstalledApp`;
-- persistence adapter converts DataStore/serialization DTOs to `OrganizerState`;
-- UI converts app-owned models to Compose presentation state;
-- external app launch accepts `LaunchTargetId`, not a raw `Intent`.
-
-### 10.2 Constructor injection
-
-Use ordinary constructor injection and small interfaces. Do not introduce Hilt/Koin solely to avoid writing constructors.
-
-A future DI framework should replace only composition wiring, not application contracts.
+Domain and application layers should depend on app-owned contracts rather than Android or third-party types.
 
 ### 10.3 No transitive-dependency coding
 
-If code imports a type from a library, that library should normally be declared directly in the module where the import occurs.
-
 Do not rely on one dependency pulling another into the classpath by accident.
 
-### 10.4 Isolate framework adapters
+### 10.4 Keep volatility at the edge
 
 Keep Android/package scanning, persistence, and presentation-specific APIs behind small adapters. This allows independent upgrades of AndroidX, DataStore, Compose or future persistence choices.
 
@@ -390,6 +359,8 @@ Recommended split:
 
 Every update PR must pass the same build/test/Lint/ktlint/dependency-health gates as feature work.
 
+Dependency discovery itself runs separately on a schedule and on demand. The discovery workflow is advisory and must not be a required PR check: publishing a new upstream version must not turn an unchanged feature branch red. The report identifies maintenance work; adoption still follows the dedicated upgrade procedure and compatibility rules.
+
 ## 12. What not to add yet
 
 Do **not** add:
@@ -400,40 +371,37 @@ Do **not** add:
 - KSP unless a stable dependency actually requires code generation;
 - Room without a measured persistence need;
 - Hilt/Koin without DI graph complexity;
-- Retrofit/Ktor/OkHttp without a network requirement;
+- a second JSON library while `kotlinx.serialization` is sufficient;
 - baseline profile plugin until its stable line cleanly supports the selected AGP generation;
 - benchmarking modules before the primary product flow exists;
-- mocking frameworks by default;
-- experimental Compose libraries simply because they are new.
+- screenshot test frameworks before the product has stable visual acceptance cases;
+- mocking frameworks unless a demonstrated test gap cannot be solved cleanly with fakes.
 
 ## 13. Upgrade checklist
 
 When upgrading a library/toolchain:
 
-1. Confirm the candidate release is stable, except for the narrowly documented compile-SDK platform exception.
-2. Check upstream compatibility ranges, not only release date.
-3. Update central version declarations only.
+1. Verify release notes and migration notes.
+2. Confirm compatibility with Gradle, AGP, Kotlin, Compose and JDK/toolchains.
+3. Update the version catalog or other central version source.
 4. Regenerate dependency verification metadata.
-5. Run clean compile and unit tests.
+5. Run a clean build.
 6. Run Android Lint with warnings treated as errors.
 7. Run ktlint.
 8. Run dependency `buildHealth`.
 9. Run Gradle with deprecation warnings failing.
 10. Verify configuration-cache reuse.
 11. Run instrumentation/device tests when the affected library crosses Android/UI/system boundaries.
-12. Check generated APK/release behavior if packaging changes.
+12. Compare relevant benchmark evidence for performance-sensitive changes.
 13. Record any remaining warning/deprecation before merge; greenfield changes should normally have none.
+14. Update `STABLE_BASELINE.md` when the authoritative baseline changes.
 
 ## 14. Useful verification commands
 
-The scaffold exposes the normal local lane as approximately:
-
-```text
-./gradlew clean :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth --warning-mode=fail --dependency-verification=strict --configuration-cache --configuration-cache-problems=fail
-./gradlew dependencyUpdates
-./gradlew dependencies
-./gradlew javaToolchains
-./gradlew --version
+```bash
+./gradlew clean :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth --warning-mode=fail --dependency-verification=strict --configuration-cache --configuration-cache-problems=fail
+./gradlew connectedDebugAndroidTest --warning-mode=fail --dependency-verification=strict
+./gradlew dependencyUpdates --warning-mode=fail --dependency-verification=strict
 ```
 
 The permanent CI additionally provisions the approved API-37.0 compile platform from the Android SDK beta channel before running Gradle. Keep this section aligned with reality.
