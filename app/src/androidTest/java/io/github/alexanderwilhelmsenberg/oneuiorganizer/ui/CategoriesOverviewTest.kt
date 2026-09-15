@@ -23,6 +23,7 @@ class CategoriesOverviewTest {
     fun overviewUsesExistingCategoryOrderCountsAndContextualTools() {
         var manageRequested = false
         var backupRequested = false
+        var eventLogRequested = false
         val family = CustomCategoryDefinition(CategoryId.custom("family"), "Family")
 
         composeRule.setContent {
@@ -37,7 +38,8 @@ class CategoriesOverviewTest {
                                 )
                         ),
                     onManageCategories = { manageRequested = true },
-                    onBackupRestoreRequested = { backupRequested = true }
+                    onBackupRestoreRequested = { backupRequested = true },
+                    onEventLogRequested = { eventLogRequested = true }
                 )
             }
         }
@@ -55,5 +57,8 @@ class CategoriesOverviewTest {
 
         composeRule.onNodeWithText("Backup & restore").assertHasClickAction().performClick()
         composeRule.runOnIdle { assertTrue(backupRequested) }
+
+        composeRule.onNodeWithText("Event log").assertHasClickAction().performClick()
+        composeRule.runOnIdle { assertTrue(eventLogRequested) }
     }
 }
