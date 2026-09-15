@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ANDROID = "{http://schemas.android.com/apk/res/android}"
-EXPECTED_PERMISSIONS = {"android.permission.INTERNET"}
+EXPECTED_PLATFORM_PERMISSIONS = {"android.permission.INTERNET"}
 EXPECTED_EXPORTED = {("activity", ".MainActivity")}
 
 
@@ -22,17 +22,36 @@ def main() -> None:
 
     manifest_path = Path(sys.argv[1])
     root = ET.parse(manifest_path).getroot()
+    package_name = root.get("package")
+    if not package_name:
+        fail("manifest package/application id is missing")
 
+    receiver_permission = f"{package_name}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+    expected_permissions = EXPECTED_PLATFORM_PERMISSIONS | {receiver_permission}
     permissions = {
         element.get(f"{ANDROID}name")
         for tag in ("uses-permission", "uses-permission-sdk-23")
         for element in root.findall(tag)
         if element.get(f"{ANDROID}name")
     }
-    if permissions != EXPECTED_PERMISSIONS:
+    if permissions != expected_permissions:
         fail(
-            "expected only android.permission.INTERNET, got "
+            "unexpected merged permission set: "
             + (", ".join(sorted(permissions)) if permissions else "no permissions")
+        )
+
+    receiver_permission_declarations = [
+        element
+        for element in root.findall("permission")
+        if element.get(f"{ANDROID}name") == receiver_permission
+    ]
+    if len(receiver_permission_declarations) != 1:
+        fail("AndroidX dynamic-receiver permission must have exactly one declaration")
+    protection_level = receiver_permission_declarations[0].get(f"{ANDROID}protectionLevel")
+    if protection_level != "signature":
+        fail(
+            "AndroidX dynamic-receiver permission must be signature-protected, got "
+            f"{protection_level!r}"
         )
 
     application = root.find("application")
@@ -62,7 +81,8 @@ def main() -> None:
         fail(f"unexpected exported components: {sorted(exported)!r}")
 
     print("APK manifest audit passed.")
-    print("Permissions: android.permission.INTERNET")
+    print("Platform permissions: android.permission.INTERNET")
+    print(f"App-scoped signature permission: {receiver_permission}")
     print("Exported components: MainActivity only")
     print("Backup: disabled")
     print("Cleartext traffic: not explicitly enabled")
