@@ -9,7 +9,11 @@ from pathlib import Path
 
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 EXPECTED_PLATFORM_PERMISSIONS = {"android.permission.INTERNET"}
-EXPECTED_EXPORTED = {("activity", ".MainActivity")}
+PROFILE_INSTALL_RECEIVER = "androidx.profileinstaller.ProfileInstallReceiver"
+EXPECTED_EXPORTED = {
+    ("activity", ".MainActivity"),
+    ("receiver", PROFILE_INSTALL_RECEIVER),
+}
 SIGNATURE_PROTECTION_LEVELS = {"signature", "0x2"}
 
 
@@ -81,10 +85,21 @@ def main() -> None:
     if normalized_exported != EXPECTED_EXPORTED:
         fail(f"unexpected exported components: {sorted(exported)!r}")
 
+    profile_receivers = [
+        element
+        for element in application.findall("receiver")
+        if element.get(f"{ANDROID}name") == PROFILE_INSTALL_RECEIVER
+        and element.get(f"{ANDROID}exported") == "true"
+    ]
+    if len(profile_receivers) != 1:
+        fail("ProfileInstallReceiver must be the single expected exported AndroidX receiver")
+    if profile_receivers[0].get(f"{ANDROID}permission") != "android.permission.DUMP":
+        fail("exported ProfileInstallReceiver must remain protected by android.permission.DUMP")
+
     print("APK manifest audit passed.")
     print("Platform permissions: android.permission.INTERNET")
     print(f"App-scoped signature permission: {receiver_permission}")
-    print("Exported components: MainActivity only")
+    print("Exported components: MainActivity plus DUMP-protected AndroidX ProfileInstallReceiver")
     print("Backup: disabled")
     print("Cleartext traffic: not explicitly enabled")
 
