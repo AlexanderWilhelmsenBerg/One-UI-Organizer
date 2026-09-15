@@ -70,6 +70,8 @@ For both built-in and custom category shortcuts:
 
 Renaming or reordering a custom category must not change shortcut identity. Restored backup state must preserve the same category identity used by shortcut resolution.
 
+Agent 102 found one combined-wave transition defect: shortcut entry hid Backup & restore without using its normal dismissal path, so an already-validated pending import could remain in the controller and reappear if Backup was reopened later. The integration branch now routes shortcut entry through the existing Backup dismissal path before selecting `Organizer`; this cancels pending import presentation state without mutating organizer data. Physical acceptance must explicitly exercise a category shortcut while Backup/import confirmation is open or pending and verify the shortcut lands cleanly in `Organizer` without stale Backup state returning.
+
 ## Backup/import regression contract
 
 From `Categories`:
@@ -163,7 +165,8 @@ Nested UI closes first. Category-management and Backup flows return to `Categori
 - pinned custom shortcut;
 - renamed custom category label;
 - correct `Organizer` landing/category focus;
-- stale/deleted custom category safeguard.
+- stale/deleted custom category safeguard;
+- while Backup/import confirmation is open or pending, launch a category shortcut and verify Backup is fully dismissed, the pending confirmation does not reappear, and `Organizer` receives the intended category focus.
 
 ### Backup
 
