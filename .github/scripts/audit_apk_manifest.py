@@ -10,6 +10,7 @@ from pathlib import Path
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 EXPECTED_PLATFORM_PERMISSIONS = {"android.permission.INTERNET"}
 EXPECTED_EXPORTED = {("activity", ".MainActivity")}
+SIGNATURE_PROTECTION_LEVELS = {"signature", "0x2"}
 
 
 def fail(message: str) -> None:
@@ -48,7 +49,7 @@ def main() -> None:
     if len(receiver_permission_declarations) != 1:
         fail("AndroidX dynamic-receiver permission must have exactly one declaration")
     protection_level = receiver_permission_declarations[0].get(f"{ANDROID}protectionLevel")
-    if protection_level != "signature":
+    if protection_level not in SIGNATURE_PROTECTION_LEVELS:
         fail(
             "AndroidX dynamic-receiver permission must be signature-protected, got "
             f"{protection_level!r}"
