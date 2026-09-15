@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the merged manifest extracted from the built debug APK."""
+"""Audit the merged manifest extracted from the built release APK."""
 
 from __future__ import annotations
 

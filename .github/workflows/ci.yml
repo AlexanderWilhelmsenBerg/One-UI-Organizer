@@ -119,10 +119,10 @@ jobs:
           set -euo pipefail
           apkanalyzer="$(find "${ANDROID_HOME}/cmdline-tools" -type f -path '*/bin/apkanalyzer' -print -quit)"
           test -n "${apkanalyzer}"
-          apk="app/build/outputs/apk/debug/app-debug.apk"
+          apk="app/build/outputs/apk/release/app-release-unsigned.apk"
           test -f "${apk}"
-          "${apkanalyzer}" manifest print "${apk}" > "${RUNNER_TEMP}/merged-debug-manifest.xml"
-          python3 .github/scripts/audit_apk_manifest.py "${RUNNER_TEMP}/merged-debug-manifest.xml"
+          "${apkanalyzer}" manifest print "${apk}" > "${RUNNER_TEMP}/merged-release-manifest.xml"
+          python3 .github/scripts/audit_apk_manifest.py "${RUNNER_TEMP}/merged-release-manifest.xml"
 
       - name: Upload verification reports on failure
         if: failure()
