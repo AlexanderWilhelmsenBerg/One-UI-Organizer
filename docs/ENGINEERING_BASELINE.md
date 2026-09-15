@@ -177,6 +177,8 @@ Policy:
 - do not disable checks globally to make CI green;
 - suppress a check only at the narrowest valid scope with a reason.
 
+`NewerVersionAvailable` is the one deliberate CI-policy exception: dependency freshness is time-dependent external state, not a property of the PR source. It is excluded from deterministic Android Lint and is instead reported by the scheduled/manual `Dependency freshness` workflow using the stable-only `dependencyUpdates` policy. Actual upgrades remain dedicated reviewed changes and must still satisfy the full upgrade checklist.
+
 A lint baseline may only be introduced later by an explicit debt decision if importing legacy/generated code makes immediate cleanup impractical.
 
 ### 6.2 ktlint
@@ -277,18 +279,20 @@ Use Android Test Orchestrator only if isolation becomes useful; do not add it to
 
 ### 8.5 Test execution discipline
 
-Every PR should run the cheap verification lane:
+Every PR runs the deterministic verification lane:
 
 ```text
+debug + release assembly
 unit tests
-Android Lint
+Android Lint (source/semantic checks; dependency freshness is separate)
 ktlint
 buildHealth
 Gradle warning/deprecation check
-configuration-cache smoke
+configuration-cache reuse
+built-APK merged-manifest/privacy audit
 ```
 
-Run instrumentation when a PR touches Android integration/UI behavior.
+The application now has stable Compose/navigation/backup/shortcut flows, so permanent PR CI also executes the existing Android instrumentation suite on a stable API-36 emulator. Compiling `assembleDebugAndroidTest` is not acceptance by itself. Instrumentation artifacts are retained for diagnosis. Physical Samsung acceptance remains required where One UI or real package/launcher behavior matters.
 
 Run physical-device acceptance when a PR changes:
 
@@ -390,6 +394,8 @@ Recommended split:
 
 Every update PR must pass the same build/test/Lint/ktlint/dependency-health gates as feature work.
 
+Dependency discovery itself runs separately on a schedule and on demand. The discovery workflow is advisory and must not be a required PR check: publishing a new upstream version must not turn an unchanged feature branch red. The report identifies maintenance work; adoption still follows the dedicated upgrade procedure and compatibility rules.
+
 ## 12. What not to add yet
 
 Do **not** add:
@@ -429,8 +435,9 @@ When upgrading a library/toolchain:
 The scaffold exposes the normal local lane as approximately:
 
 ```text
-./gradlew clean :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth --warning-mode=fail --dependency-verification=strict --configuration-cache --configuration-cache-problems=fail
-./gradlew dependencyUpdates
+./gradlew clean :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth --warning-mode=fail --dependency-verification=strict --configuration-cache --configuration-cache-problems=fail
+./gradlew connectedDebugAndroidTest --warning-mode=fail --dependency-verification=strict
+./gradlew dependencyUpdates --warning-mode=fail --dependency-verification=strict
 ./gradlew dependencies
 ./gradlew javaToolchains
 ./gradlew --version
