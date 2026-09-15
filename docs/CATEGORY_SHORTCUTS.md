@@ -11,7 +11,7 @@ One UI Organizer exposes two Android launcher integrations:
 
 `Favourites` remains a virtual shelf section. It is not given a fake `CategoryId` for shortcut support. A future favourites shortcut would require a separate virtual-destination design.
 
-No shortcut library, background service, WorkManager job, network permission, schema change, or additional category-state store is introduced.
+The shortcut feature introduces no shortcut library, background service, WorkManager job, network permission, schema change, or additional category-state store. The app-level `INTERNET` permission added later by PR #23 belongs solely to supported metadata enrichment.
 
 ## Stable shortcut identity
 
@@ -153,9 +153,9 @@ Permanent tests cover:
 
 Android framework shortcut publication itself remains a platform/device acceptance concern rather than introducing Robolectric or another test dependency.
 
-## Samsung / One UI acceptance still required
+## Samsung / One UI acceptance baseline
 
-On the project Samsung test device, verify all of the following before this feature is treated as device-accepted:
+The owner completed the Agent-92 / PR-21 Samsung acceptance successfully on 2026-09-13, so the shortcut feature is part of the accepted portability baseline. Agent 102 must still rerun the shortcut regression against the merged two-destination navigation and metadata build. The regression checklist remains:
 
 1. Long-press the Organizer launcher icon and confirm the dynamic category shortcuts appear in persisted order, with no more than the selected platform/product limit.
 2. Reorder categories, reopen/resume Organizer, and confirm launcher order updates while shortcut identities continue to target the same categories.
@@ -166,11 +166,9 @@ On the project Samsung test device, verify all of the following before this feat
 7. Remove or hide enough category contents to change the dynamic qualifying set and confirm obsolete dynamic shortcuts disappear on the next successful foreground synchronization.
 8. Reboot/restore-style test as practical and confirm reopening Organizer republishes missing dynamic shortcuts.
 
-## Agent 92 integration expectation
+## Agent 92 integration result / Agent 102 regression boundary
 
-Agent 91 includes the minimal `MainActivity` wiring required to prove the shortcut feature end to end. Agent 92 should treat the shortcut policy/identity/platform adapter as owned by this lane and only reconcile shared composition-root conflicts after Agent 90 is merged/rebased.
-
-In particular, Agent 92 should preserve:
+Agent 92 integrated the shortcut and backup lanes without creating a second category/shortcut state owner. Agent 102 must preserve the accepted shortcut policy while validating the new primary-navigation shell. In particular, the integrated app preserves:
 
 - `handleShortcutIntent()` / `onNewIntent()` routing;
 - foreground shortcut synchronization;
@@ -178,4 +176,4 @@ In particular, Agent 92 should preserve:
 - focused shelf destination clearing;
 - any independent backup/import callbacks introduced by Agent 90.
 
-Agent 92 should not create a second shortcut state store, change `CategoryId`, or move Android shortcut types into domain/application models merely to resolve a merge conflict.
+Agent 102 must not create a second shortcut state store, change `CategoryId`, or move Android shortcut types into domain/application models. Category shortcut entry must explicitly select `Organizer`; `Categories` remains the management destination rather than the shortcut landing page.

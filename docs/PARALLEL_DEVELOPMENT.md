@@ -100,7 +100,7 @@ The historical merge shape was:
                        PR #14 merged
 ```
 
-This wave remains architecturally important because automatic rule packs continue to own only built-in `AppCategory` results and the outer precedence remains user override > bundled rule > Android category > `Unsorted`.
+This wave remains architecturally important because automatic rule packs continue to own only built-in `AppCategory` results and the outer precedence now remains user override > bundled rule > Android category > supported metadata > `Unsorted`.
 
 ## 5. User-owned category-management wave — complete and merged
 
@@ -124,11 +124,11 @@ Agent 80 froze durable `CategoryId`, shared category definitions, schema-v2 migr
 
 Later lanes consume those stable contracts and must not reopen category identity, lifecycle ownership or create another organizer/category state owner.
 
-## 6. Portability + category-shortcut wave — Agent 92 integration complete
+## 6. Portability + category-shortcut wave — accepted baseline
 
-PR #19 delivered versioned local backup/export/import and PR #20 delivered dynamic/pinned category shortcuts. Both are merged. Agent 92 integrates them on PR #21 / `integration/portability-shortcuts`.
+PR #19 delivered versioned local backup/export/import and PR #20 delivered dynamic/pinned category shortcuts. Agent 92 integrated them in PR #21 / `integration/portability-shortcuts`.
 
-The integrated design keeps one `OrganizerStateStore`, uses Android SAF for user-selected backup files, preserves stable custom `CategoryId` across backup/import, and resolves shortcut destinations by stable category identity. Permanent CI and signed-debug build are green on the integration head. The next wave starts only from `main` containing PR #21; physical Samsung / One UI observations remain an explicit acceptance record to capture.
+The integrated design keeps one `OrganizerStateStore`, uses Android SAF for user-selected backup files, preserves stable custom `CategoryId` across backup/import, and resolves shortcut destinations by stable category identity. Permanent CI, signed-debug build and owner Samsung / One UI acceptance are complete. Agent 102 treats PR #21 as an accepted regression gate.
 
 Historical merge shape:
 
@@ -146,9 +146,9 @@ accepted category-management baseline
                PR #21
 ```
 
-## 7. Recommended following wave — Agents 100–102
+## 7. Metadata + presentation wave — Agent 102 current
 
-Start only from current `main` after PR #21 is merged and the post-merge HEAD/CI are refreshed.
+The Agent-102 start gate is satisfied. PR #22 (presentation/navigation) and PR #23 (supported metadata) are merged on top of the accepted PR-21 baseline; Agent 102 starts from `main` `8d34cc88106bb346baac00c012f9ad12c7a9e50f` on `integration/metadata-presentation`.
 
 ```text
           merged Agent-92 baseline
@@ -162,12 +162,12 @@ Start only from current `main` after PR #21 is merged and the post-merge HEAD/CI
           102 Integration / acceptance
 ```
 
-### Agent 100 — supported metadata enrichment
+### Agent 100 — supported metadata enrichment — merged in PR #23
 
-Suggested branch:
+Implemented branch:
 
 ```text
-feature/supported-metadata-enrichment
+feature/metadata-enrichment-agent100
 ```
 
 Own only the supported metadata/provider path and the minimum shared classification contract it needs:
@@ -186,16 +186,19 @@ Own only the supported metadata/provider path and the minimum shared classificat
 
 Do not modify custom-category lifecycle, backup/import semantics, shortcut identity or broad presentation.
 
-### Agent 101 — presentation polish
+### Agent 101 — presentation polish / primary navigation — merged in PR #22
 
-Suggested branch:
+Implemented branch:
 
 ```text
-feature/presentation-polish
+feature/presentation-navigation
 ```
 
 Own presentation-only refinement:
 
+- exactly two primary destinations, `Organizer` and `Categories`;
+- One UI-style bottom navigation on phones;
+- feature-screen composition independent of navigation chrome so a future fold/large-screen rail does not require rewriting Organizer/Categories;
 - One UI-inspired hierarchy, spacing and motion;
 - shelf/category-management/Backup & restore navigation and action hierarchy;
 - loading, empty, error, destructive-confirmation and shortcut-pin feedback states;
@@ -205,14 +208,11 @@ Own presentation-only refinement:
 
 Do not modify repository/schema/classifier/network/toolchain contracts. This ownership separation allows Agent 100 and Agent 101 to run in parallel.
 
-### Merge order
+### Merge history / Agent-102 start
 
-1. Run Agents 100 and 101 in parallel from the same merged Agent-92 baseline.
-2. Merge Agent 100 first after its own tests/privacy/offline acceptance are green.
-3. Refresh `main`, rebase Agent 101, inspect its real diff/CI and merge it.
-4. Start Agent 102 from that exact current `main`.
+The preferred plan was lower-layer metadata first, then presentation. Actual GitHub history is PR #22 (presentation/navigation) followed by PR #23 (supported metadata). PR #23 was based on the already-merged PR-22 mainline, so the final start gate is still a single current `main` containing both lanes with green CI. Repository state outranks the earlier sequencing preference; Agent 102 must not replay or rebase already-merged history merely to match the old diagram.
 
-The lower-level metadata lane merges first because it may introduce the shared metadata classification source and justified `INTERNET` permission. The presentation lane must remain independent enough that the rebase is mechanical rather than architectural.
+The important architecture boundary remains intact: presentation consumes app-owned effective state; Compose does not talk to provider/network objects, metadata does not own navigation, and the navigation shell does not own classification state.
 
 ### Agent 102 — integration / acceptance
 
@@ -229,6 +229,10 @@ Own only cross-feature integration and acceptance:
 - audit false positives and provider/category mappings;
 - verify cold/offline/provider-error behavior;
 - regress category lifecycle, backup/import, shortcuts, search, favourites, hide/restore, exact launch and back/dismiss;
+- accept exactly two primary destinations (`Organizer`, `Categories`) with contextual utilities and no synthetic primary-tab back history;
+- verify shortcuts always land on `Organizer` with the intended stable category focus;
+- verify primary destination is presentation-only, restores appropriately, is not exported in organizer backup, and does not reset destination-local state unnecessarily;
+- sanity-check architecture for future navigation rail/large-screen treatment without requiring the adaptive rail implementation in this wave;
 - run permanent CI and relevant instrumentation;
 - perform Samsung online/offline and presentation acceptance;
 - audit that `INTERNET` is justified while `QUERY_ALL_PACKAGES`, broad storage, telemetry, accounts/cloud sync and background services remain absent;

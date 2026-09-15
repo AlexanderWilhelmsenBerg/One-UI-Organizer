@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="event_log_title">Event log</string>
+    <string name="event_log_body">Local diagnostic events and the most recent uncaught crash are kept on this device. The log contains no backup contents or installed-app inventory.</string>
+    <string name="event_log_empty">No diagnostic events recorded yet.</string>
+    <string name="event_log_share">Share</string>
+    <string name="event_log_clear">Clear event log</string>
+    <string name="event_log_done">Done</string>
+    <string name="event_log_subject">One UI Organizer event log</string>
+    <string name="event_log_chooser_title">Share local event log</string>
+</resources>

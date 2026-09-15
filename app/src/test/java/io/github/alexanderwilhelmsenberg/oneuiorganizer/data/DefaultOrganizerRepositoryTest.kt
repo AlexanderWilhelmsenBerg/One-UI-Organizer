@@ -1,6 +1,7 @@
 package io.github.alexanderwilhelmsenberg.oneuiorganizer.data
 
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.CategoryEngine
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.domain.DefaultCategoryEngine
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppCategory
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.AppId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategorizedApp
@@ -11,6 +12,8 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CustomCategoryDefi
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.InstalledApp
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.LaunchTargetId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.OrganizerState
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.SupportedAppMetadata
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.SupportedMetadataProvider
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.apps.InstalledAppSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -81,6 +84,42 @@ class DefaultOrganizerRepositoryTest {
         val categorized = repository.apps.first().single()
         assertEquals(custom, categorized.category)
         assertEquals(ClassificationSource.USER_OVERRIDE, categorized.source)
+    }
+
+    @Test
+    fun `supported metadata reaches effective repository state without overriding user choice`() = runBlocking {
+        val appId = AppId("example.metadata")
+        val metadataRepository =
+            FakeSupportedMetadataRepository(
+                mapOf(
+                    appId to
+                        SupportedAppMetadata(
+                            appId = appId,
+                            provider = SupportedMetadataProvider.F_DROID,
+                            categories = setOf("Reading"),
+                            fetchedAtEpochMillis = 1_000L
+                        )
+                )
+            )
+        val store = FakeOrganizerStateStore()
+        val repository =
+            DefaultOrganizerRepository(
+                installedAppSource = FakeInstalledAppSource(mutableListOf(installedApp(appId))),
+                organizerStateStore = store,
+                categoryEngine = DefaultCategoryEngine(knownAppCategory = { null }),
+                supportedMetadataRepository = metadataRepository
+            )
+
+        repository.refresh()
+
+        val enriched = repository.apps.first().single()
+        assertEquals(AppCategory.READING, enriched.category)
+        assertEquals(ClassificationSource.SUPPORTED_METADATA, enriched.source)
+        repository.setCategoryOverride(appId, AppCategory.WORK.id)
+
+        val overridden = repository.apps.first().single()
+        assertEquals(AppCategory.WORK, overridden.category)
+        assertEquals(ClassificationSource.USER_OVERRIDE, overridden.source)
     }
 
     @Test
@@ -221,6 +260,13 @@ class DefaultOrganizerRepositoryTest {
             mutableState.value = updated
             return updated
         }
+    }
+
+    private class FakeSupportedMetadataRepository(initialMetadata: Map<AppId, SupportedAppMetadata>) :
+        SupportedMetadataRepository {
+        override val metadata: Flow<Map<AppId, SupportedAppMetadata>> = MutableStateFlow(initialMetadata)
+
+        override suspend fun refreshIfNeeded(appIds: Set<AppId>) = Unit
     }
 
     private class FakeCategoryEngine(val automaticCategories: MutableMap<AppId, AppCategory> = mutableMapOf()) :

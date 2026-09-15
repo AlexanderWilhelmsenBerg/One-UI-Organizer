@@ -2,7 +2,7 @@
 
 ## Status
 
-Agent 100 implements the first supported external metadata-enrichment path on PR #23. This document describes the implementation on that branch. It does not claim Agent-102 combined integration or physical Samsung acceptance.
+Agent 100 implements the first supported external metadata-enrichment path in PR #23, now merged to `main` at Agent-102 start baseline `8d34cc88106bb346baac00c012f9ad12c7a9e50f`. This document describes the merged provider/cache/classification contract. Combined metadata + presentation acceptance remains owned by Agent 102 and physical Samsung acceptance must be recorded separately rather than inferred from CI.
 
 The existing planning contract in `PLAN.md`, `MOSCOW.md`, `ACCEPTANCE_CRITERIA.md`, `PARALLEL_DEVELOPMENT.md`, `CLASSIFICATION_ROADMAP.md`, and the category-management/backup documentation was reviewed before implementation. The first-rollout policy remains deliberately conservative.
 
@@ -213,9 +213,9 @@ The Agent-100 unit coverage includes:
 
 The permanent CI lane remains responsible for debug assembly, AndroidTest APK compilation, JVM tests, Android Lint, ktlint, dependency health, strict dependency verification, warning failure, configuration-cache reuse and the permission audit.
 
-## Agent 102 acceptance still required
+## Agent 102 combined acceptance
 
-Agent 100 does not claim combined physical acceptance. Agent 102 must still verify on the Samsung target device:
+Agent 100 does not claim combined physical acceptance. Agent 102 must verify the merged PR-23 implementation together with the PR-22 two-destination navigation on the Samsung target device:
 
 1. first shelf/useful local classification is not delayed by provider I/O;
 2. an F-Droid-covered formerly-`Unsorted` package can improve after enrichment;
@@ -224,6 +224,6 @@ Agent 100 does not claim combined physical acceptance. Agent 102 must still veri
 5. airplane mode/provider failure leaves the local shelf and launch flow usable;
 6. existing user overrides, bundled rules and Android-resolved categories do not change;
 7. no custom-category state/order/identity is mutated;
-8. interaction with the merged primary navigation remains correct;
+8. interaction with the merged primary navigation remains correct: shortcuts land on `Organizer`, metadata explanation remains contextual, and metadata does not create a third destination;
 9. practical network/memory cost of the current F-Droid bulk index is acceptable on the Samsung target;
 10. `INTERNET` is intentional and `QUERY_ALL_PACKAGES`, broad storage, telemetry, accounts/cloud sync and background services remain absent.

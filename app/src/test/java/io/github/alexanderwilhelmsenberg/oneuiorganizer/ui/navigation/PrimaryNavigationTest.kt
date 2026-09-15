@@ -5,6 +5,14 @@ import org.junit.Test
 
 class PrimaryNavigationTest {
     @Test
+    fun primaryNavigationContainsExactlyOrganizerAndCategories() {
+        assertEquals(
+            listOf(PrimaryDestination.ORGANIZER, PrimaryDestination.CATEGORIES),
+            PrimaryDestination.entries
+        )
+    }
+
+    @Test
     fun organizerIsInitialAndFallbackDestination() {
         assertEquals(PrimaryDestination.ORGANIZER, PrimaryDestination.fromSavedValue(null))
         assertEquals(PrimaryDestination.ORGANIZER, PrimaryDestination.fromSavedValue("unknown"))

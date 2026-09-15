@@ -121,11 +121,23 @@ Interactive controls expose meaningful accessibility semantics/content descripti
 
 Shelf composables are not coupled to Samsung-only blur/window APIs. Presentation can change without rewriting domain/data code.
 
+### E8 — Two-destination primary navigation
+
+The primary application shell contains exactly `Organizer` and `Categories`. Backup & restore, diagnostics, settings and other utilities remain contextual rather than becoming additional primary destinations. Phones use a One UI-style bottom navigation treatment.
+
+### E9 — Primary navigation is presentation state
+
+Primary destination selection is not organizer/category domain state, is not persisted in `OrganizerState`, and is not included in backup/export. The selected destination restores through normal activity/presentation state where appropriate. Switching `Organizer` and `Categories` must not unnecessarily reset Organizer search/category focus or other destination-local saveable presentation state.
+
+### E10 — Back and adaptive-shell contract
+
+Nested dialogs/sheets/management/Backup surfaces close before root system Back. Primary destination switching does not build synthetic Back history. Category-management subflows return to `Categories`; shortcut entry routes to `Organizer`. Organizer/Categories feature screens remain independent of phone bottom-navigation chrome so a future large-screen/foldable navigation rail can replace the shell without rewriting those screens.
+
 ## F. Privacy and permissions
 
 ### F1 — Audited Internet permission
 
-Agent 100 adds `android.permission.INTERNET` only for the documented F-Droid metadata provider. No other Android permission is added by this lane. CI requires the intentional `INTERNET` permission and fails on any other declared Android permission; `QUERY_ALL_PACKAGES` remains explicitly forbidden. Provider, cache, refresh and privacy behavior are documented in `METADATA_ENRICHMENT.md`.
+Agent 100 / PR #23 adds `android.permission.INTERNET` only for the documented F-Droid metadata provider. No other Android permission is added by this lane. CI requires the intentional `INTERNET` permission and fails on any other declared Android permission; `QUERY_ALL_PACKAGES` remains explicitly forbidden. Provider, cache, refresh and privacy behavior are documented in `METADATA_ENRICHMENT.md`.
 
 ### F2 — No broad package-query permission
 
@@ -292,4 +304,32 @@ Repository migration tests are necessary but not sufficient for this criterion.
 
 ### L9 — Final wave completion
 
-Agent 83 / PR #18 may be marked complete only when the final permanent quality lane is green **and** the physical Samsung migration/behavior checklist passes with generalized/sanitized evidence. Until then PR #18 remains unmerged and the category-management wave remains pending physical acceptance.
+Agent 83 / PR #18 is accepted: the final permanent quality lane and physical Samsung migration/behavior checklist passed with generalized/sanitized evidence before merge. Later waves must regression-test this accepted category-management baseline rather than reopening its ownership contracts.
+
+## M. Metadata + presentation integration acceptance
+
+The Agent-102 wave is complete only when the merged PR-22/PR-23 mainline passes the following combined gates. Detailed evidence lives in `METADATA_PRESENTATION_INTEGRATION_ACCEPTANCE.md`.
+
+### M1 — Input baseline
+
+PR #21 is the accepted portability/shortcut baseline. PR #22 and PR #23 are both merged before Agent 102 begins, and Agent 102 refreshes actual `main`, merged diffs and current CI rather than relying on remembered branch state.
+
+### M2 — Shortcut routing through the new shell
+
+Built-in and custom category shortcuts always select `Organizer`, resolve/focus the intended stable `CategoryId`, never select `Categories` management by accident, and retain normal launch/dismiss behavior. Deleted/stale category destinations fail safely to the ordinary shelf with the existing explanatory behavior.
+
+### M3 — Backup/import through contextual Categories flows
+
+Backup & restore remains contextual under `Categories`. SAF create/open document callbacks continue to work. A valid import atomically replaces organizer state, refreshes presentation, preserves custom category identity/order, and therefore preserves category shortcut identity. Invalid import leaves current organizer state unchanged.
+
+### M4 — Metadata remains best-effort and subordinate
+
+Metadata refresh never blocks ordinary installed-app scanning, does not override user/bundled/Android decisions, uses app-owned provider/model boundaries, honors the documented cache policy, and fails safely offline/provider-error. Metadata-derived decisions expose `ClassificationSource.SUPPORTED_METADATA` through the normal UI/diagnostic mapping rather than creating a separate primary destination or metadata-owned UI state.
+
+### M5 — Privacy and permission audit
+
+`INTERNET` exists only because the supported F-Droid provider is implemented and documented. `QUERY_ALL_PACKAGES`, broad storage permissions, telemetry, analytics, accounts/cloud sync and unapproved background services remain absent. The derived metadata cache remains outside organizer backup/export.
+
+### M6 — Physical Samsung release gate
+
+A repository-signed debug APK from the exact final Agent-102 head must pass the primary Samsung checklist for two-destination navigation, state preservation, Back, category lifecycle, shortcuts, real backup/export/import, online/offline metadata behavior, accessibility/scaling and practical orientation/large-screen sanity. Automated CI cannot substitute for this device gate.
