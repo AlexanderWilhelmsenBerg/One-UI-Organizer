@@ -108,9 +108,10 @@ Greenfield quality policy:
 
 - Kotlin/compiler warnings fail CI;
 - Gradle deprecations fail the dedicated warning check;
-- Android Lint warnings/errors fail CI;
+- Android Lint warnings/errors fail deterministic PR CI;
 - no lint baseline initially;
 - no global warning suppressions;
+- `NewerVersionAvailable` is excluded narrowly from deterministic Lint because stable dependency discovery runs in the separate scheduled/manual `Dependency freshness` workflow;
 - `ktlintCheck` is a PR gate;
 - dependency `buildHealth` is a PR gate;
 - dependency update reports reject prerelease candidates.
@@ -147,6 +148,7 @@ These are **not initial dependencies**. Re-check stable versions again at adopti
 | GitHub checkout action | `actions/checkout` **7.0.1** |
 | Gradle GitHub Action | `gradle/actions/setup-gradle` **6.2.0** |
 | GitHub artifact upload action | `actions/upload-artifact` **7.0.1**; direct single-file APK uploads use `archive: false` |
+| Android emulator action | `ReactiveCircus/android-emulator-runner` **2.38.0**, pinned to immutable commit SHA |
 | GitHub Actions dependencies | Pin to **immutable commit SHA**, annotate release tag in comments |
 | Gradle dependency verification | **SHA-256 metadata committed** |
 | Gradle configuration cache | **Required compatible** |
@@ -155,6 +157,8 @@ These are **not initial dependencies**. Re-check stable versions again at adopti
 | Version management | **`gradle/libs.versions.toml`** |
 
 The exact `setup-java` action version is not part of the authoritative toolchain: CI Java setup is bootstrap plumbing. Committed Gradle Daemon JVM criteria plus Gradle Java toolchains remain the source of truth.
+
+Permanent PR CI executes debug/release assembly, JVM tests, static/format/dependency-health gates, strict dependency verification, configuration-cache reuse, a merged built-APK manifest/privacy audit, and the Android instrumentation suite on a stable API-36 emulator. Dependency freshness is a separate scheduled/manual advisory workflow so upstream publication timing cannot make an unchanged PR fail. Repository-signed APK and physical Samsung acceptance remain separate release/integration evidence.
 
 ## 8. Known newer/pre-release versions intentionally not selected
 

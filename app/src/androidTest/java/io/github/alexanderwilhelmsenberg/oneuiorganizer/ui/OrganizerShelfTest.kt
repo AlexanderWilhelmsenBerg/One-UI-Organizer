@@ -253,7 +253,8 @@ class OrganizerShelfTest {
                     categories =
                         listOf(
                             CategorySectionUiModel(AppCategory.COMMUNICATION, listOf(signal))
-                        )
+                        ),
+                    currentAppCount = 1
                 ),
             onClassificationReportRequested = { requested = true }
         )

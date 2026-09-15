@@ -78,9 +78,9 @@ jobs:
           --configuration-cache
           --configuration-cache-problems=fail
 
-      - name: Verify scaffold
+      - name: Verify deterministic build
         run: >-
-          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
+          ./gradlew :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck buildHealth
           --warning-mode=fail
           --dependency-verification=strict
           --configuration-cache
@@ -100,6 +100,7 @@ jobs:
           set -euo pipefail
           ./gradlew \
             :app:assembleDebug \
+            :app:assembleRelease \
             :app:assembleDebugAndroidTest \
             :app:testDebugUnitTest \
             :app:lintDebug \
@@ -112,22 +113,88 @@ jobs:
             2>&1 | tee "${RUNNER_TEMP}/configuration-cache-reuse.log"
           grep -F "Reusing configuration cache." "${RUNNER_TEMP}/configuration-cache-reuse.log"
 
-      - name: Enforce permission audit
+      - name: Audit built APK manifest
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t permissions < <(grep -oE 'android:name="android\.permission\.[A-Z0-9_]+"' app/src/main/AndroidManifest.xml | sed -E 's/.*"(android\.permission\.[A-Z0-9_]+)"/\1/' || true)
-          if ! printf '%s\n' "${permissions[@]}" | grep -Fxq 'android.permission.INTERNET'; then
-            echo "Metadata enrichment requires the audited INTERNET permission." >&2
-            exit 1
-          fi
-          unexpected=$(printf '%s\n' "${permissions[@]}" | grep -Fxv 'android.permission.INTERNET' || true)
-          if [[ -n "$unexpected" ]]; then
-            echo "Unexpected Android permission(s) found in manifest:" >&2
-            printf '%s\n' "$unexpected" >&2
-            exit 1
-          fi
-          if grep -Fq 'android.permission.QUERY_ALL_PACKAGES' app/src/main/AndroidManifest.xml; then
-            echo "QUERY_ALL_PACKAGES remains forbidden." >&2
-            exit 1
-          fi
+          apkanalyzer="$(find "${ANDROID_HOME}/cmdline-tools" -type f -path '*/bin/apkanalyzer' -print -quit)"
+          test -n "${apkanalyzer}"
+          apk="app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -f "${apk}"
+          "${apkanalyzer}" manifest print "${apk}" > "${RUNNER_TEMP}/merged-release-manifest.xml"
+          python3 .github/scripts/audit_apk_manifest.py "${RUNNER_TEMP}/merged-release-manifest.xml"
+
+      - name: Upload verification reports on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verification-reports-${{ github.sha }}
+          path: |
+            app/build/reports
+            app/build/test-results
+            build/reports
+          if-no-files-found: ignore
+          retention-days: 7
+
+  instrumentation:
+    name: Android instrumentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Provision API 37.0 compile SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tools_dir="${RUNNER_TEMP}/android-command-line-tools"
+          tools_zip="${RUNNER_TEMP}/commandlinetools-linux-15859902_latest.zip"
+          android_cli="${tools_dir}/cmdline-tools/bin/android"
+          api37_package="platforms/android-37.0@2.0.0"
+
+          mkdir -p "${tools_dir}"
+          curl -fsSL \
+            https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip \
+            -o "${tools_zip}"
+          unzip -q "${tools_zip}" -d "${tools_dir}"
+          "${android_cli}" --no-metrics --sdk="${ANDROID_HOME}" sdk install --force "${api37_package}" --beta
+          test -f "${ANDROID_HOME}/platforms/android-37.0/android.jar"
+
+      - name: Enable KVM access
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Android instrumentation suite
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: >-
+            ./gradlew connectedDebugAndroidTest
+            --warning-mode=fail
+            --dependency-verification=strict
+
+      - name: Upload instrumentation reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: instrumentation-reports-${{ github.sha }}
+          path: |
+            app/build/outputs/androidTest-results
+            app/build/reports/androidTests
+          if-no-files-found: ignore
+          retention-days: 7
