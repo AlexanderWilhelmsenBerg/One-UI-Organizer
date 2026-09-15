@@ -5,18 +5,28 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.R
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.diagnostics.AppEventLog
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.diagnostics.NoOpAppEventLog
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class AndroidCategoryShortcutManager(context: Context) : CategoryShortcutManager {
+class AndroidCategoryShortcutManager(
+    context: Context,
+    private val eventLog: AppEventLog = NoOpAppEventLog
+) : CategoryShortcutManager {
     private val appContext = context.applicationContext
     private val shortcutManager: ShortcutManager =
         requireNotNull(appContext.getSystemService(ShortcutManager::class.java))
 
     override val isPinningSupported: Boolean
-        get() = shortcutManager.isRequestPinShortcutSupported
+        get() = try {
+            shortcutManager.isRequestPinShortcutSupported
+        } catch (exception: RuntimeException) {
+            eventLog.record("Shortcut pinning capability query failed", exception)
+            false
+        }
 
     override suspend fun synchronize(
         orderedCategories: List<CategoryDefinition>,
@@ -25,20 +35,22 @@ class AndroidCategoryShortcutManager(context: Context) : CategoryShortcutManager
         withContext(Dispatchers.IO) {
             try {
                 synchronizeOnWorker(orderedCategories, currentCategoryAppCounts)
-            } catch (_: IllegalStateException) {
-                // The platform can reject shortcut access while the user is locked. Foreground sync
-                // on the next launch/resume will retry without inventing independent state here.
+            } catch (exception: RuntimeException) {
+                // Shortcut publication is best-effort. Device launchers can reject framework calls
+                // while locked or during launcher state transitions; retry on the next foreground sync.
+                eventLog.record("Category shortcut synchronization failed", exception)
             }
         }
     }
 
     override fun requestPinShortcut(category: CategoryDefinition): Boolean {
-        if (!shortcutManager.isRequestPinShortcutSupported) {
+        if (!isPinningSupported) {
             return false
         }
         return try {
             shortcutManager.requestPinShortcut(buildShortcut(category), null)
-        } catch (_: IllegalStateException) {
+        } catch (exception: RuntimeException) {
+            eventLog.record("Category shortcut pin request failed", exception)
             false
         }
     }
@@ -46,8 +58,9 @@ class AndroidCategoryShortcutManager(context: Context) : CategoryShortcutManager
     override fun reportShortcutUsed(categoryId: CategoryId) {
         try {
             shortcutManager.reportShortcutUsed(CategoryShortcutIdentity.shortcutId(categoryId))
-        } catch (_: IllegalStateException) {
+        } catch (exception: RuntimeException) {
             // Usage reporting is advisory and must never make launching a category fail.
+            eventLog.record("Category shortcut usage reporting failed", exception)
         }
     }
 
