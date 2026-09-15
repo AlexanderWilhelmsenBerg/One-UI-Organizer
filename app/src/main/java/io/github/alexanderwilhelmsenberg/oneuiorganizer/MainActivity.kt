@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.diagnostics.AppEventLog
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryDefinition
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.model.CategoryId
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.platform.backup.AndroidBackupDocumentStore
@@ -20,6 +21,7 @@ import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.OrganizerViewModel
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.backup.BackupRestore
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.backup.BackupRestoreController
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.categories.CategoriesOverview
+import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.diagnostics.EventLogDialog
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.management.CategoryManagement
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupDocumentRequest
 import io.github.alexanderwilhelmsenberg.oneuiorganizer.ui.model.BackupRestoreNotice
@@ -44,9 +46,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var organizerViewModel: OrganizerViewModel
     private lateinit var categoryShortcutManager: CategoryShortcutManager
     private lateinit var backupRestoreController: BackupRestoreController
+    private lateinit var eventLog: AppEventLog
     private var categoryDestinationCleared = false
     private var primaryDestination by mutableStateOf(PrimaryDestination.ORGANIZER)
     private var showBackupRestore by mutableStateOf(false)
+    private var showEventLog by mutableStateOf(false)
+    private var eventLogText by mutableStateOf("")
 
     private val createBackupDocumentLauncher =
         registerForActivityResult(BackupDocumentPicker.createDocumentContract()) { uri ->
@@ -67,6 +72,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val organizerApplication = application as OneUiOrganizerApplication
+        eventLog = organizerApplication.eventLog
+        eventLog.record("Main activity created")
         presentationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         organizerViewModel = organizerApplication.createOrganizerViewModel(presentationScope)
         categoryShortcutManager = organizerApplication.categoryShortcutManager
@@ -74,7 +81,8 @@ class MainActivity : ComponentActivity() {
             BackupRestoreController(
                 backupRepository = organizerApplication.organizerBackupRepository,
                 documentStore = AndroidBackupDocumentStore(contentResolver),
-                scope = presentationScope
+                scope = presentationScope,
+                eventLog = eventLog
             )
         val supportsDynamicColor = organizerApplication.uiPlatformCapabilities.supportsDynamicColor
 
@@ -102,6 +110,7 @@ class MainActivity : ComponentActivity() {
                     PrimaryNavigationHost(
                         selectedDestination = primaryDestination,
                         onDestinationSelected = { destination ->
+                            eventLog.record("Primary destination selected: ${destination.savedValue}")
                             primaryDestination = destination
                         },
                         showHiddenApps = showHiddenApps,
@@ -135,7 +144,8 @@ class MainActivity : ComponentActivity() {
                             CategoriesOverview(
                                 state = categoryManagementState,
                                 onManageCategories = ::openCategoryManagement,
-                                onBackupRestoreRequested = ::openBackupRestore
+                                onBackupRestoreRequested = ::openBackupRestore,
+                                onEventLogRequested = ::openEventLog
                             )
                         },
                         categoryManagementContent = {
@@ -164,6 +174,14 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     )
+                    if (showEventLog) {
+                        EventLogDialog(
+                            logText = eventLogText,
+                            onShare = ::shareEventLog,
+                            onClear = ::clearEventLog,
+                            onDismiss = { showEventLog = false }
+                        )
+                    }
                 }
             }
         }
@@ -184,6 +202,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        eventLog.record("Main activity resumed; refreshing installed apps")
         organizerViewModel.refresh()
     }
 
@@ -194,6 +213,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleShortcutIntent(sourceIntent: Intent?) {
         val destination = CategoryShortcutIntents.destinationFrom(sourceIntent) ?: return
+        eventLog.record("Category shortcut intent handled")
         dismissBackupRestore()
         primaryDestination = PrimaryDestination.forCategoryShortcut()
         organizerViewModel.openCategoryDestination(destination)
@@ -201,13 +221,26 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openCategoryManagement() {
+        eventLog.record("Category management opened")
         primaryDestination = PrimaryDestination.forCategoryManagement()
         organizerViewModel.showCategoryManagement()
     }
 
     private fun openBackupRestore() {
+        eventLog.record("Backup and restore opened")
         primaryDestination = PrimaryDestination.forBackupRestore()
         showBackupRestore = true
+    }
+
+    private fun openEventLog() {
+        eventLog.record("Event log opened")
+        eventLogText = eventLog.read()
+        showEventLog = true
+    }
+
+    private fun clearEventLog() {
+        eventLog.clear()
+        eventLogText = ""
     }
 
     private fun clearCategoryDestination() {
@@ -224,12 +257,17 @@ class MainActivity : ComponentActivity() {
     private fun observeBackupDocumentRequests() {
         presentationScope.launch {
             backupRestoreController.documentRequests.collect { request ->
-                when (request) {
-                    is BackupDocumentRequest.Create ->
-                        createBackupDocumentLauncher.launch(request.suggestedFileName)
+                try {
+                    when (request) {
+                        is BackupDocumentRequest.Create ->
+                            createBackupDocumentLauncher.launch(request.suggestedFileName)
 
-                    is BackupDocumentRequest.Open ->
-                        openBackupDocumentLauncher.launch(request.mimeTypes.toTypedArray())
+                        is BackupDocumentRequest.Open ->
+                            openBackupDocumentLauncher.launch(request.mimeTypes.toTypedArray())
+                    }
+                } catch (exception: RuntimeException) {
+                    eventLog.record("Backup document picker could not be launched", exception)
+                    backupRestoreController.onDocumentPickerLaunchFailed(request)
                 }
             }
         }
@@ -266,6 +304,27 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+        }
+    }
+
+    private fun shareEventLog() {
+        eventLogText = eventLog.read()
+        val sendIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.event_log_subject))
+                putExtra(Intent.EXTRA_TEXT, eventLogText)
+            }
+        try {
+            startActivity(
+                Intent.createChooser(
+                    sendIntent,
+                    getString(R.string.event_log_chooser_title)
+                )
+            )
+        } catch (exception: RuntimeException) {
+            eventLog.record("Event log share chooser could not be opened", exception)
+            eventLogText = eventLog.read()
         }
     }
 

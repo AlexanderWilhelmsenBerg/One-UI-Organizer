@@ -31,6 +31,7 @@ fun CategoriesOverview(
     state: CategoryManagementUiState,
     onManageCategories: () -> Unit,
     onBackupRestoreRequested: () -> Unit,
+    onEventLogRequested: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -58,7 +59,8 @@ fun CategoriesOverview(
             item(key = "categories-tools") {
                 CategoryTools(
                     onManageCategories = onManageCategories,
-                    onBackupRestoreRequested = onBackupRestoreRequested
+                    onBackupRestoreRequested = onBackupRestoreRequested,
+                    onEventLogRequested = onEventLogRequested
                 )
             }
 
@@ -98,7 +100,11 @@ private fun CategoriesHeader() {
 }
 
 @Composable
-private fun CategoryTools(onManageCategories: () -> Unit, onBackupRestoreRequested: () -> Unit) {
+private fun CategoryTools(
+    onManageCategories: () -> Unit,
+    onBackupRestoreRequested: () -> Unit,
+    onEventLogRequested: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -128,6 +134,12 @@ private fun CategoryTools(onManageCategories: () -> Unit, onBackupRestoreRequest
                 onClick = onBackupRestoreRequested
             ) {
                 Text(stringResource(R.string.backup_restore_title))
+            }
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onEventLogRequested
+            ) {
+                Text(stringResource(R.string.event_log_title))
             }
         }
     }
